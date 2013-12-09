@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!--
+ Copyright (c) 2010 - 2011, AllSeen Alliance. All rights reserved.
+
+ Permission to use, copy, modify, and/or distribute this software for any
+ purpose with or without fee is hereby granted, provided that the above
+ copyright notice and this permission notice appear in all copies.
+
+ THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES
+ WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
+ MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR
+ ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
+ WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
+ ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
+ OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
+-->
+
+<node name="/com/example/TypeTest" xmlns:doc="http://www.freedesktop.org/dbus/1.0/doc.dtd">
+
+  <interface name="org.codeaurora.mbus.echoPing">
+
+    <method name="echo">
+      <arg type="(sid)" name="echo_struct" direction="in" />
+      <arg type="s" name="echo_string" direction="out" />
+      <arg type="i" name="echo_int" direction="out" />
+      <arg type="d" name="echo_double" direction="out" />
+    </method>
+
+    <method name="foo">
+      <arg type="ai" name="fooArg1" direction="in" />
+      <arg type="ai" name="fooArg2" direction="out" />
+    </method>
+
+    <signal name="ping">
+      <arg type="a{ii}" name="curr_ping_count"/>
+    </signal>
+
+    <signal name="bar">
+      <arg type="as" name="barArray"/>
+    </signal>
+
+    <property name="prop1" type="i" access="readwrite" />
+    <property name="prop2" type="i" access="read" />
+    <property name="prop3" type="i" access="write" />
+
+  </interface>
+
+</node>

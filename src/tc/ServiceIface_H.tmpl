@@ -1,0 +1,75 @@
+###############################################################################
+## Copyright (c) 2013 AllSeen Alliance. All rights reserved.
+##
+## Permission to use, copy, modify, and/or distribute this software for any
+## purpose with or without fee is hereby granted, provided that the above
+## copyright notice and this permission notice appear in all copies.
+##
+## THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES
+## WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
+## MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR
+## ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
+## WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
+## ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
+## OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
+###############################################################################
+#import GenTC
+#import CommonCheetah as cc
+/* Source: "$command_line.xml_input_file" */
+
+\#include <alljoyn.h>
+
+/* Interface: "$interface.interface_full_name" */
+
+## Get the service side defines for this interface.
+#set $defines = $GenTC.get_defines($interface, False)
+#for $d in $defines
+$d
+#end for
+
+$cc.CommonCheetah.define_containers($interface)
+## For this interface find all the AllJoyn objects that instantiate it.
+#for $o in $interface.parents
+    #set $iface_index = $o.get_interface_index($interface)
+    #set $comp = $GenTC.get_interface_components($interface, $o, $iface_index, False)
+    #for $c in $comp
+$cc.CommonCheetah.function_header($o, $c, True)#slurp
+$function_declaration($c)
+    #end for
+#end for
+######################
+## Declare the function used for interfacing with a property.
+###################### 
+#def property_declaration($name)
+extern AJ_Status ${name}(AJ_Message* replyMsg, uint32_t propId, void* context);
+#end def
+######################
+## Declare the function used for interfacing with a method.
+###################### 
+#def method_declaration($name)
+extern AJ_Status ${name}(AJ_Message* msg, AJ_Message* reply);
+#end def
+######################
+## Declare the function used for interfacing with a signal.
+###################### 
+#def signal_declaration($c)
+    #if $c.output_arg_info is not None and len($c.output_arg_info.args) > 0
+extern AJ_Status ${c.name}(AJ_BusAttachment* bus, AJ_SessionId sessionId,
+                 $c.output_arg_info.arg_declaration);
+    #else
+extern AJ_Status ${c.name}(AJ_BusAttachment* bus, AJ_SessionId sessionId);
+    #end if
+#end def
+######################
+## Declare the function used for a property, method, or signal.
+###################### 
+#def function_declaration($c)
+        #if $c.comp_type == "prop"
+$property_declaration($c.name)#slurp
+        #elif $c.comp_type == "meth"
+$method_declaration($c.name)#slurp
+        #else
+            #assert($c.comp_type) == "sig"
+$signal_declaration($c)#slurp
+        #end if
+#end def

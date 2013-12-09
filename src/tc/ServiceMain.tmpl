@@ -1,0 +1,192 @@
+###############################################################################
+## Copyright (c) 2013 AllSeen Alliance. All rights reserved.
+##
+## Permission to use, copy, modify, and/or distribute this software for any
+## purpose with or without fee is hereby granted, provided that the above
+## copyright notice and this permission notice appear in all copies.
+##
+## THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES
+## WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
+## MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR
+## ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
+## WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
+## ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
+## OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
+###############################################################################
+#import GenTC
+/* Source: "$command_line.xml_input_file" */
+
+\#include <aj_target.h>
+\#include <aj_link_timeout.h>
+\#include <alljoyn.h>
+
+\#include "Service.h"
+\#include "CommonClientService.h"
+
+extern void ServiceAppDoWork(void* context);
+extern AJ_Status SessionLost(AJ_Message* msg, AJ_Message* reply);
+extern AJ_Status SessionJoined(AJ_Message* msg, AJ_Message* reply);
+extern AJ_Status CanJoinSession();
+
+/* The table of message handlers */
+static const MessageHandlerEntry MessageHandlers[] = {
+#set $handlers = $GenTC.get_message_handlers_table($service)
+#for $h in $handlers
+    { $h },
+#end for
+    { AJ_SIGNAL_SESSION_LOST,                  &SessionLost },
+    { AJ_SIGNAL_SESSION_JOINED,                &SessionJoined },
+    { 0, NULL }
+};
+#if $service.has_properties()
+
+/******
+ * The table(s) of property handlers. There is one table for each instance of an object (node)
+ * that has properties. Each table has an entry for each property in the interfaces of that
+ * object.
+ */
+    #for $o in $service.get_objects()
+        #if $o.has_properties()
+static const PropHandlerEntry PropHandlers$o.get_full_coded_name()[] = {
+            #for $i in $o.interfaces
+                #set $handlers = $GenTC.get_service_property_handlers_table($o.index, $o, $i)
+                    #for $h in $handlers
+    { $h },
+                    #end for
+            #end for
+    { 0, NULL, NULL }
+};
+        #end if
+    #end for
+#end if ## $service.has_properties()
+
+/******
+ * This function searches the entry table for a msgid that matches the propId
+ * being requested. If a match is found (program error if not found) then it calls
+ * the specfic instance handler for the property with AJ_PROP_SET or AJ_PROP_GET
+ * depending on whether the property is to be set or got.
+ */
+static AJ_Status PropGetSetHandler(AJ_Message* replyMsg, uint32_t propId, PropHandlerEntry* entry, uint32_t getOrSet)
+{
+    AJ_Status status = AJ_ERR_NO_MATCH;
+
+    do {
+        if (propId == entry->msgid) {
+            status = entry->callback(replyMsg, getOrSet, entry->context);
+            break;
+        }
+    } while((++entry)->msgid != 0);
+
+    return status;
+}
+
+/******
+ * This function converts the context to a PropHandlerEntry* then passes it,
+ * the other arguments, and AJ_PROP_GET to PropGetSetHandler().
+ */
+static AJ_Status PropGetHandler(AJ_Message* replyMsg, uint32_t propId, void* context)
+{
+    PropHandlerEntry* entry = (PropHandlerEntry*)context;
+
+    return PropGetSetHandler(replyMsg, propId, entry, AJ_PROP_GET);
+}
+
+/******
+ * This function converts the context to a PropHandlerEntry* then passes it,
+ * the other arguments, and AJ_PROP_SET to PropGetSetHandler().
+ */
+static AJ_Status PropSetHandler(AJ_Message* replyMsg, uint32_t propId, void* context)
+{
+    PropHandlerEntry* entry = (PropHandlerEntry*)context;
+
+    return PropGetSetHandler(replyMsg, propId, entry, AJ_PROP_SET);
+}
+
+/******
+ * This table sets the property get and set handlers for each instance of an
+ * an object (node). There is only one get handler and one set handler.
+ * A different search table is passed to the handler depending which object
+ * (node) has the property to be get or set.
+ */
+static const PropHandlerEntry GetSetPropHandlers[] = {
+#set $handlers = $GenTC.get_service_property_get_set_entries($service)
+#for $h in $handlers
+    { $h },
+#end for
+    { 0, NULL, NULL }
+};
+
+static uint8_t AcceptSession(AJ_Message* msg)
+{
+    AJ_Status status;
+    uint8_t accepted = FALSE;
+    uint16_t port = 0;
+    uint32_t sessionId = 0;
+    char* joiner = NULL;
+
+    status = AJ_UnmarshalArgs(msg, "qus", &port, &sessionId, &joiner);
+
+    if (AJ_OK == status) {
+        if (SERVICE_PORT == port) {
+    #if $command_line.runnable
+            if (AJ_OK == CanJoinSession()) {
+                accepted = TRUE;
+            } else {
+                AJ_InfoPrintf(("Rejected session_id=0x%x joiner=%s due to lack of resources.\n", sessionId, joiner));
+            }
+    #else
+            accepted = TRUE;
+    #end if
+            AJ_InfoPrintf(("Accepted session_id=0x%x joiner=%s\n", sessionId, joiner));
+        } else {
+            AJ_InfoPrintf(("Rejected session_id=0x%x joiner=%s\n", sessionId, joiner));
+        }
+    } else {
+        AJ_InfoPrintf(("Rejected session due to AJ_UnMarshalArgs() returning status %d.\n", status));
+    }
+
+    return accepted;
+}
+
+int main(void)
+{
+    /* Start calling ServiceAppDoWork() in this many milliseconds. */
+    const uint32_t work_start = 5 * 1000;
+
+    /* Call ServiceAppDoWork() every this many milliseconds. */
+    const uint32_t work_interval = 5 * 1000;
+
+    AJ_Status status = AJ_OK;
+    AJ_BusAttachment bus = {0};
+    AllJoynConfiguration config = {0};
+    uint32_t timer_id = 0;
+
+    /* One time initialization before calling any other AllJoyn APIs. */
+    AJ_Initialize();
+
+    timer_id = AJ_SetTimer(work_start, &ServiceAppDoWork, (void*)&bus, work_interval);
+
+    config.connect_timeout = TIMEOUT_CONNECT;
+    config.connected = FALSE;
+    config.session_port = SERVICE_PORT;
+    config.service_name = g_ServiceName;
+    config.flags = AJ_NAME_REQ_DO_NOT_QUEUE;
+    config.link_timeout = 60;
+    config.message_handlers = MessageHandlers;
+    config.prop_handlers = GetSetPropHandlers;
+    config.acceptor = AcceptSession;
+
+    /* g_ObjectTable has the local objects this executable implements.
+     * There are no proxy (remote) objects this executable plans to call.
+     */
+    AJ_RegisterObjects(g_ObjectTable, NULL);
+
+    status = AJ_RunAllJoynService(&bus, &config);
+
+    if (timer_id) {
+        AJ_CancelTimer(timer_id);
+    }
+
+    return status;
+}
+

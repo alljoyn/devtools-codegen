@@ -1,0 +1,856 @@
+###############################################################################
+## Copyright (c) 2013 AllSeen Alliance. All rights reserved.
+##
+## Permission to use, copy, modify, and/or distribute this software for any
+## purpose with or without fee is hereby granted, provided that the above
+## copyright notice and this permission notice appear in all copies.
+##
+## THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES
+## WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
+## MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR
+## ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
+## WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
+## ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
+## OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
+###############################################################################
+#import GenTC
+#from .. import argdef
+
+#@staticmethod
+#def function_header($object, $component, $is_service)
+    #if $component.input_arg_info is not None
+        #set $input_args = $component.input_arg_info.arg_declaration
+    #else
+        #set $input_args = None
+    #end if
+/*****
+ * Path (node): "$object.get_full_name()"
+ * XML name: "${component.xml_name}($input_args)"
+    #if $component.output_arg_info is not None and\
+        len($component.output_arg_info.args) > 0
+        #set $is_first = True
+        #for $a in $component.output_arg_info.args
+            #set $t = $GenTC.get_base_c_type($a.interface, $a.arg_type)
+            #set $ptrs = $a.get_indirection_level() * "*"
+            #if $is_first
+ * Output: $t$ptrs $a.name
+                #set $is_first = False
+            #else
+ *         $t$ptrs $a.name
+            #end if
+        #end for
+    #end if
+    #if $component.comp_type == "sig"
+        #if $is_service
+ * Sends the signal. The sessionId argument should be the session ID of the
+ * client recipient.
+        #else
+ * Receives the signal from the service.
+        #end if
+    #end if
+ */
+#end def
+#@staticmethod
+#def handle_error($runable, $func_name, $indent_count, $free_list = [])
+    #set $indent = $indent_count * " "
+${indent}if (AJ_OK != status) {
+    #if $runable
+    ${indent}$GenTC.comment_start_runnable
+    ${indent}AJ_InfoPrintf(("${func_name}() returned status 0x%x.\n", status));
+    ${indent}$GenTC.comment_end_runnable
+    #else
+    ${indent}$GenTC.comment_handle_error
+    #end if
+    #for $f in $free_list
+    ${indent}free((void*)$f);
+    #end for
+
+    ${indent}return status;
+${indent}}
+#end def
+#####################
+## Define static versions of any variants which are structure/dictionary members in any of
+## these args.  This is called from define_static_args which is only called from ClientDoWork
+## and ServiceDoWork when the Runnable flag is set.
+#####################
+#@staticmethod
+#def define_static_structure_variants($args, $indent_count)
+    #set $indent = $indent_count * " "
+    #for $a in $args
+        #set $c = $a.get_container()
+        #if $c is not None
+            #set $index = 1
+            #set $member_num = 0
+            #while $c[$index] != ')' and $c[$index] != '}'
+                #if $c[$index] == 'v'
+${indent}static int32_t s_${a.name}Member${member_num}Vint32;
+${indent}static uint8_t s_${a.name}Member${member_num}Vuint8;
+                #end if
+                #set $index += 1
+                #set $member_num += 1
+            #end while
+        #end if
+    #end for
+#end def
+#####################
+## Initialize any variants which are structure/dictionary members in any of these args.
+## This is called from initialize_args which is only called from ClientDoWork and
+## ServiceDoWork when the Runnable flag is set.
+#####################
+#@staticmethod
+#def initialize_structure_variants($args, $indent_count)
+    #set $indent = $indent_count * " "
+    #for $a in $args
+        #set $c = $a.get_container()
+        #if $c is not None
+            #set $index = 1
+            #set $member_num = 0
+            #while $c[$index] != ')' and $c[$index] != '}'
+                #if $c[$index] == 'v'
+${indent}/* Variant structure member s_${a.name}.member$member_num is one of two types. */
+${indent}if (s_${a.name}Member${member_num}Vuint8 % 2) {
+${indent}    AJ_InitArg(&s_${a.name}.member$member_num, AJ_ARG_BYTE, 0, &s_${a.name}Member${member_num}Vuint8, 0);
+${indent}    s_${a.name}.member${member_num}.sigPtr = "y";
+${indent}} else {
+${indent}    AJ_InitArg(&s_${a.name}.member$member_num, AJ_ARG_INT32, 0, &s_${a.name}Member${member_num}Vint32, 0);
+${indent}    s_${a.name}.member${member_num}.sigPtr = "i";
+${indent}}
+
+${indent}s_${a.name}Member${member_num}Vuint8++;
+${indent}s_${a.name}Member${member_num}Vint32--;
+                #end if
+                #set $index += 1
+                #set $member_num += 1
+            #end while
+        #end if
+    #end for
+#end def
+#####################
+## Initialize argument(s) from the static versions. This is used by
+## ClientDoWork and ServiceDoWork. See those files for more context.
+#####################
+#@staticmethod
+#def initialize_args($args, $complete_name, $indent_count)
+    #set $indent = $indent_count * " "
+${indent}/* Initializing. */
+$CommonCheetah.initialize_structure_variants($args, $indent_count)
+    #for $a in $args
+        #set $s = $a.get_base_signature()[0]
+        #if $a.is_array()
+${indent}${a.name}Elements = ArraySize(s_$a.name);
+${indent}$a.name = s_$a.name;
+
+${indent}for (index0 = ${a.name}Elements - 1; index0 > 0; index0--) {
+    ${indent}${a.name}[index0] = ${a.name}[index0 - 1];
+${indent}}
+
+            #if $s == 's' or $s == 'o' or $s == 'g' or $s == '(' or $s == '{'
+${indent}${a.name}[0] = temp_$a.name;
+            #end if
+        #elif $s == 'v'
+${indent}if (s_${a.name}_int % 2) {
+\#ifdef _WINDOWS_
+${indent}    _snprintf_s(stringBuffer$a.name, sizeof${a.name}, _TRUNCATE,
+\#else
+${indent}    snprintf(stringBuffer$a.name, sizeof${a.name},
+\#endif
+${indent}             "Variant arg #%d.", s_${a.name}_int);
+${indent}    AJ_InitArg(&$a.name, AJ_ARG_STRING, 0, stringBuffer$a.name, 0);
+${indent}    ${a.name}.sigPtr = "s";
+${indent}} else {
+${indent}    static int temp;
+
+${indent}    temp = s_${a.name}_int;
+${indent}    AJ_InitArg(&$a.name, AJ_ARG_INT32, 0, &temp, 0);
+${indent}    ${a.name}.sigPtr = "i";
+${indent}}
+
+        #end if
+$CommonCheetah.increment_arg($indent_count, $complete_name, $a)#slurp
+    #end for
+#end def
+#####################
+## Define static version of the argument(s) for runnable code. This is used by
+## ServiceIface, ClientDoWork, and ServiceDoWork. See those files for more context.
+#####################
+#@staticmethod
+#def define_static_args($args, $indent_count)
+    #set $indent = $indent_count * " "
+${indent}/* Define the static version of the arg(s). */
+$CommonCheetah.define_static_structure_variants($args, $indent_count)#slurp
+    #for $a in $args
+        #set $t = $GenTC.get_base_c_type($a.interface, $a.arg_type)
+        #set $ptrs = $a.get_indirection_level() * "*"
+        #if $t == "char*"
+${indent}char stringBuffer${a.name}[128];
+${indent}const size_t sizeof${a.name} = ArraySize(stringBuffer$a.name);
+${indent}static int32_t s_helloNumber$a.name = 0;
+        #end if
+        #if $a.arg_type == 'v'
+${indent}static int s_${a.name}_int = 0;    /* Variant int value. */
+${indent}char stringBuffer${a.name}[30];    /* Variant string value derived from the int value. */
+${indent}const size_t sizeof${a.name} = ArraySize(stringBuffer$a.name);
+            #continue
+        #end if
+        #set $init = $GenTC.get_initialization($a, indent_count + 4)
+        #if $a.is_array()
+${indent}static $t s_$a.name$init;
+            #set $s = $a.get_base_signature()[0]
+            #if $s == 's' or $s == 'o' or $s == 'g' or $s == '(' or $s == '{'
+${indent}$t temp_$a.name = s_${a.name}[ArraySize(s_${a.name}) - 1];
+            #end if
+        #else
+${indent}static $t s_$a.name$init;
+        #end if
+    #end for
+#end def
+######################
+## Define a collection of arguments.
+######################
+#@staticmethod
+#def define_arguments($args, $indent_count)
+    #set $indent = $indent_count * " "
+    #if $args is not None
+        #for $a in $args
+            #set $init_val = "0"
+            #set $const = ""
+            #set $t = $GenTC.get_base_c_type($a.interface, $a.arg_type)
+            #set $ptrs = $a.get_indirection_level() * "*"
+            #if $a.is_array()
+                #set $init_val = "NULL"
+                #if $t == "char*"
+                    #set $const = "const "
+                #end if
+${indent}int ${a.name}Elements = 0;
+            #elif $a.is_structure() or $t == "AJ_Arg"
+                #set $init_val = "{ 0 }"
+            #end if
+$indent$const$t$ptrs $a.name = $init_val;
+        #end for
+    #end if
+#end def
+######################
+## Unmarshal these arguments.
+######################
+#@staticmethod
+#def unmarshal_arguments($comp_type, $runnable, $arginfo, $indent_count, $is_client_side)
+    #set $indent = $indent_count * " "
+    #if $arginfo is not None and len($arginfo.args) > 0
+        #if $comp_type == "prop" and $is_client_side
+${indent}const char* sig;
+
+${indent}/* The signature is not used except with a variant property type but the call must be made. */
+${indent}status = AJ_UnmarshalVariant(msg, &sig);
+
+$CommonCheetah.handle_error($runnable, "AJ_UnmarshalVariant", $indent_count)
+        #end if
+        #if $arginfo.is_basic_types()
+${indent}status = AJ_UnmarshalArgs(msg, "$arginfo.signature"#slurp
+            #for $a in $arginfo.args
+, &$a.name#slurp
+            #end for
+);
+
+$CommonCheetah.handle_error($runnable, "AJ_UnmarshalArgs", $indent_count)#slurp
+        #else
+            #for $a in $arginfo.args
+$CommonCheetah.unmarshal_one_argument($a, $runnable, $indent_count)#slurp
+            #end for
+        #end if
+    #end if
+#end def
+######################
+## Unmarshal this one argument.
+######################
+#@staticmethod
+#def unmarshal_one_argument($arg, $runnable, $indent_count)
+    #set $indent = $indent_count * " "
+    #set $free_list = []
+    #set $index = 0
+    #if $arg.is_array()
+        #while $arg.arg_type[$index] == 'a'
+            #set $t = $arg.arg_type[$index + 1]
+            #if $t != 'a' and $t != 's' and $t != 'g' and $t != '(' and $t != '{'
+                #break
+            #else
+${indent}status = AJ_UnmarshalContainer(msg, &array$index, AJ_ARG_ARRAY);
+
+$CommonCheetah.handle_error($runnable, "AJ_UnmarshalContainer", $indent_count)
+${indent}${arg.name}Elements = 0;
+                #set $index += 1
+            #end if
+        #end while
+        #if $t == 's' or $t == 'o' or $t == 'g'
+$CommonCheetah.unmarshal_string_array($runnable, $arg.name, $t, $free_list, $index - 1, $indent_count)#slurp
+        #elif $t == '(' or $t == '{'
+            #set $sig = $arg.get_container(index)
+$CommonCheetah.unmarshal_container_array($runnable, $arg.name, $sig, $free_list, "msg", $index - 1, $indent_count)#slurp
+        #else
+${indent}status = AJ_UnmarshalArg(msg, &array$index);
+
+$CommonCheetah.handle_error($runnable, "AJ_UnmarshalArg", $indent_count, $free_list)
+$indent$arg.name = array${index}.val.$GenTC.val_dictionary[$t];
+$indent${arg.name}Elements = array${index}.len/sizeof(*$arg.name);
+        #end if
+        #while $index > 0
+            #set $index -= 1
+${indent}status = AJ_UnmarshalCloseContainer(msg, &array$index);
+
+$CommonCheetah.handle_error($runnable, "AJ_UnmarshalCloseContainer", $indent_count, $free_list)#slurp
+        #end while
+    #else
+        #if $arg.is_structure()
+            #set $sig = $arg.get_container()
+$CommonCheetah.unmarshal_container($runnable, $arg.name, $sig, "msg", 0, $indent_count, False, $free_list)#slurp
+        #elif $arg.arg_type == 'v'
+${indent}status = AJ_UnmarshalVariant(msg, &${arg.name}.sigPtr);
+
+$CommonCheetah.handle_error($runnable, "AJ_MarshalVariant", $indent_count)
+            #if $runnable
+${indent}/* Figure out which data type the variant is. */
+${indent}switch(${arg.name}.sigPtr[0]) {
+${indent}    case 's':
+${indent}    {
+${indent}        ${arg.name}.val.v_data = &${arg.name}.val.v_string;
+${indent}        ${arg.name}.typeId = 's';
+${indent}        break;
+${indent}    }
+${indent}    case 'i':
+${indent}    {
+${indent}        static int32_t variantIntBuffer;
+
+${indent}        ${arg.name}.val.v_int32 = &variantIntBuffer;
+${indent}        ${arg.name}.typeId = 'i';
+${indent}        break;
+${indent}    }
+${indent}    case 'y':
+${indent}    {
+${indent}        static uint8_t variantByteBuffer;
+
+${indent}        ${arg.name}.val.v_byte = &variantByteBuffer;
+${indent}        ${arg.name}.typeId = 'y';
+${indent}        break;
+${indent}    }
+${indent}    default: /* Unexpected variant type. */
+${indent}        assert(0);
+${indent}}
+
+${indent}status = AJ_UnmarshalArgs(msg, ${arg.name}.sigPtr, ${arg.name}.val.v_data);
+
+$CommonCheetah.handle_error($runnable, "AJ_MarshalArg", $indent_count)#slurp
+            #else
+${indent}/* TODO: Unmarshal your variant value with code something like:
+${indent}if (${arg.name}.sigPtr[0] == 's') {
+${indent}   status = AJ_UnmarshalArgs(msg, ${arg.name}.sigPtr, &myStringValue);
+${indent}} else {
+${indent}   status = AJ_UnmarshalArgs(msg, ${arg.name}.sigPtr, &myIntValue);
+${indent}}
+${indent} */
+            #end if
+        #else
+${indent}status = AJ_UnmarshalArgs(msg, "$arg.arg_type", &$arg.name);
+
+$CommonCheetah.handle_error($runnable, "AJ_UnmarshalArgs", $indent_count, $free_list)#slurp
+        #end if
+    #end if
+#end def
+#####################
+## Unmarshal an array of strings.
+#####################
+#@staticmethod
+#def unmarshal_string_array($runnable, $name, $sig, $free_list, $depth, $indent_count)
+    #set $indent = $indent_count * " "
+${indent}index$depth = 0;
+
+${indent}while (TRUE) {
+${indent}    ${name} = realloc((void*)${name}, ++${name}Elements * sizeof(${name}[0]));
+$free_list.append($name)#slurp
+    #set $struct_name = "{0}[index{1}]".format($name, $depth)
+${indent}    status = AJ_UnmarshalArgs(msg, "$sig", &${name}[index$depth]);
+
+${indent}    if (AJ_ERR_NO_MORE == status) {
+${indent}        break;
+${indent}    }
+
+$CommonCheetah.handle_error($runnable, "AJ_UnmarshalArgs", $indent_count + 4, $free_list)
+${indent}    index$depth++;
+${indent}}
+
+${indent}${name} = realloc((void*)${name}, --${name}Elements * sizeof(${name}[0]));
+#end def
+#####################
+## Unmarshal an array of structures.
+#####################
+#@staticmethod
+#def unmarshal_container_array($runnable, $name, $sig, $free_list, $msg_ptr, $depth, $indent_count)
+    #set $indent = $indent_count * " "
+${indent}index$depth = 0;
+
+${indent}while (TRUE) {
+${indent}    ${name} = realloc((void*)${name}, ++${name}Elements * sizeof(${name}[0]));
+$free_list.append($name)#slurp
+    #set $struct_name = "{0}[index{1}]".format($name, $depth)
+$CommonCheetah.unmarshal_container($runnable, $struct_name, $sig, $msg_ptr, $depth, $indent_count + 4, True, $free_list)
+${indent}    index$depth++;
+${indent}}
+
+${indent}${name} = realloc((void*)${name}, --${name}Elements * sizeof(${name}[0]));
+#end def
+#####################
+## Unmarshal a container and its contents.
+#####################
+#@staticmethod
+#def unmarshal_container($runnable, $name, $sig, $msg_ptr, $depth, $indent_count, $is_array, $free_list = [])
+#set $indent = $indent_count * " "
+    #set $t = $sig[0]
+    #assert($t == '(' or $t == '{')
+    #if $t == '('
+${indent}status = AJ_UnmarshalContainer($msg_ptr, &struct$depth, AJ_ARG_STRUCT);
+    #else
+${indent}status = AJ_UnmarshalContainer($msg_ptr, &dictionary$depth, AJ_ARG_DICT_ENTRY);
+    #end if
+
+    #if $is_array
+${indent}if (AJ_ERR_NO_MORE == status) {
+${indent}    break;
+${indent}}
+
+    #end if
+$CommonCheetah.handle_error($runnable, "AJ_UnmarshalContainer", $indent_count, $free_list)
+    #set $member_num = 0
+    #set $index = 1
+    #while $sig[$index] != ')' and $sig[$index] != '}'
+        #set $end_basic = $argdef.find_end_of_basic_types($sig, $index)
+        #if $end_basic == $index
+            #set $subArgSig = $sig[$index]
+            #set $subArgName = "{0}.member{1}".format($name, $member_num)
+            #set $subArg = $argdef.ArgDef(None, $subArgName, $subArgSig, "in")
+$CommonCheetah.unmarshal_one_argument($subArg, $runnable, $indent_count)
+            #set $index += 1
+            #set $member_num += 1
+        #else
+            #set $marshal_sig = $argdef.get_next_marshal_args_signature($sig, $index)
+${indent}status = AJ_UnmarshalArgs($msg_ptr, "$marshal_sig"#slurp
+            #while $index < $end_basic
+, &${name}.member$member_num#slurp
+                #set $member_num += 1
+                #set $index += 1
+            #end while
+);
+$CommonCheetah.handle_error($runnable, "AJ_UnmarshalArgs", $indent_count, $free_list)
+        #end if
+    #end while
+    #if $t == '('
+${indent}status = AJ_UnmarshalCloseContainer($msg_ptr, &struct$depth);
+    #else
+${indent}status = AJ_UnmarshalCloseContainer($msg_ptr, &dictionary$depth);
+    #end if
+
+$CommonCheetah.handle_error($runnable, "AJ_UnmarshalCloseContainer", $indent_count, $free_list)#slurp
+#end def
+######################
+## Marshal these arguments.
+######################
+#@staticmethod
+#def marshal_arguments($runnable, $arginfo, $msg_ptr, $indent_count)
+    #if $arginfo is not None and len($arginfo.args) > 0
+        #set $indent = $indent_count * " "
+        #if $arginfo.is_basic_types()
+${indent}status = AJ_MarshalArgs($msg_ptr, "$arginfo.signature"#slurp
+            #for $a in $arginfo.args
+, $a.name#slurp
+            #end for
+);
+
+$CommonCheetah.handle_error($runnable, "AJ_MarshalArgs", $indent_count)#slurp
+        #else
+            #for $a in $arginfo.args
+$CommonCheetah.marshal_one_argument($a, $runnable, $msg_ptr, $indent_count)#slurp
+            #end for
+        #end if
+    #end if
+#end def
+######################
+## Marshal this one argument.
+######################
+#@staticmethod
+#def marshal_one_argument($arg, $runnable, $msg_ptr, $indent_count)
+    #set $indent = $indent_count * " "
+    #set $index = 0
+    #if $arg.is_array()
+        #while $arg.arg_type[$index] == 'a'
+            #set $t = $arg.arg_type[$index + 1]
+            #if $t != 'a' and $t != 's' and $t != 'o' and $t != 'g' and $t != '(' and $t != '{'
+                #break
+            #else
+${indent}status = AJ_MarshalContainer($msg_ptr, &array$index, AJ_ARG_ARRAY);
+
+$CommonCheetah.handle_error($runnable, "AJ_MarshalContainer", $indent_count)#slurp
+                #set $index += 1
+            #end if
+        #end while
+
+        #if $t == 's' or $t == 'o' or $t == 'g'
+$CommonCheetah.marshal_string_array($runnable, $arg.name, $msg_ptr, $t, $index - 1, $indent_count)#slurp
+        #elif $t == '(' or $t == '{'
+            #set $sig = $arg.get_container(index)
+$CommonCheetah.marshal_container_array($runnable, $arg.name, $sig, $msg_ptr, $index - 1, $indent_count)#slurp
+        #else
+${indent}AJ_InitArg(&array$index, '$t', AJ_ARRAY_FLAG, $arg.name, ${arg.name}Elements * sizeof(*$arg.name));
+${indent}status = AJ_MarshalArg($msg_ptr, &array$index);
+$CommonCheetah.handle_error($runnable, "AJ_MarshalArg", $indent_count)#slurp
+        #end if
+
+        #while $index > 0
+            #set $index -= 1
+${indent}status = AJ_MarshalCloseContainer($msg_ptr, &array$index);
+
+$CommonCheetah.handle_error($runnable, "AJ_MarshalCloseContainer", $indent_count)#slurp
+        #end while
+    #else
+        #set $sig = $arg.arg_type
+        #if $arg.is_structure()
+            #set $sig = $arg.get_container()
+$CommonCheetah.marshal_container($runnable, $arg.name, $sig, $msg_ptr, 0, $indent_count)#slurp
+        #elif $sig == 'v'
+${indent}status = AJ_MarshalVariant($msg_ptr, ${arg.name}.sigPtr);
+
+$CommonCheetah.handle_error($runnable, "AJ_MarshalVariant", $indent_count)
+            #if $runnable
+${indent}if (${arg.name}.typeId == AJ_ARG_STRING) {
+${indent}    status = AJ_MarshalArgs($msg_ptr, ${arg.name}.sigPtr, ${arg.name}.val.v_string);
+${indent}} else { /* We know that only strings and integers are sent so it must be an int. */
+${indent}    status = AJ_MarshalArgs($msg_ptr, ${arg.name}.sigPtr, *${arg.name}.val.v_int32);
+${indent}}
+
+$CommonCheetah.handle_error($runnable, "AJ_MarshalArg", $indent_count)#slurp
+            #else
+${indent}/* TODO: Marshal your variant value with code something like:
+${indent}   status = AJ_MarshalArgs($msg_ptr, ${arg.name}.sigPtr, *${arg.name}.val.v_int32);
+${indent} */
+            #end if
+        #else
+${indent}status = AJ_MarshalArgs($msg_ptr, "$sig", $arg.name);
+
+$CommonCheetah.handle_error($runnable, "AJ_MarshalArgs", $indent_count)#slurp
+        #end if
+    #end if
+#end def
+#####################
+## Marshal an array of strings or object pathes.
+#####################
+#@staticmethod
+#def marshal_string_array($runnable, $name, $msg_ptr, $t, $depth, $indent_count)
+    #set $indent = $indent_count * " "
+${indent}for (index$depth = 0; index$depth < ${name}Elements; index$depth++) {
+${indent}    status = AJ_MarshalArgs($msg_ptr, "$t", ${name}[index$depth]);
+
+$CommonCheetah.handle_error($runnable, "AJ_MarshalArgs", $indent_count + 4)#slurp
+${indent}}
+#end def
+#####################
+## Marshal an array of structures or dictionaries.
+#####################
+#@staticmethod
+#def marshal_container_array($runnable, $name, $sig, $msg_ptr, $depth, $indent_count)
+    #set $indent = $indent_count * " "
+${indent}for (index$depth = 0; index$depth < ${name}Elements; index$depth++) {
+    #set $struct_name = "{0}[index{1}]".format($name, $depth)
+$CommonCheetah.marshal_container($runnable, $struct_name, $sig, $msg_ptr, $depth, $indent_count + 4)#slurp
+${indent}}
+#end def
+#####################
+## Marshal a container and its contents.
+#####################
+#@staticmethod
+#def marshal_container($runnable, $name, $sig, $msg_ptr, $depth, $indent_count)
+    #set $indent = $indent_count * " "
+    #set $t = $sig[0]
+    #assert($t == '(' or $t == '{')
+    #if $t == '('
+${indent}status = AJ_MarshalContainer($msg_ptr, &struct$depth, AJ_ARG_STRUCT);
+    #else
+${indent}status = AJ_MarshalContainer($msg_ptr, &dictionary$depth, AJ_ARG_DICT_ENTRY);
+    #end if
+
+$CommonCheetah.handle_error($runnable, "AJ_MarshalContainer", $indent_count)
+    #set $member_num = 0
+    #set $index = 1
+    #while $sig[$index] != ')' and $sig[$index] != '}'
+        #set $end_basic = $argdef.find_end_of_basic_types($sig, $index)
+        #if $end_basic == $index
+            #set $subArgSig = $sig[$index]
+            #set $subArgName = "{0}.member{1}".format($name, $member_num)
+            #set $subArg = $argdef.ArgDef(None, $subArgName, $subArgSig, "in")
+$CommonCheetah.marshal_one_argument($subArg, $runnable, $msg_ptr, $indent_count)
+            #set $index += 1
+            #set $member_num += 1
+        #else
+            #set $marshal_sig = $argdef.get_next_marshal_args_signature($sig, $index)
+${indent}status = AJ_MarshalArgs($msg_ptr, "$marshal_sig"#slurp
+            #while $index < $end_basic
+, ${name}.member$member_num#slurp
+                #set $member_num += 1
+                #set $index += 1
+            #end while
+);
+
+$CommonCheetah.handle_error($runnable, "AJ_MarshalArgs", $indent_count)
+        #end if
+    #end while
+    #if $t == '('
+${indent}status = AJ_MarshalCloseContainer($msg_ptr, &struct$depth);
+    #else
+${indent}status = AJ_MarshalCloseContainer($msg_ptr, &dictionary$depth);
+    #end if
+$CommonCheetah.handle_error($runnable, "AJ_MarshalCloseContainer", $indent_count)#slurp
+#end def
+#####################
+## Print the values received from the various arguments.
+#####################
+#@staticmethod
+#def print_args($args, $indent_count)
+    #set $indent = $indent_count * " "
+    #for $a in $args
+        #if $a.is_array()
+${indent}for (index0 = 0; index0 < ${a.name}Elements; index0++) {
+$CommonCheetah.print_one_arg($a, $indent_count + 4)#slurp
+${indent}}
+        #else
+$CommonCheetah.print_one_arg($a, $indent_count)
+        #end if
+    #end for
+#end def
+#####################
+## Print the value from one argument.
+#####################
+#@staticmethod
+#def print_one_arg($arg, $indent_count)
+    #set indent = $indent_count * " "
+    #set $base_sig = $arg.get_base_signature()
+    #if $arg.is_array()
+        #set $is_multi_dimensional = (len($base_sig) - len($arg.arg_type)) > 1
+        #if $is_multi_dimensional
+${indent}/*******
+${indent} Multi-dimension arrays are not fully supported in "Runnable" mode
+${indent} by the code generator at this time.
+${indent} */
+        #elif $arg.is_structure() or $arg.is_dictionary()
+            #set $member = $GenTC.get_scaler_member($base_sig)
+            #if $member is not None
+                #set $t = $GenTC.printf_dictionary[$member[1]]
+                #set $m_name = $member[0]
+${indent}AJ_InfoPrintf(("\tReceived '${arg.name}[%d].$m_name' = $t.\n", index0, ${arg.name}[index0].$m_name));
+            #else
+${indent}/*******
+${indent} Some nested structures are not fully supported in "Runnable" mode
+${indent} by the code generator at this time.
+${indent} */
+            #end if
+        #else
+            #set $t = $GenTC.printf_dictionary[$arg.get_base_signature()]
+${indent}AJ_InfoPrintf(("\tReceived '${arg.name}[%d]' = $t.\n", index0, ${arg.name}[index0]));
+        #end if
+    #elif $arg.is_structure()
+        #set $member = $GenTC.get_scaler_member($arg.arg_type)
+        #if $member is not None
+            #set $t = $GenTC.printf_dictionary[$member[1]]
+            #set $m_name = $member[0]
+            #if $t == 'v'
+
+${indent}if (${arg.name.m_name}.typeId == 's') {
+${indent}AJ_InfoPrintf(("\tReceived variant string '${arg.name}.$m_name' = '%s'.\n", ${arg.name}.${m_name}.val.v_string));
+${indent}} else {
+${indent}AJ_InfoPrintf(("\tReceived variant int '${arg.name}.$m_name' = %d.\n", *${arg.name}.${m_name}.val.v_int32));
+${indent}}
+            #else
+${indent}AJ_InfoPrintf(("\tReceived '${arg.name}.$m_name' = $t.\n", ${arg.name}.$m_name));
+            #end if
+        #else
+${indent}/*******
+${indent} Some nested structures are not fully supported in "Runnable" mode
+${indent} by the code generator at this time.
+${indent} */
+        #end if
+    #else
+        #set $t = $GenTC.printf_dictionary[$arg.arg_type]
+            #if $t == 'v'
+
+${indent}if (${arg.name}.typeId == 's') {
+${indent}    AJ_InfoPrintf(("\tReceived variant string '$arg.name' = '%s'.\n", ${arg.name}.val.v_string));
+${indent}} else {
+${indent}    AJ_InfoPrintf(("\tReceived variant int '$arg.name' = %d.\n", *${arg.name}.val.v_int32));
+${indent}}
+            #else
+${indent}AJ_InfoPrintf(("\tReceived '$arg.name' = $t.\n", $arg.name));
+            #end if
+    #end if
+#end def
+#####################
+## Define the containers (structures and dictionaries) in this interface.
+#####################
+#@staticmethod
+#def define_containers($interface)
+    #set $structures = $interface.get_structs_in_struct_order()
+    #for $s in $structures
+        #if $s.signature[0] == '('
+struct $s.name {
+        #else
+struct $s.name /*dictionary*/ {
+        #end if
+        #set $members = $GenTC.make_members_from_signature($interface, $s.signature)
+        #for $m in $members
+    $m
+        #end for
+};
+    #end for
+#end def
+#####################
+## "Increment" this one "incrementable".
+#####################
+#@staticmethod
+#def increment_object($indent, $name, $element0, $sig, $complete_name, $arg)
+    #if $sig == 'd'
+${indent}s_$name$element0 += 0.1;
+        #if not $arg.is_array
+${indent}$name = s_$name;
+        #end if
+    #elif $sig == 'v'
+${indent}++s_${name}_int$element0;
+    #elif $sig == 'b'
+${indent}s_$name$element0 = !s_$name$element0;
+        #if not $arg.is_array
+${indent}$name = s_$name;
+        #end if
+    #elif ($sig == 's' or $sig == 'o' or $sig == 'g') and not $arg.is_array## Arrays of strings are handled differently.
+        #if $sig == 'o'
+\#ifdef _WINDOWS_
+${indent}_snprintf_s(stringBuffer$arg.name, sizeof${arg.name}, _TRUNCATE,
+\#else
+${indent}snprintf(stringBuffer$arg.name, sizeof${arg.name},
+\#endif
+${indent}            "/object/path/test%d", ++s_helloNumber$arg.name);
+${indent}$arg.name = stringBuffer$arg.name;
+        #elif $sig == 'g'
+\#ifdef _WINDOWS_
+${indent}_snprintf_s(stringBuffer$arg.name, sizeof${arg.name}, _TRUNCATE,
+\#else
+${indent}snprintf(stringBuffer$arg.name, sizeof${arg.name},
+\#endif
+${indent}            "(sig%c)", 's' + (s_helloNumber$arg.name++ % 3));
+${indent}$arg.name = stringBuffer$arg.name;
+        #else
+\#ifdef _WINDOWS_
+${indent}_snprintf_s(stringBuffer$arg.name, sizeof${arg.name}, _TRUNCATE,
+\#else
+${indent}snprintf(stringBuffer$arg.name, sizeof${arg.name},
+\#endif
+${indent}            "Hello # %d from '$complete_name'.\n", ++s_helloNumber$arg.name);
+${indent}$arg.name = stringBuffer$arg.name;
+        #end if
+    #else
+        #if $arg.is_array
+            #if $sig != 's' and $sig != 'o' and $sig != 'g'
+${indent}s_$name$element0++;
+            #end if
+        #else
+${indent}$name$element0 = ++s_$name$element0;
+        #end if
+    #end if
+#end def
+#####################
+## "Increment" this argument for the "runnable" version of the program.
+#####################
+#@staticmethod
+#def increment_arg($indent_count, $complete_name, $arg)
+        #if $arg.is_array()
+            #set $element0 = "[0]"
+        #else
+            #set $element0 = ""
+        #end if
+        #set $indent = " " * $indent_count
+        #set $sig = $arg.get_base_signature()
+        #if $arg.is_structure() or $arg.is_dictionary()
+            #if not $arg.is_array()
+${indent}$arg.name = s_$arg.name;
+            #end if
+            #set $scaler_member = $GenTC.get_scaler_member($sig)
+            #if $scaler_member is None
+${indent}/* TODO: Make a change in $arg.name */
+            #else
+                #set $scaler_name = $scaler_member[0]
+                #set $scaler_type = $scaler_member[1]
+                #set $name = "{0}{1}.{2}".format($arg.name, $element0, $scaler_name)
+$CommonCheetah.increment_object($indent, $name, "", $scaler_type, $complete_name, $arg)#slurp
+            #end if
+        #else
+$CommonCheetah.increment_object($indent, $arg.name, $element0, $sig, $complete_name, $arg)#slurp
+        #end if
+#end def
+#####################
+## Define the arrays and structures needed for this interface component.
+## If input is true then define them for the input.
+## If output is true then define them for the output.
+## If both is true then define a number that will handle either.
+#####################
+#@staticmethod
+#def define_arrays_and_structures($c, $input = True, $output = True)
+    #set $in_arrays = 0
+    #set $out_arrays = 0
+    #set $in_structs = 0
+    #set $out_structs = 0
+    #set $in_dictionaries = 0
+    #set $out_dictionaries = 0
+    #if $input
+        #set $in_arrays = $c.input_arg_info.max_number_of_array_dimensions()
+        #set $in_structs = $c.input_arg_info.get_max_structure_depth()
+        #set $in_dictionaries = $c.input_arg_info.get_max_dictionary_depth()
+    #end if
+    #if $output
+        #set $out_arrays = $c.output_arg_info.max_number_of_array_dimensions()
+        #set $out_structs = $c.output_arg_info.get_max_structure_depth()
+        #set $out_dictionaries = $c.output_arg_info.get_max_dictionary_depth()
+    #end if
+    #set $number_of_arrays = max($in_arrays, $out_arrays)
+    #set $array_num = 0
+    #while $array_num < $number_of_arrays
+    AJ_Arg array$array_num;
+    int index$array_num = 0;
+        #set $array_num += 1
+    #end while
+    #set $struct_num = 0
+    #set $number_of_structs = max($in_structs, $out_structs)
+    #while $struct_num < $number_of_structs
+    AJ_Arg struct$struct_num;
+        #set $struct_num += 1
+    #end while
+    #set $dictionary_num = 0
+    #set $number_of_dictionary = max($in_dictionaries, $out_dictionaries)
+    #while $dictionary_num < $number_of_dictionary
+    AJ_Arg dictionary$dictionary_num;
+        #set $dictionary_num += 1
+    #end while
+#end def
+#####################
+## Call free() on any arrays in this arg info that need to be freed and set the
+## pointer to NULL.
+#####################
+#@staticmethod
+#def free_and_null_arrays($arg_info)
+    #if $arg_info is not None and len($arg_info.args) > 0
+        #for $a in $arg_info.args
+            #set $index = 0
+            #if $a.arg_type[$index] == 'a'
+                #set $t = $a.arg_type[$index + 1]
+                #if not ($t != 'a' and $t != 's' and $t != 'o' and $t != 'g' and $t != '(' and $t != '{')
+                    #while $a.arg_type[$index] == 'a'
+## TODO: This should be freeing different arrays in the multi-dimension case.
+    free((void*)$a.name);
+    $a.name = NULL;
+                        #set $index += 1
+                    #end while
+                #end if
+            #end if
+        #end for
+    #end if
+#end def

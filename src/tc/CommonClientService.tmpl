@@ -1,0 +1,95 @@
+###############################################################################
+## Copyright (c) 2013 AllSeen Alliance. All rights reserved.
+##
+## Permission to use, copy, modify, and/or distribute this software for any
+## purpose with or without fee is hereby granted, provided that the above
+## copyright notice and this permission notice appear in all copies.
+##
+## THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES
+## WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
+## MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR
+## ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
+## WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
+## ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
+## OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
+###############################################################################
+#import GenTC
+/* Source: "$command_line.xml_input_file" */
+
+\#include <alljoyn.h>
+
+/* This is defined on the command line to the code generator. */
+const char g_ServiceName[] = "$command_line.well_known_name";
+
+## Create all of the interface description tables.
+#for $key in $sorted($service.interfaces)
+    #set $i = $service.interfaces[$key]
+    #set $code_name = $GenTC.get_interface_coded_name($i)
+const char* g_${code_name}[] = {
+    #if $i.is_secure
+    "$$i.interface_full_name",
+    #else
+    "$i.interface_full_name",
+    #end if
+    #for $m in $i.methods
+        #set $args = ""
+        #for $a in $m.args
+            #if $a.direction == "in"
+                #set $direction = "<"
+            #else
+                #assert $a.direction == "out"
+                #set $direction = ">"
+            #end if
+            #set $args = $args + " " + $a.name+$direction+$a.arg_type
+        #end for
+    "?$m.name$args",
+    #end for
+    #for $s in $i.signals
+        #set $args = ""
+        #for $a in $s.args
+            #assert $a.direction == "out"
+            #set $direction = ">"
+            #set $args = $args + " " + $a.name+$direction+$a.arg_type
+        #end for
+    "!$s.name$args",
+    #end for
+    #for $p in $i.properties
+        #if $p.access == "read"
+            #set $direction = ">"
+        #elif $p.access == "write"
+            #set $direction = "<"
+        #else
+            #assert $p.access == "readwrite"
+            #set $direction = "="
+        #end if
+    "@$p.name$direction${p.args[0].arg_type}",
+    #end for
+    NULL
+};
+#end for
+
+/* These tables are the set of interfaces that comprise each object (node). */
+#set $objects = $service.get_objects()
+#for $o in $objects
+    #set $interface_names = $GenTC.get_all_interface_coded_names($o)
+    #if len($interface_names) > 0
+const AJ_InterfaceDescription $GenTC.get_interface_set_name($o)[] = {
+        #set $interface_names = $GenTC.get_all_interface_coded_names($o)
+        #for $n in $interface_names
+    $n,
+        #end for
+    NULL
+};
+    #end if
+#end for
+
+/* These tables are the set of objects (nodes). */
+const AJ_Object g_ObjectTable[] = {
+#set $objects = $service.get_objects()
+#for $o in $objects
+    #if len($o.interfaces) > 0
+    { "$o.get_full_name", $GenTC.get_interface_set_name($o) },
+    #end if
+#end for
+    { NULL, NULL }
+};

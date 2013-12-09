@@ -1,0 +1,211 @@
+###############################################################################
+## Copyright (c) 2013 AllSeen Alliance. All rights reserved.
+##
+## Permission to use, copy, modify, and/or distribute this software for any
+## purpose with or without fee is hereby granted, provided that the above
+## copyright notice and this permission notice appear in all copies.
+##
+## THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES
+## WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
+## MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR
+## ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
+## WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
+## ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
+## OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
+###############################################################################
+#import GenTC
+#import CommonCheetah as cc
+/* Source: "$command_line.xml_input_file" */
+
+\#include <alljoyn.h>
+\#include "Service.h"
+
+#if $command_line.runnable
+$GenTC.comment_start_runnable
+static AJ_SessionId s_activeSessions[5];
+static const size_t s_maxSessions = ArraySize(s_activeSessions);
+$GenTC.comment_end_runnable
+#end if
+
+/*
+ * Let the application do some work.
+ *
+ * This function is called via a timer.
+ */
+void ServiceAppDoWork(void* context)
+{
+    AJ_BusAttachment* bus = (AJ_BusAttachment*)context;
+
+    #set $number_of_signals = 0
+    #for $key in $sorted($service.interfaces)
+        #set $interface = $service.interfaces[$key]
+        #for $o in $interface.parents
+            #set $iface_index = $o.get_interface_index($interface)
+            #set $comp = $GenTC.get_interface_components($interface, $o, $iface_index, True)
+            #for $c in $comp:
+                #if $c.comp_type == "sig"
+                    #set $number_of_signals += 1
+                #end if
+            #end for
+        #end for
+    #end for
+#if $command_line.runnable and $number_of_signals > 0
+    $GenTC.comment_start_runnable
+
+    /* Only a small number of messages can be queued up before returning
+     * control to AllJoyn so it can send them out and receive messages.
+     * So what we do here for demonstration purposes is "take turns" sending
+     * messages for each of the signals. */
+    const int numberOfSignals = $number_of_signals;
+    static int s_turn = 0;
+
+    #set $component = 0
+    #for $key in $sorted($service.interfaces)
+        #set $interface = $service.interfaces[$key]
+        #for $o in $interface.parents
+            #set $iface_index = $o.get_interface_index($interface)
+            #set $comp = $GenTC.get_interface_components($interface, $o, $iface_index, True)
+            #for $c in $comp
+                ## Only signals messages originate from the service.
+                #if $c.comp_type != "sig"
+                    #continue
+                #end if
+                #set $complete_name = $GenTC.get_complete_name($o, $interface, $c)
+    if ($component == s_turn) {
+                #if $c.output_arg_info is not None
+                    #set $output_args = $c.output_arg_info.args
+                #else
+                    #set $output_args = None
+                #end if
+                #if len($output_args) > 0
+$cc.CommonCheetah.define_static_args($output_args, 8)#slurp
+
+        /* Define the output args. */
+                #end if
+$cc.CommonCheetah.define_arguments($output_args, 8)
+        AJ_Status status;
+        size_t sessionIndex;
+                #set $number_of_arrays = $c.max_input_output_arrays()
+                #set $array_num = 0
+                #while $array_num < $number_of_arrays
+        int index$array_num = 0;
+                    #set $array_num += 1
+                #end while
+                #if len($output_args) > 0
+
+$cc.CommonCheetah.initialize_args($output_args, $complete_name, 8)#slurp
+                #end if
+
+        for (sessionIndex = 0; sessionIndex < s_maxSessions; sessionIndex++) {
+            AJ_SessionId sessionId = s_activeSessions[sessionIndex];
+
+            if (0 != sessionId) {
+                #if $output_args is not None
+                status = ${c.name}(bus, sessionId#slurp
+                    #for $a in $output_args
+, $a.name#slurp
+                        #if $a.is_array()
+, ${a.name}Elements#slurp
+                        #end if
+                    #end for
+);
+                #else
+                status = ${c.name}(bus, sessionId);
+                #end if
+
+                AJ_InfoPrintf(("Sending signal '$complete_name' to sessionId 0x%x.\n", sessionId));
+
+                if (AJ_OK != status) {
+                    AJ_InfoPrintf(("Calling '$complete_name' with session ID 0x%x failed with status code 0x%x.\n",
+                                  sessionId, status));
+                }
+            }
+        }
+    }
+                #set $component += 1
+
+            #end for
+        #end for
+    #end for
+    if (++s_turn >= numberOfSignals) {
+        s_turn = 0;
+    }
+
+    $GenTC.comment_end_runnable
+#else
+    AJ_InfoPrintf(("ServiceAppDoWork()\n"));
+#end if
+}
+#if $command_line.runnable
+/*
+ * Return the index of an open slot for a session or s_maxSessions if none are available.
+ */
+static int GetOpenSessionIndex()
+{
+    size_t index = 0;
+
+    while (index < s_maxSessions && s_activeSessions[index] != 0) {
+        index++;
+    }
+
+    return index;
+}
+
+/*
+ * Return AJ_OK if there is room to add another session. Otherwise return AJ_ERR_RESOURCES.
+ */
+AJ_Status CanJoinSession()
+{
+    return GetOpenSessionIndex() == s_maxSessions? AJ_ERR_RESOURCES: AJ_OK;
+}
+#end if
+
+/*
+ * Handle a session joined signal.
+ */
+AJ_Status SessionJoined(AJ_Message* msg, AJ_Message* reply)
+{
+    AJ_Status status = AJ_OK;
+#if $command_line.runnable
+    $GenTC.comment_start_runnable
+    size_t index = GetOpenSessionIndex();
+
+    if (index != s_maxSessions) {
+        s_activeSessions[index] = msg->sessionId;
+        AJ_InfoPrintf(("\nSession 0x%x joined. Path = '%s'.\n", msg->sessionId, msg->objPath));
+    } else {
+        status = AJ_ERR_RESOURCES;
+    }
+    $GenTC.comment_end_runnable
+#else
+
+    AJ_InfoPrintf(("\nSession 0x%x joined. Path = '%s'.\n", msg->sessionId, msg->objPath));
+#end if
+
+    return status;
+}
+
+/*
+ * Handle a session lost signal.
+ */
+AJ_Status SessionLost(AJ_Message* msg, AJ_Message* reply)
+{
+    AJ_Status status = AJ_OK;
+#if $command_line.runnable
+    $GenTC.comment_start_runnable
+    size_t index = 0;
+
+    do {
+        if (s_activeSessions[index] == msg->sessionId) {
+            s_activeSessions[index] = 0;
+            break;
+        }
+    } while (++index < s_maxSessions);
+
+    $GenTC.comment_end_runnable
+#end if
+
+    AJ_InfoPrintf(("\nSession 0x%x lost. Path = '%s'.\n", msg->sessionId, msg->objPath));
+
+    return status;
+}

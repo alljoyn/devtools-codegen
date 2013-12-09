@@ -1,0 +1,47 @@
+###############################################################################
+## Copyright (c) 2013 AllSeen Alliance. All rights reserved.
+##
+## Permission to use, copy, modify, and/or distribute this software for any
+## purpose with or without fee is hereby granted, provided that the above
+## copyright notice and this permission notice appear in all copies.
+##
+## THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES
+## WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
+## MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR
+## ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
+## WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
+## ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
+## OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
+###############################################################################
+#ifndef _COMMONCLIENTSERVICE_H
+#define _COMMONCLIENTSERVICE_H
+
+#import GenTC
+/* Source: "$command_line.xml_input_file" */
+
+/* This is defined on the command line to the code generator. */
+extern const char g_ServiceName[];
+
+/* The port number is arbitrary and may be changed by the developer. */
+\#define SERVICE_PORT 24
+\#define TIMEOUT_CONNECT    (1000 * 1000)
+
+#for $key in $sorted($service.interfaces)
+    #set $i = $service.interfaces[$key]
+    #set $code_name = $GenTC.get_interface_coded_name(i)
+extern const char* g_${code_name}[];
+#end for
+
+/* These tables are the set of interfaces that comprise each object (node). */
+#set $objects = $service.get_objects()
+#for $o in $objects
+    #set $interface_names = $GenTC.get_all_interface_coded_names($o)
+    #if len($interface_names) > 0
+extern const AJ_InterfaceDescription $GenTC.get_interface_set_name($o)[];
+    #end if
+#end for
+
+/* These tables are the set of objects (nodes). */
+extern const AJ_Object g_ObjectTable[];
+
+#endif /* _COMMONCLIENTSERVICE_H */

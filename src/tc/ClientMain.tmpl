@@ -1,0 +1,188 @@
+###############################################################################
+## Copyright (c) 2013 AllSeen Alliance. All rights reserved.
+##
+## Permission to use, copy, modify, and/or distribute this software for any
+## purpose with or without fee is hereby granted, provided that the above
+## copyright notice and this permission notice appear in all copies.
+##
+## THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES
+## WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
+## MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR
+## ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
+## WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
+## ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
+## OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
+###############################################################################
+#import GenTC
+/* Source: "$command_line.xml_input_file" */
+
+\#include <alljoyn.h>
+\#include <aj_debug.h>
+
+\#include "Client.h"
+\#include "CommonClientService.h"
+
+extern void ClientAppDoWork(AJ_BusAttachment* bus, uint32_t sessionId);
+extern AJ_Status SessionLost(AJ_Message* msg);
+#if $service.has_properties()
+
+/******
+ * The table(s) of property handlers. There is one table for each instance of an object (node)
+ * that has properties. Each table has an entry for each property in the interfaces of that
+ * object.
+ */
+    #for $o in $service.get_objects()
+        #if $o.has_properties()
+ClientPropHandlerEntry PropHandlers$o.get_full_coded_name()[] = {
+            #for $i in $o.interfaces
+                #set $handlers = $GenTC.get_client_property_handlers_table($o.index, $o, $i)
+                    #for $h in $handlers
+    { $h },
+                    #end for
+            #end for
+    { 0, NULL, NULL }
+};
+        #end if
+    #end for
+
+/******
+ * This function searches for the given callback in the given table and sets replySerial as the
+ * corresponding msgId entry in the table. This is then used to identify the property value which
+ * which is returned by the service.
+ */
+AJ_Status SetPropHandlerReplySerial(ClientPropHandlerEntry* table, AJ_ClientPropGetCallback callback, uint32_t replySerial)
+{
+    AJ_Status status = AJ_ERR_NO_MATCH;
+
+    do {
+        if (callback == table->callback) {
+            table->replySerial = replySerial;
+            status = AJ_OK;
+            break;
+        }
+    } while((++table)->callback != 0);
+
+    return status;
+}
+
+/******
+ * This function converts the context to a ClientPropHandlerEntry* then
+ * searches that table to find then table entry which has a replySerial
+ * which matches the replySerial in the message. When found it calls the
+ * callback function in that table entry.
+ *
+ * @param replyMsg  The GET_PROPERTY reply message
+ * @param context   The table to search for the replySerial.
+ *
+ * @return  Return AJ_Status from the callback function or AJ_ERR_NO_MATCH if
+ *          replySerial was not found in the table.
+ */
+static AJ_Status PropGetHandler(AJ_Message* replyMsg, const void* context)
+{
+    AJ_Status status = AJ_ERR_NO_MATCH;
+    ClientPropHandlerEntry* entry = (ClientPropHandlerEntry*)context;
+
+    do {
+        if (replyMsg->replySerial == entry->replySerial) {
+            status = entry->callback(replyMsg, entry->context);
+            break;
+        }
+    } while((++entry)->callback != NULL);
+
+    return status;
+}
+#end if ## $service.has_properties()
+
+int main()
+{
+    AJ_Status status = AJ_OK;
+    AJ_BusAttachment bus;
+    uint8_t connected = FALSE;
+    uint32_t sessionId = 0;
+    AJ_Status authStatus = AJ_ERR_NULL;
+
+    /* One time initialization before calling any other AllJoyn APIs. */
+    AJ_Initialize();
+
+    /* There are no local objects this executable implements.
+     * g_ObjectTable contains the proxy (remote) objects this executable plans to call.
+     */
+    AJ_RegisterObjects(NULL, g_ObjectTable);
+
+    while (TRUE) {
+        AJ_Message msg = {0};
+
+        if (!connected) {
+            status = AJ_StartClient(&bus, NULL, TIMEOUT_CONNECT, g_ServiceName, SERVICE_PORT, &sessionId, NULL);
+            if (AJ_OK == status) {
+                connected = TRUE;
+                authStatus = AJ_OK;
+            } else {
+                AJ_Printf("StartClient returned %d.\n", status);
+                break;
+            }
+        }
+
+        if (authStatus != AJ_ERR_NULL) {
+            if (authStatus != AJ_OK) {
+                AJ_Disconnect(&bus);
+                break;
+            }
+            authStatus = AJ_ERR_NULL;
+            AJ_BusSetLinkTimeout(&bus, sessionId, 10 * 1000);
+        }
+
+        status = AJ_UnmarshalMsg(&bus, &msg, TIMEOUT_UNMARSHAL);
+        if (status != AJ_OK) {
+            if (AJ_ERR_TIMEOUT == status) {
+                ClientAppDoWork(&bus, sessionId);
+                continue;
+            }
+        } else {
+            switch (msg.msgId) {
+            case AJ_SIGNAL_SESSION_LOST:
+                status = SessionLost(&msg);
+                break;
+
+#set $comp = $GenTC.get_message_defines_names($service)
+#for $c in $comp
+    #if $c.no_reply
+        #continue
+    #end if
+            case $c.switch:
+    #if c.comp_type == "sig"
+                status = ${c.name}(&msg);
+    #elif c.comp_type == "meth"
+                status = ${c.name}_ReplyHandler(&msg);
+    #else
+        #assert(c.comp_type == "prop")
+                status = ${c.name}(&msg, PropHandlers$c.object_name);
+    #end if
+                break;
+
+#end for
+            default:
+                /* Pass the message to the built-in handlers. */
+                status = AJ_BusHandleBusMessage(&msg);
+                break;
+            }
+        }
+
+        /* Messages must be closed to free resources. */
+        AJ_CloseMsg(&msg);
+
+        /* This status is most likely due to a AJ_SIGNAL_SESSION_LOST message. */
+        if (AJ_ERR_READ == status) {
+            AJ_Disconnect(&bus);
+            connected = FALSE;
+
+            /* This break causes the program to exit. This is may not
+             * be the desired behavior nor is it required. */
+            break;
+        }
+    }
+
+    AJ_InfoPrintf(("ClientMain exit status: %d.", status));
+
+    return status;
+}

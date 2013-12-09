@@ -1,0 +1,67 @@
+<!--
+ Copyright (c) 2010 - 2011, AllSeen Alliance. All rights reserved.
+
+ Permission to use, copy, modify, and/or distribute this software for any
+ purpose with or without fee is hereby granted, provided that the above
+ copyright notice and this permission notice appear in all copies.
+
+ THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES
+ WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
+ MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR
+ ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
+ WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
+ ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
+ OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
+-->
+
+<node name="/com/example/TypeTest">
+  <interface name="org.freedesktop.DBus.Introspectable">
+    <method name="Introspect">
+      <arg name="data" direction="out" type="s"/>
+    </method>
+  </interface>
+  <interface name="org.freedesktop.DBus.Properties">
+    <method name="Get">
+      <arg name="Interface" direction="in" type="s"/>
+      <arg name="propname" direction="in" type="s"/>
+      <arg name="value" direction="out" type="v"/>
+    </method>
+    <method name="Set">
+      <arg name="Interface" direction="in" type="s"/>
+      <arg name="propname" direction="in" type="s"/>
+      <arg name="value" direction="in" type="v"/>
+    </method>
+    <method name="GetAll">
+      <arg name="Interface" direction="in" type="s"/>
+      <arg name="props" direction="out" type="a{sv}"/>
+    </method>
+  </interface>
+  <interface name="com.example.SampleInterface">
+    <method name="foo">
+	<arg name="name" direction="in" type="(ib)"/>
+	<arg name="number" direction="in" type="b"/>
+	<arg name="output" direction="out" type="i"/>
+    <arg name="address" direction="out" type="(ib)"/>
+    </method>
+    <method name="bar">
+	<arg name="barArg" direction="in" type="s"/>
+	<arg name="barOut" direction="out" type="b"/>
+    <arg name="barInt" direction="out" type="i"/>
+    </method>
+    <method name="Exit">
+    </method>
+    <signal name="TestSignal">
+	<arg name="testBool" type="b"/>
+    <arg name="testInt" type="i"/>
+    </signal>
+    <signal name="ping">
+      <arg type="a{ii}" name="curr_ping_count"/>
+    </signal>
+    <signal name="pong">
+      <arg type="ai" name="curr_pong_count"/>
+    </signal>
+    <property name="prop1" type="i" access="readwrite" />
+    <property name="prop2" type="i" access="read" />
+    <property name="prop3" type="i" access="write" />
+  </interface>
+</node>

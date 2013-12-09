@@ -1,0 +1,230 @@
+###############################################################################
+## Copyright (c) 2013 AllSeen Alliance. All rights reserved.
+##
+## Permission to use, copy, modify, and/or distribute this software for any
+## purpose with or without fee is hereby granted, provided that the above
+## copyright notice and this permission notice appear in all copies.
+##
+## THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES
+## WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
+## MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR
+## ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
+## WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
+## ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
+## OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
+###############################################################################
+#import GenTC
+#import CommonCheetah as cc
+/* Source: "$command_line.xml_input_file" */
+
+\#include <alljoyn.h>
+\#include "Client.h"
+
+/*
+ * Let the application do some work.
+ *
+ * This function is called if there are no messages to unmarshal.
+ */
+void ClientAppDoWork(AJ_BusAttachment* bus, uint32_t sessionId)
+{
+#if $command_line.runnable
+    #set $number_of_components = 0
+    #for $key in $sorted($service.interfaces)
+        #set $interface = $service.interfaces[$key]
+        #for $o in $interface.parents
+            #set $iface_index = $o.get_interface_index($interface)
+            #set $comp = $GenTC.get_interface_components($interface, $o, $iface_index, True)
+            #for $c in $comp:
+                #if $c.comp_type != "sig"
+                    #set $number_of_components += 1
+                #end if
+            #end for
+        #end for
+    #end for
+    #if $number_of_components > 0
+    $GenTC.comment_start_runnable
+
+    /* Only a small number of messages can be queued up before returning
+     * control to AllJoyn so it can send them out and receive messages.
+     * So what we do here for demonstration purposes is "take turns" sending
+     * messages to each of the services available. */
+    const int numberOfComponents = $number_of_components;
+    static int s_turn = 0;
+
+    #set $component = 0
+    #for $key in $sorted($service.interfaces)
+        #set $interface = $service.interfaces[$key]
+        #for $o in $interface.parents
+            #set $iface_index = $o.get_interface_index($interface)
+            #set $comp = $GenTC.get_interface_components($interface, $o, $iface_index, True)
+            #for $c in $comp
+                #if $c.comp_type == "sig"
+                    #continue
+                #end if
+                #set $complete_name = $GenTC.get_complete_name($o, $interface, $c)
+    if ($component == s_turn) {
+                #if $c.comp_type == "meth"
+$do_method_turn($complete_name, $c)#slurp
+                #else
+                    #assert($c.comp_type) == "prop"
+$do_property_turn($complete_name, $c)#slurp
+                #end if
+    }
+                #set $component += 1
+
+            #end for
+        #end for
+    #end for
+    if (++s_turn >= numberOfComponents) {
+        s_turn = 0;
+    }
+
+    $GenTC.comment_end_runnable
+    #end if
+#else
+    /* TODO: Add stuff for client to do while waiting for a message. */
+
+    AJ_InfoPrintf(("ClientAppDoWork()\n"));
+#end if
+}
+
+/*
+ * Handler for AJ_SIGNAL_SESSION_LOST. Returns AJ_ERR_READ to indicate a disconnect
+ * should be done.
+ */
+AJ_Status SessionLost(AJ_Message* msg)
+{
+    AJ_Status status = AJ_ERR_READ;
+
+    /* TODO: Resource clean up or other things that need to be done upon session lost. */
+
+    return status;
+}
+#####################
+## Generate the code for doing a single "turn" of a method.
+#####################
+#def $do_method_turn($complete_name, $c)
+    #if $c.input_arg_info is not None
+        #set $input_args = $c.input_arg_info.args
+        #if len($input_args) <= 0
+            #set $input_args = None
+        #end if
+    #else
+        #set $input_args = None
+    #end if
+    #if $input_args is not None
+$cc.CommonCheetah.define_static_args($input_args, 8)
+        /* Define the input args. */
+$cc.CommonCheetah.define_arguments($input_args, 8)
+    #end if
+        /* Miscellaneous local variables. */
+        AJ_Status status;
+    #if $c.has_array(True)
+        int index0 = 0;
+    #end if
+
+    #if $input_args is not None
+$cc.CommonCheetah.initialize_args($input_args, $complete_name, 8)
+    #end if
+$do_method_call($complete_name, $c, $input_args)#slurp
+#end def
+#####################
+## Generate the code for a method call.
+#####################
+#def $do_method_call($complete_name, $c, $input_args)
+        AJ_InfoPrintf(("Calling '$complete_name'.\n"));
+        #if $input_args is not None
+        status = ${c.name}_Caller(bus, sessionId#slurp
+            #for $a in $input_args
+, $a.name#slurp
+                #if $a.is_array()
+, ${a.name}Elements#slurp
+                #end if
+            #end for
+);
+        #else
+        status = ${c.name}_Caller(bus, sessionId);
+        #end if
+
+        if (AJ_OK != status) {
+            AJ_InfoPrintf(("Calling '$complete_name' failed with status code 0x%x.\n", status));
+        }
+#end def
+#####################
+## Generate the code for doing a single "turn" of a property.
+#####################
+#def $do_property_turn($complete_name, $c)
+    #set $indent_count = 8
+    #set $indent = $indent_count * " "
+${indent}AJ_Status status;
+    #set $input_args = $c.input_arg_info.args
+    #set $output_args = $c.output_arg_info.args
+    #set $is_get_set = False
+    #if len($input_args) > 0
+        #if len($output_args) > 0
+            #set $is_get_set = True
+            #set $indent_count = 12
+${indent}static int s_doGet = FALSE;
+
+        #end if
+    #end if
+    #if len($input_args) > 0
+        #if $is_get_set
+${indent}s_doGet = !s_doGet;
+
+${indent}if (s_doGet) {
+        #set $indent_count += 4
+
+$do_property_call($complete_name, $c, True, $indent_count)#slurp
+${indent}} else {
+        #end if
+        #set $indent = $indent_count * " "
+$cc.CommonCheetah.define_static_args($input_args, $indent_count)
+${indent}/* Define the arguments sent. */
+$cc.CommonCheetah.define_arguments($input_args, $indent_count)
+        #if $c.input_arg_info.has_array() 
+${indent}int index0 = 0;
+        #end if
+
+$cc.CommonCheetah.initialize_args($input_args, $complete_name, $indent_count)#slurp
+    #end if
+    #if $is_get_set
+
+$do_property_call($complete_name, $c, False, $indent_count)#slurp
+        }
+    #else
+        #if len($output_args) > 0
+$do_property_call($complete_name, $c, True, $indent_count)#slurp
+        #else
+$do_property_call($complete_name, $c, False, $indent_count)#slurp
+        #end if
+    #end if
+#end def
+#####################
+## Generate the code for a setting and getting property.
+#####################
+#def $do_property_call($complete_name, $c, $do_get, $indent_count)
+    #set $indent = $indent_count * " "
+    #if $do_get
+${indent}AJ_InfoPrintf(("Calling '$complete_name'(Get).\n"));
+${indent}status = ${c.name}_Get(bus, sessionId);
+
+${indent}if (AJ_OK != status) {
+${indent}    AJ_InfoPrintf(("Getting '$complete_name' property failed with status code 0x%x.\n", status));
+${indent}}
+    #else
+${indent}AJ_InfoPrintf(("Calling '$complete_name'(Set).\n"));
+${indent}status = ${c.name}_Set(bus, sessionId#slurp
+        #for $a in $c.input_arg_info.args
+, $a.name#slurp
+                #if $a.is_array()
+, ${a.name}Elements#slurp
+                #end if
+        #end for
+);
+
+${indent}if (AJ_OK != status) {
+${indent}    AJ_InfoPrintf(("Setting '$complete_name' property failed with status code 0x%x.\n", status));
+${indent}}
+    #end if
+#end def

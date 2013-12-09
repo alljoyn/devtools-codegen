@@ -1,0 +1,169 @@
+###############################################################################
+## Copyright (c) 2013 AllSeen Alliance. All rights reserved.
+##
+## Permission to use, copy, modify, and/or distribute this software for any
+## purpose with or without fee is hereby granted, provided that the above
+## copyright notice and this permission notice appear in all copies.
+##
+## THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES
+## WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
+## MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR
+## ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
+## WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
+## ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
+## OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
+###############################################################################
+#import GenTC
+#import CommonCheetah as cc
+/* Source: "$command_line.xml_input_file" */
+
+\#include "Service.h"
+
+/* Interface: "$interface.interface_full_name" */
+
+#for $o in $interface.parents
+    #set $iface_index = $o.get_interface_index($interface)
+    #set $comp = $GenTC.get_interface_components($interface, $o, $iface_index, False)
+    #for $c in $comp
+$cc.CommonCheetah.function_header($o, $c, False)#slurp
+$function_definition($o, $c)
+    #end for
+#end for
+######################
+## Define a signal.
+###################### 
+#def signal_definition($o, $c)
+    #if $c.output_arg_info is not None and len($c.output_arg_info.args) > 0
+AJ_Status ${c.name}(AJ_BusAttachment* bus, AJ_SessionId sessionId,
+          $c.output_arg_info.arg_declaration)
+    #else
+AJ_Status ${c.name}(AJ_BusAttachment* bus, AJ_SessionId sessionId)
+    #end if
+{
+    AJ_Message msg;
+    AJ_Status status = AJ_OK;
+    #set $has_outputs = len($c.output_arg_info.args) > 0
+$cc.CommonCheetah.define_arrays_and_structures($c, False)
+    status = AJ_MarshalSignal(bus, &msg, $c.define, NULL, sessionId, AJ_NO_FLAGS, 0);
+
+$cc.CommonCheetah.handle_error($command_line.runnable, "AJ_MarshalSignal", 4)
+    #if $has_outputs
+$cc.CommonCheetah.marshal_arguments($command_line.runnable, $c.output_arg_info, "&msg", 4)
+    #end if
+    status = AJ_DeliverMsg(&msg);
+
+$cc.CommonCheetah.handle_error($command_line.runnable, "AJ_DeliverMsg", 4)
+    return status;
+}
+#end def
+######################
+## Define a property.
+###################### 
+#def property_definition($c)
+AJ_Status ${c.name}(AJ_Message* msg, uint32_t getOrSet, void* context)
+{
+    AJ_Status status = AJ_OK;
+$cc.CommonCheetah.define_arrays_and_structures($c)
+    #if $c.input_arg_info is not None
+    if (getOrSet == AJ_PROP_SET) {
+$cc.CommonCheetah.define_arguments($c.input_arg_info.args, 8)
+$cc.CommonCheetah.unmarshal_arguments($c.comp_type, $command_line.runnable, $c.input_arg_info, 8, False)
+        #if $command_line.runnable
+        $GenTC.comment_start_runnable
+$cc.CommonCheetah.print_args($c.input_arg_info.args, 8)#slurp
+        $GenTC.comment_end_runnable
+        #else
+        /* TODO: Do something with 'value'. */
+        #end if
+    }
+
+    #end if
+    #if $c.output_arg_info is not None
+    if (getOrSet == AJ_PROP_GET) {
+        #if $command_line.runnable
+$cc.CommonCheetah.define_arguments($c.output_arg_info.args, 8)
+        $GenTC.comment_start_runnable
+$cc.CommonCheetah.define_static_args($c.output_arg_info.args, 8)
+$cc.CommonCheetah.initialize_args($c.output_arg_info.args, $c.name, 8)
+$cc.CommonCheetah.marshal_arguments(True, $c.output_arg_info, "msg", 8)
+        $GenTC.comment_end_runnable
+        #else
+        /* TODO: Replace 'value' with the actual property value of interest. */
+$cc.CommonCheetah.define_arguments($c.output_arg_info.args, 8)
+$cc.CommonCheetah.marshal_arguments(False, $c.output_arg_info, "msg", 8)#slurp
+        #end if
+    }
+
+    #end if
+    return status;
+}
+#end def
+######################
+## Define a method.
+###################### 
+#def method_definition($o, $c)
+AJ_Status ${c.name}(AJ_Message* msg, AJ_Message* reply)
+{
+    #set $has_outputs = len($c.output_arg_info.args) > 0
+    #set $has_inputs = len($c.input_arg_info.args) > 0
+    #if $has_inputs
+    /* Input arguments to this method. */
+$cc.CommonCheetah.define_arguments($c.input_arg_info.args, 4)#slurp
+    /* End of input arguments to this method. */
+
+    #end if
+    #if $command_line.runnable and $has_outputs
+    $GenTC.comment_start_runnable
+$cc.CommonCheetah.define_static_args($c.output_arg_info.args, 4)#slurp
+    $GenTC.comment_end_runnable
+
+    #end if
+    #if $has_outputs
+    /* Output arguments. */
+$cc.CommonCheetah.define_arguments($c.output_arg_info.args, 4)#slurp
+    /* End of output arguments. */
+
+    #end if
+$cc.CommonCheetah.define_arrays_and_structures($c)#slurp
+    AJ_Status status = AJ_OK;
+
+    #if $has_inputs
+$cc.CommonCheetah.unmarshal_arguments($c.comp_type, $command_line.runnable, $c.input_arg_info, 4, False)#slurp
+    #end if
+    #if $command_line.runnable
+    $GenTC.comment_start_runnable
+
+        #set $complete_name = $GenTC.get_complete_name($o, $interface, $c)
+    AJ_InfoPrintf(("'$complete_name' has been successfully called.\n"));
+
+        #if $has_inputs
+$cc.CommonCheetah.print_args($c.input_arg_info.args, 4)
+        #end if
+        #if $has_outputs
+$cc.CommonCheetah.initialize_args($c.output_arg_info.args, $complete_name, 4)
+        #end if
+    $GenTC.comment_end_runnable
+    #else
+    /* TODO: Implement method. */
+    #end if
+
+$cc.CommonCheetah.free_and_null_arrays($c.input_arg_info)
+    #if $has_outputs
+$cc.CommonCheetah.marshal_arguments($command_line.runnable, $c.output_arg_info, "reply", 4)#slurp
+    #end if
+    return status;
+}
+#end def
+######################
+## Define the function used for a property, method, or signal.
+###################### 
+#def function_definition($o, $c)
+    #if $c.comp_type == "prop"
+$property_definition($c)#slurp
+    #elif $c.comp_type == "meth"
+$method_definition($o, $c)#slurp
+    #else
+        #assert($c.comp_type) == "sig"
+$signal_definition($o, $c)#slurp
+    #end if
+#end def

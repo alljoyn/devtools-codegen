@@ -231,7 +231,7 @@ def find_end_of_basic_types(signature, index = 0):
 
 'a', '(', '{', and 'v' are not considered basic types because they usually
 cannot be handled the same as other types."""
-    basic_types = ('b','d','i','n','q','s','t','u','x','y')
+    basic_types = ('b','d','i','n','o','q','s','t','u','x','y')
 
     while index < len(signature) and signature[index] in basic_types:
         index += 1

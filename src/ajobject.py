@@ -67,7 +67,9 @@ class AllJoynObject:
                 i.parse(o, lax_naming)
 
                 # Ignore the instrospectable interface. This is built in.
-                if i.interface_full_name == "org.freedesktop.DBus.Introspectable":
+                built_in = "org.freedesktop.DBus.Introspectable"
+                if i.interface_full_name == built_in:
+                    print("Ignoring built in interface '{0}'".format(built_in))
                     continue
 
                 # If this is new interface it is added. If it is not a new

@@ -840,6 +840,27 @@ def make_members_from_signature(interface, signature):
 
     return return_value
 
+def get_array_container_variant_data(arg):
+    """Get the initialization strings to use for variants found in arrays of containers.
+
+    This is very closely related to get_initialization(). The naming and arrays size
+    here must match the naming and arra size in get_initialization()."""
+    return_value = []
+
+    if arg.is_array():
+        base = arg.get_base_signature()
+        if base[0] == '(' or base[0] == '{':
+            container = argdef.get_container(base)
+            member_num = -1 # Because we are starting with the '(' or '{'
+            for c in container:
+                if c == 'v':
+                    data = "static uint8_t {0}Member{1}_uint8V[3];".format(arg.name, member_num)
+                    return_value.append(data)
+
+                member_num += 1
+
+    return return_value
+
 def get_initialization(arg, indent_count):
     """Get the initialization string to use for this argument."""
     t = get_base_c_type(arg.interface, arg.arg_type)
@@ -851,9 +872,11 @@ def get_initialization(arg, indent_count):
             b = arg.get_base_signature()
             if b[0] == '(' or b[0] == '{':
                 indent = indent_count * " "
-                si = __make_structure_init_string(arg.get_container(1))
-                f = "[3] =\n{0}{{ {1},\n{0}  {1},\n{0}  {1}\n{0}}}"
-                init = f.format(indent, si)
+                si0 = __make_structure_init_string(arg, 0)
+                si1 = __make_structure_init_string(arg, 1)
+                si2 = __make_structure_init_string(arg, 2)
+                f = "[3] =\n{0}{{ {1},\n{0}  {2},\n{0}  {3}\n{0}}}"
+                init = f.format(indent, si0, si1, si2)
             else:
                 init = "[10] = {0}"
     else:
@@ -862,16 +885,19 @@ def get_initialization(arg, indent_count):
         elif arg.arg_type == "d":
             init = " = 0.0"
         elif arg.is_structure():
-            init = " = {0}".format(__make_structure_init_string(arg.arg_type))
+            init = " = {0}".format(__make_structure_init_string(arg))
         else:
             init = " = 0"
 
     return init
 
-def __make_structure_init_string(signature):
+def __make_structure_init_string(arg, array_index = -1):
     """Return a structure initialization string for each structure member.
 
-Each member will be set to zero except those which are pointers."""
+Each member will be set to zero except those which are pointers or variants in arrays.
+If this arg is an array of structures then the index will be >= 0 and indicate which
+element of the array being initialized."""
+    signature = arg.get_base_signature()
     no_init_list = ( '(', ')', '{', '}')
     assert(signature[0] == '(' or signature[0] == '{')
     member_num = 0
@@ -881,7 +907,12 @@ Each member will be set to zero except those which are pointers."""
         c = signature[index]
 
         if c == 's':
-            value = '"Hello world from member{0}!"'.format(member_num)
+            if array_index >= 0:
+                value = '"Hello world from initial {0}[{1}] member{2}!"'.format(arg.name,
+                                                                       array_index,
+                                                                       member_num)
+            else:
+                value = '"Hello world from {0} member{1}!"'.format(arg.name, member_num)
         elif c == 'o':
             value = '"/test/foo"'
         elif c == 'g':
@@ -890,6 +921,11 @@ Each member will be set to zero except those which are pointers."""
             value = "0.0"
         elif c == 'b':
             value = "FALSE"
+        elif c == 'v' and index >= 0:
+            variant_init = "{0}Member{1}_uint8V[{2}]".format(arg.name,
+                                                             member_num,
+                                                             array_index)
+            value = '{{ AJ_ARG_BYTE, 1, 0, &{0}, "y", 0 }}'.format(variant_init)
         else:
             value = "0"
 

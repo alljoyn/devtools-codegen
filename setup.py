@@ -14,7 +14,7 @@
 
 from distutils.core import setup
 setup(name='AllJoynCodeGenSetup',
-      version='0.95',
+      version='0.96',
       description='AllJoyn Code Generator',
       url='http://www.alljoyn.org',
       package_dir={'AllJoynCodeGen': 'src'},

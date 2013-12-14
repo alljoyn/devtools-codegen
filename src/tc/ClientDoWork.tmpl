@@ -46,8 +46,8 @@ void ClientAppDoWork(AJ_BusAttachment* bus, uint32_t sessionId)
 
     /* Only a small number of messages can be queued up before returning
      * control to AllJoyn so it can send them out and receive messages.
-     * So what we do here for demonstration purposes is "take turns" sending
-     * messages to each of the services available. */
+     * So for demonstration purposes we "take turns" sending messages to
+     * each of the services available. */
     const int numberOfComponents = $number_of_components;
     static int s_turn = 0;
 
@@ -163,7 +163,6 @@ ${indent}AJ_Status status;
     #if len($input_args) > 0
         #if len($output_args) > 0
             #set $is_get_set = True
-            #set $indent_count = 12
 ${indent}static int s_doGet = FALSE;
 
         #end if
@@ -173,12 +172,11 @@ ${indent}static int s_doGet = FALSE;
 ${indent}s_doGet = !s_doGet;
 
 ${indent}if (s_doGet) {
-        #set $indent_count += 4
-
-$do_property_call($complete_name, $c, True, $indent_count)#slurp
+$do_property_call($complete_name, $c, True, $indent_count + 4)#slurp
 ${indent}} else {
+            #set $indent_count += 4
+            #set $indent = $indent_count * " "
         #end if
-        #set $indent = $indent_count * " "
 $cc.CommonCheetah.define_static_args($input_args, $indent_count)
 ${indent}/* Define the arguments sent. */
 $cc.CommonCheetah.define_arguments($input_args, $indent_count)

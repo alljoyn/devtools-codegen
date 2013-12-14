@@ -428,7 +428,7 @@ def __validate_aj_object(node):
     Throws a ValidateException on an error."""
 
     if len(node.alljoyn_objects) == 0 and len(node.interfaces) == 0:
-        mess = "Node {0} is empty.".format(node)
+        mess = "Node '{0}' is empty.".format(node.name)
         raise ValidateException(mess)
 
     for key in sorted(node.alljoyn_objects):

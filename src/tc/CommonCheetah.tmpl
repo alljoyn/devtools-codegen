@@ -194,6 +194,10 @@ ${indent}const size_t sizeof${a.name} = ArraySize(stringBuffer$a.name);
         #end if
         #set $init = $GenTC.get_initialization($a, indent_count + 4)
         #if $a.is_array()
+            #set $array_variant_data = $GenTC.get_array_container_variant_data($a)
+            #for $avd in $array_variant_data
+${indent}$avd
+            #end for
 ${indent}static $t s_$a.name$init;
             #set $s = $a.get_base_signature()[0]
             #if $s == 's' or $s == 'o' or $s == 'g' or $s == '(' or $s == '{'

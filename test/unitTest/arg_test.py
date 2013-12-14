@@ -218,35 +218,40 @@ class TestArg(unittest.TestCase):
 
         sig = "bdinqstuvxy"
         a = argdef.ArgDef(None, "myArg", sig)
-        self.assertEqual(a.find_end_of_basic_types(), 11)
-        self.assertEqual(argdef.find_end_of_basic_types(sig), 11)
+        self.assertEqual(a.find_end_of_basic_types(), 8)
+        self.assertEqual(argdef.find_end_of_basic_types(sig), 8)
 
-        sig = "bdinqstuvxy)"
+        sig = "bdinqstuoxy"
         a = argdef.ArgDef(None, "myArg", sig)
         self.assertEqual(a.find_end_of_basic_types(), 11)
         self.assertEqual(argdef.find_end_of_basic_types(sig), 11)
 
-        sig = "bdinqstuvxy}"
+        sig = "bdinqstuoxy)"
         a = argdef.ArgDef(None, "myArg", sig)
         self.assertEqual(a.find_end_of_basic_types(), 11)
         self.assertEqual(argdef.find_end_of_basic_types(sig), 11)
 
-        sig = "bdinqstuvxya"
+        sig = "bdinqstuoxy}"
         a = argdef.ArgDef(None, "myArg", sig)
         self.assertEqual(a.find_end_of_basic_types(), 11)
         self.assertEqual(argdef.find_end_of_basic_types(sig), 11)
 
-        sig = "bdinqstuvxya"
+        sig = "bdinqstuoxya"
+        a = argdef.ArgDef(None, "myArg", sig)
+        self.assertEqual(a.find_end_of_basic_types(), 11)
+        self.assertEqual(argdef.find_end_of_basic_types(sig), 11)
+
+        sig = "bdinqstuoxya"
         a = argdef.ArgDef(None, "myArg", sig)
         self.assertEqual(a.find_end_of_basic_types(1), 11)
         self.assertEqual(argdef.find_end_of_basic_types(sig, 1), 11)
 
-        sig = "bdinqstuvxya"
+        sig = "bdinqstuoxya"
         a = argdef.ArgDef(None, "myArg", sig)
         self.assertEqual(a.find_end_of_basic_types(5), 11)
         self.assertEqual(argdef.find_end_of_basic_types(sig, 5), 11)
 
-        sig = "bdinqstuvxya"
+        sig = "bdinqstuoxya"
         a = argdef.ArgDef(None, "myArg", sig)
         self.assertEqual(a.find_end_of_basic_types(10), 11)
         self.assertEqual(argdef.find_end_of_basic_types(sig, 10), 11)

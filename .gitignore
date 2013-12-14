@@ -1,0 +1,16 @@
+.project
+.classpath
+.settings
+ajngen
+ajgen
+bin
+*.jar
+*.pyc
+*.bak
+src/tc/*.py
+!src/tc/GenTc.py
+!src/tc/__init__.py
+build
+dist
+MANIFEST
+tmp

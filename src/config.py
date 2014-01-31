@@ -19,6 +19,9 @@ import validate
 class ConfigException(Exception):
     """Configuration exceptions"""
 
+def get_version():
+    return "0.98"
+
 class Config:
     """Contains the configuration obtained from the command line.
 
@@ -38,8 +41,9 @@ class Config:
     """
     def __init__(self):
         """Initialize an instance of the Config class."""
-        parser = argparse.ArgumentParser(
-                description="Generate AllJoyn code from XML source.")
+        ver = get_version()
+        descrip = "Generate AllJoyn code from XML source. Version {0}.".format(ver)
+        parser = argparse.ArgumentParser(description=descrip)
 
         help_text = """The file containing the xml definition of an object's
             interface(s)."""
@@ -91,6 +95,9 @@ class Config:
         parser.add_argument("-t", "--target-language", required=True,
                             choices=['c', 'cpp', 'o', 'tc'],
                             help=help_text)
+
+        ver_text = "Version {0}.".format(ver)
+        parser.add_argument("-v", '--version', action='version', version=ver_text)
 
         help_text = """The well-known name that the interface will use when
             requesting a bus name or advertising a name."""

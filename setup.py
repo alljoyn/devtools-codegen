@@ -13,8 +13,10 @@
 # OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 
 from distutils.core import setup
+from src import config
+
 setup(name='AllJoynCodeGenSetup',
-      version='0.96',
+      version=config.get_version(),
       description='AllJoyn Code Generator',
       url='http://www.alljoyn.org',
       package_dir={'AllJoynCodeGen': 'src'},

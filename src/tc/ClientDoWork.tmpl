@@ -17,8 +17,20 @@
 #import CommonCheetah as cc
 /* Source: "$command_line.xml_input_file" */
 
+/**
+ * Per-module definition of the current module for debug logging. Must be defined
+ * prior to first inclusion of aj_debug.h
+ */
+\#define AJ_MODULE CLIENTDOWORK
+
 \#include <alljoyn.h>
 \#include "Client.h"
+
+/**
+ * Turn on per-module debug printing by setting this variable to non-zero value
+ * (usually in debugger).
+ */
+uint8_t dbgCLIENTDOWORK = 1;
 
 /*
  * Let the application do some work.

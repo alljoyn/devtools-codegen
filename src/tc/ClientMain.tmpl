@@ -16,11 +16,23 @@
 #import GenTC
 /* Source: "$command_line.xml_input_file" */
 
+/**
+ * Per-module definition of the current module for debug logging. Must be defined
+ * prior to first inclusion of aj_debug.h
+ */
+\#define AJ_MODULE CLIENTMAIN
+
 \#include <alljoyn.h>
 \#include <aj_debug.h>
 
 \#include "Client.h"
 \#include "CommonClientService.h"
+
+/**
+ * Turn on per-module debug printing by setting this variable to non-zero value
+ * (usually in debugger).
+ */
+uint8_t dbgCLIENTMAIN = 1;
 
 extern void ClientAppDoWork(AJ_BusAttachment* bus, uint32_t sessionId);
 extern AJ_Status SessionLost(AJ_Message* msg);

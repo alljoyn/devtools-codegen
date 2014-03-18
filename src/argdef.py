@@ -272,6 +272,19 @@ def get_max_container_depth(signature, start, stop):
 
     return return_value
 
+def split_signature(sig):
+    """splits a container signature into individual fields."""
+    components = []
+    index = 1
+    while index < len(sig)-1:
+        part = sig[index:]
+
+        startindex = get_indirection_level(part)
+        endindex = find_end_of_type(part, startindex)
+
+        components.append(part[:endindex])
+        index = index + endindex
+    return components
 
 def make_clean_name(signature):
     clean_name = signature.replace("(", "_")

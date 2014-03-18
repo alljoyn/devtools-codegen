@@ -14,6 +14,7 @@
 
 import signaldef
 import methoddef
+import argdef
 import propertydef
 import common
 import validate
@@ -229,37 +230,38 @@ This includes the dictionaries which are just a special case of a structure."""
 
         return
 
-    def __name_and_extract_structs(self, arg):
-        key = arg.arg_type.lstrip('a')
+    def __find_add_structs_dictionaries_single(self, sig, name):
+        basetype = argdef.get_base_signature(sig)
 
-        if arg.arg_type in self.structures:
-            # Already in the list of structures?
-            # If so then check for a name, name it if needed, and we're done.
-            c = self.structures[key]
-            if c.name is None:
-                c.set_name(arg.name)
-        else:
-            # Add this structure and extract all the substructures.
-            c = container.Container(key, arg.name)
-            self.structures[key] = c
-            c.extract_structures(self.structures)
+        fieldsigs = []
+        if basetype[0] == '(':
+            fieldsigs = argdef.split_signature(basetype)
+            if basetype in self.structures:
+                # Already in the list of structures?
+                # If so then check for a name, name it if needed, and we're done.
+                c = self.structures[basetype]
+                if c.name is None and name is not None:
+                    c.set_name(name)
+            else:
+                # Add as new structure
+                c = container.Container(basetype, name)
+                self.structures[basetype] = c
+        elif basetype[0] == '{':
+            fieldsigs = argdef.split_signature(basetype)
+            if basetype in self.dictionaries:
+                # Already in the list of dictionaries?
+                # If so then check for a name, name it if needed, and we're done.
+                c = self.dictionaries[basetype]
+                if c.name is None and name is not None:
+                    c.set_name(name)
+            else:
+                # Add as new dictionary
+                c = container.Container(basetype, name)
+                self.dictionaries[basetype] = c
 
-        return
-
-    def __name_and_extract_dictionaries(self, arg):
-        key = arg.arg_type.lstrip('a')
-
-        if arg.arg_type in self.dictionaries:
-            # Already in the list of dictionaries?
-            # If so then check for a name, name it if needed, and we're done.
-            c = self.dictionaries[key]
-            if c.name is None:
-                c.set_name(arg.name)
-        else:
-            # Add this structure and extract all the substructures.
-            c = container.Container(key, arg.name)
-            self.dictionaries[key] = c
-            c.extract_dictionaries(self.dictionaries)
+        # recursively look for more structs and dictionaries
+        for fieldsig in fieldsigs:
+            self.__find_add_structs_dictionaries_single(fieldsig, None)
 
         return
 
@@ -269,14 +271,7 @@ This includes the dictionaries which are just a special case of a structure."""
                 a.interface = self
                 if not self.has_arrays and str.find(a.arg_type, 'a'):
                     self.has_arrays = True
-
-                key = a.arg_type
-
-                if str.find(key, '(') != -1:
-                    self.__name_and_extract_structs(a)
-
-                if str.find(a.arg_type, '{') != -1:
-                    self.__name_and_extract_dictionaries(a)
+                self.__find_add_structs_dictionaries_single(a.arg_type, a.name)
 
         return
 

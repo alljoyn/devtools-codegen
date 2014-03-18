@@ -229,38 +229,30 @@ This includes the dictionaries which are just a special case of a structure."""
 
         return
 
-    def __name_and_extract_structs(self, arg):
-        key = arg.arg_type.lstrip('a')
+    def __name_and_extract_to_list(self, arg, list):
+        basesig = arg.get_base_signature()
 
-        if arg.arg_type in self.structures:
-            # Already in the list of structures?
+        if basesig in list:
+            # Already in the container list?
             # If so then check for a name, name it if needed, and we're done.
-            c = self.structures[key]
+            c = list[basesig]
             if c.name is None:
                 c.set_name(arg.name)
         else:
-            # Add this structure and extract all the substructures.
-            c = container.Container(key, arg.name)
-            self.structures[key] = c
+            # Add this container and extract all the subcontainers.
+            c = container.Container(basesig, arg.name)
+            list[basesig] = c
             c.extract_structures(self.structures)
+            c.extract_dictionaries(self.dictionaries)
 
         return
 
-    def __name_and_extract_dictionaries(self, arg):
-        key = arg.arg_type.lstrip('a')
+    def __name_and_extract_struct(self, arg):
+        self.__name_and_extract_to_list(arg, self.structures)
+        return
 
-        if arg.arg_type in self.dictionaries:
-            # Already in the list of dictionaries?
-            # If so then check for a name, name it if needed, and we're done.
-            c = self.dictionaries[key]
-            if c.name is None:
-                c.set_name(arg.name)
-        else:
-            # Add this structure and extract all the substructures.
-            c = container.Container(key, arg.name)
-            self.dictionaries[key] = c
-            c.extract_dictionaries(self.dictionaries)
-
+    def __name_and_extract_dictionary(self, arg):
+        self.__name_and_extract_to_list(arg, self.dictionaries)
         return
 
     def __find_add_structs_dictionaries_arrays(self, args):
@@ -270,13 +262,10 @@ This includes the dictionaries which are just a special case of a structure."""
                 if not self.has_arrays and str.find(a.arg_type, 'a'):
                     self.has_arrays = True
 
-                key = a.arg_type
-
-                if str.find(key, '(') != -1:
-                    self.__name_and_extract_structs(a)
-
-                if str.find(a.arg_type, '{') != -1:
-                    self.__name_and_extract_dictionaries(a)
+                if a.is_structure():
+                    self.__name_and_extract_struct(a)
+                elif a.is_dictionary():
+                    self.__name_and_extract_dictionary(a)
 
         return
 

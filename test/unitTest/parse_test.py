@@ -631,6 +631,20 @@ class TestParse(unittest.TestCase):
                 self.assertIsNotNone(service_interface, message)
                 self.__compare_interfaces(i, service_interface, filename)
 
+                # basic sanity check:
+                #    all structures should have a signature starting with '('
+                #    all dictionaries should have a signature starting with '{'
+                # [checks for issue ASADT-3]
+                for struct in service_interface.structures:
+                    mess_format = "Container extraction gave malformed struct signature {0} in {1}."
+                    message = mess_format.format(struct, filename)
+                    self.assertTrue(struct[0] == "(" and struct[-1] == ")", message)
+                for dict in service_interface.dictionaries:
+                    mess_format = "Container extraction gave malformed dict signature {0} in {1}."
+                    message = mess_format.format(dict, filename)
+                    self.assertTrue(dict[0] == "{" and dict[-1] == "}", message)
+
+
         validate.alljoyn_data(service, "tc")
 
         return service

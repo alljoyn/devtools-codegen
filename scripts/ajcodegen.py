@@ -1,4 +1,4 @@
-#!python
+#!/usr/bin/env python
 # Copyright (c) 2013 AllSeen Alliance. All rights reserved.
 #
 # Permission to use, copy, modify, and/or distribute this software for any

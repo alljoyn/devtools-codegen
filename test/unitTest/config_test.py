@@ -1,4 +1,4 @@
-# Copyright (c) 2013, AllSeen Alliance. All rights reserved.
+# Copyright (c) 2013, 2014 AllSeen Alliance. All rights reserved.
 #
 # Permission to use, copy, modify, and/or distribute this software for any
 # purpose with or without fee is hereby granted, provided that the above
@@ -98,7 +98,7 @@ class TestConfig(unittest.TestCase):
             c = config.Config()
             self.assertTrue(c.command_line.target_language == "cpp")
         except config.ConfigException as e:
-            self.assertTrue(str.find(e.message, "Use the option '-ttc'.") != -1)
+            self.assertTrue(str.find(e.message, "Use the option '-ttc'") != -1)
 
         args[1] = "-to"
 
@@ -106,7 +106,7 @@ class TestConfig(unittest.TestCase):
             c = config.Config()
             self.assertTrue(c.command_line.target_language == "o")
         except config.ConfigException as e:
-            self.assertTrue(str.find(e.message, "Use the option '-ttc'.") != -1)
+            self.assertTrue(str.find(e.message, "Use the option '-ttc'") != -1)
 
         args[1] = "-tc"
 
@@ -114,7 +114,7 @@ class TestConfig(unittest.TestCase):
             c = config.Config()
             self.assertTrue(c.command_line.target_language == "tc")
         except config.ConfigException as e:
-            self.assertTrue(str.find(e.message, "Use the option '-ttc'.") != -1)
+            self.assertTrue(str.find(e.message, "Use the option '-ttc'") != -1)
 
         args[1] = "-tFoo"
 

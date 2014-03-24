@@ -1,5 +1,5 @@
 ###############################################################################
-## Copyright (c) 2013 AllSeen Alliance. All rights reserved.
+## Copyright (c) 2013, 2014 AllSeen Alliance. All rights reserved.
 ##
 ## Permission to use, copy, modify, and/or distribute this software for any
 ## purpose with or without fee is hereby granted, provided that the above
@@ -125,7 +125,7 @@ int main()
         AJ_Message msg = {0};
 
         if (!connected) {
-            status = AJ_StartClient(&bus, NULL, TIMEOUT_CONNECT, g_ServiceName, SERVICE_PORT, &sessionId, NULL);
+            status = AJ_StartClient(&bus, NULL, TIMEOUT_CONNECT, FALSE, g_ServiceName, SERVICE_PORT, &sessionId, NULL);
             if (AJ_OK == status) {
                 connected = TRUE;
                 authStatus = AJ_OK;

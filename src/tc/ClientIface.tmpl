@@ -1,5 +1,5 @@
 ###############################################################################
-## Copyright (c) 2013 AllSeen Alliance. All rights reserved.
+## Copyright (c) 2013, 2014 AllSeen Alliance. All rights reserved.
 ##
 ## Permission to use, copy, modify, and/or distribute this software for any
 ## purpose with or without fee is hereby granted, provided that the above
@@ -21,7 +21,7 @@
  * Per-module definition of the current module for debug logging. Must be defined
  * prior to first inclusion of aj_debug.h
  */
-\#define AJ_MODULE CLIENT$interface.interface_name
+\#define AJ_MODULE CLIENT$interface.get_full_coded_name()
 
 \#include "Client.h"
 
@@ -29,7 +29,7 @@
  * Turn on per-module debug printing by setting this variable to non-zero value
  * (usually in debugger).
  */
-uint8_t dbgCLIENT$interface.interface_name = 1;
+uint8_t dbgCLIENT$interface.get_full_coded_name() = 1;
 
 /* Interface: "$interface.interface_full_name" */
 

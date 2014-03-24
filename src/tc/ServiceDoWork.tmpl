@@ -1,5 +1,5 @@
 ###############################################################################
-## Copyright (c) 2013 AllSeen Alliance. All rights reserved.
+## Copyright (c) 2013, 2014 AllSeen Alliance. All rights reserved.
 ##
 ## Permission to use, copy, modify, and/or distribute this software for any
 ## purpose with or without fee is hereby granted, provided that the above
@@ -76,7 +76,7 @@ void ServiceAppDoWork(void* context)
         #set $interface = $service.interfaces[$key]
         #for $o in $interface.parents
             #set $iface_index = $o.get_interface_index($interface)
-            #set $comp = $GenTC.get_interface_components($interface, $o, $iface_index, True)
+            #set $comp = $GenTC.get_interface_components($interface, $o, $iface_index, False)
             #for $c in $comp
                 ## Only signals messages originate from the service.
                 #if $c.comp_type != "sig"

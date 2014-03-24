@@ -1,5 +1,5 @@
 ###############################################################################
-## Copyright (c) 2013 AllSeen Alliance. All rights reserved.
+## Copyright (c) 2013, 2014 AllSeen Alliance. All rights reserved.
 ##
 ## Permission to use, copy, modify, and/or distribute this software for any
 ## purpose with or without fee is hereby granted, provided that the above
@@ -204,7 +204,10 @@ ${indent}static $t s_$a.name$init;
 ${indent}$t temp_$a.name = s_${a.name}[ArraySize(s_${a.name}) - 1];
             #end if
         #else
+## A static string is not used. The string arg is created using the static int s_helloNumber$a.name
+            #if $t != "char*"
 ${indent}static $t s_$a.name$init;
+            #end if
         #end if
     #end for
 #end def
@@ -274,7 +277,7 @@ $CommonCheetah.unmarshal_one_argument($a, $runnable, $indent_count)#slurp
     #if $arg.is_array()
         #while $arg.arg_type[$index] == 'a'
             #set $t = $arg.arg_type[$index + 1]
-            #if $t != 'a' and $t != 's' and $t != 'g' and $t != '(' and $t != '{'
+            #if $t != 'a' and $t != 's' and $t != 'o' and $t != 'g' and $t != '(' and $t != '{'
                 #break
             #else
 ${indent}status = AJ_UnmarshalContainer(msg, &array$index, AJ_ARG_ARRAY);

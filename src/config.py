@@ -1,4 +1,4 @@
-# Copyright (c) 2013 AllSeen Alliance. All rights reserved.
+# Copyright (c) 2013, 2014 AllSeen Alliance. All rights reserved.
 #
 # Permission to use, copy, modify, and/or distribute this software for any
 # purpose with or without fee is hereby granted, provided that the above
@@ -20,7 +20,7 @@ class ConfigException(Exception):
     """Configuration exceptions"""
 
 def get_version():
-    return "0.98"
+    return "0.99"
 
 class Config:
     """Contains the configuration obtained from the command line.
@@ -89,7 +89,7 @@ class Config:
 
         help_text = """The target language. 'c' is for the AllJoyn 'C' binding
             to AllJoyn Standard Client (not implemented). 'cpp' is C++ code
-            for for AllJoy Standard Client (not implemented). 'o' is for
+            for AllJoyn Standard Client (not implemented). 'o' is for
             Objective C for Apple Targets (not implemented). 'tc' is C code
             for AllJoyn Thin Client."""
         parser.add_argument("-t", "--target-language", required=True,

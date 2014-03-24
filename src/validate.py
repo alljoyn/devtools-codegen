@@ -452,7 +452,7 @@ c_key_words = ("auto", "break", "case", "char", "const", "continue", "default",
                "union", "unsigned", "void", "volatile", "while"
               )
 
-windows_key_words = ("interface")
+windows_key_words = ("interface",)
 
 def __search_for_tc_arg_keywords(args):
     c_mess = "Thin Client code may not use the 'C' keyword '{0}' as an argument name."

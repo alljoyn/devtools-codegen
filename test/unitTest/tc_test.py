@@ -252,7 +252,7 @@ class ThinClient(unittest.TestCase):
     def __verify_all_file_generated(self, xml, pathname, number_of_interfaces):
         for f in self.files_always_present:
             full = os.path.join(pathname, f)
-            self.assertTrue(os.path.getsize(full) > 275)
+            self.assertTrue(os.path.getsize(full) > 260)
 
         interface_names = self.__get_interface_names(xml)
 
@@ -270,13 +270,15 @@ class ThinClient(unittest.TestCase):
         self.assertEqual(expected_number_of_files, actual_number_of_files)
         return
 
+    ignore_interfaces = ["org.freedesktop.DBus.Introspectable"]
+
     def __get_interface_names(self, xml):
         """Get the xml for all the interfaces in the xml file."""
         names = []
         for i in xml.iter("interface"):
             # Don't add in an interface name that already exists.
             n = i.get("name")
-            if not n in names:
+            if (not n in names) and (n not in self.ignore_interfaces):
                 names.append(n)
 
         return names

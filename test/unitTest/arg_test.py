@@ -1,4 +1,4 @@
-# Copyright (c) 2013, AllSeen Alliance. All rights reserved.
+# Copyright (c) 2013, 2014 AllSeen Alliance. All rights reserved.
 #
 # Permission to use, copy, modify, and/or distribute this software for any
 # purpose with or without fee is hereby granted, provided that the above
@@ -308,24 +308,94 @@ class TestArg(unittest.TestCase):
 
         sig = "bid(ii)"
         a = argdef.ArgDef(None, "myArg", sig)
-        self.assertEqual(a.get_next_marshal_args_signature(), "bid")
-        self.assertEqual(argdef.get_next_marshal_args_signature(sig), "bid")
 
-        sig = "bid(ii)"
-        a = argdef.ArgDef(None, "myArg", sig)
-        self.assertEqual(a.get_next_marshal_args_signature(1), "id")
-        self.assertEqual(argdef.get_next_marshal_args_signature(sig, 1), "id")
+        answer = "bid"
+        self.assertEqual(a.get_next_marshal_args_signature(), answer)
+        self.assertEqual(argdef.get_next_marshal_args_signature(sig), answer)
 
-        sig = "bid(ii)"
-        a = argdef.ArgDef(None, "myArg", sig)
-        self.assertEqual(a.get_next_marshal_args_signature(2), "d")
-        self.assertEqual(argdef.get_next_marshal_args_signature(sig, 2), "d")
+        answer = "id"
+        self.assertEqual(a.get_next_marshal_args_signature(1), answer)
+        self.assertEqual(argdef.get_next_marshal_args_signature(sig, 1), answer)
+
+        answer = "d"
+        self.assertEqual(a.get_next_marshal_args_signature(2), answer)
+        self.assertEqual(argdef.get_next_marshal_args_signature(sig, 2), answer)
 
         sig = "bidaii"
         a = argdef.ArgDef(None, "myArg", sig)
-        self.assertEqual(a.get_next_marshal_args_signature(), "bid")
-        self.assertEqual(argdef.get_next_marshal_args_signature(sig), "bid")
+
+        answer = "bid"
+        self.assertEqual(a.get_next_marshal_args_signature(), answer)
+        self.assertEqual(argdef.get_next_marshal_args_signature(sig), answer)
+
+        answer = "id"
+        self.assertEqual(a.get_next_marshal_args_signature(1), answer)
+        self.assertEqual(argdef.get_next_marshal_args_signature(sig, 1), answer)
+
+        answer = "d"
+        self.assertEqual(a.get_next_marshal_args_signature(2), answer)
+        self.assertEqual(argdef.get_next_marshal_args_signature(sig, 2), answer)
+
+        answer = "ai"
+        self.assertEqual(a.get_next_marshal_args_signature(3), answer)
+        self.assertEqual(argdef.get_next_marshal_args_signature(sig, 3), answer)
+
+        sig = "a{uv}"
+        a = argdef.ArgDef(None, "myArg", sig)
+
+        answer = sig
+        self.assertEqual(a.get_next_marshal_args_signature(), answer)
+        self.assertEqual(argdef.get_next_marshal_args_signature(sig), answer)
+
+        answer = "{uv}"
+        self.assertEqual(a.get_next_marshal_args_signature(1), answer)
+        self.assertEqual(argdef.get_next_marshal_args_signature(sig, 1), answer)
+
+        answer = "u"
+        self.assertEqual(a.get_next_marshal_args_signature(2), answer)
+        self.assertEqual(argdef.get_next_marshal_args_signature(sig, 2), answer)
+
+        answer = "v"
+        self.assertEqual(a.get_next_marshal_args_signature(3), answer)
+        self.assertEqual(argdef.get_next_marshal_args_signature(sig, 3), answer)
+
+        sig = "(ba{da(ss)})"
+        a = argdef.ArgDef(None, "myArg", sig)
+
+        answer = sig
+        self.assertEqual(a.get_next_marshal_args_signature(), answer)
+        self.assertEqual(argdef.get_next_marshal_args_signature(sig), answer)
+
+        answer = "b"
+        self.assertEqual(a.get_next_marshal_args_signature(1), answer)
+        self.assertEqual(argdef.get_next_marshal_args_signature(sig, 1), answer)
+
+        answer = "a{da(ss)}"
+        self.assertEqual(a.get_next_marshal_args_signature(2), answer)
+        self.assertEqual(argdef.get_next_marshal_args_signature(sig, 2), answer)
+
+        answer = "{da(ss)}"
+        self.assertEqual(a.get_next_marshal_args_signature(3), answer)
+        self.assertEqual(argdef.get_next_marshal_args_signature(sig, 3), answer)
+
+        answer = "d"
+        self.assertEqual(a.get_next_marshal_args_signature(4), answer)
+        self.assertEqual(argdef.get_next_marshal_args_signature(sig, 4), answer)
+
+        answer = "a(ss)"
+        self.assertEqual(a.get_next_marshal_args_signature(5), answer)
+        self.assertEqual(argdef.get_next_marshal_args_signature(sig, 5), answer)
+
+        answer = "(ss)"
+        self.assertEqual(a.get_next_marshal_args_signature(6), answer)
+        self.assertEqual(argdef.get_next_marshal_args_signature(sig, 6), answer)
+
+        answer = "ss"
+        self.assertEqual(a.get_next_marshal_args_signature(7), answer)
+        self.assertEqual(argdef.get_next_marshal_args_signature(sig, 7), answer)
+
+        answer = "s"
+        self.assertEqual(a.get_next_marshal_args_signature(8), answer)
+        self.assertEqual(argdef.get_next_marshal_args_signature(sig, 8), answer)
 
         return
-
-

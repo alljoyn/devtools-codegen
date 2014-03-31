@@ -1,4 +1,4 @@
-# Copyright (c) 2013 AllSeen Alliance. All rights reserved.
+# Copyright (c) 2013, 2014 AllSeen Alliance. All rights reserved.
 # 
 # Permission to use, copy, modify, and/or distribute this software for any
 # purpose with or without fee is hereby granted, provided that the above
@@ -809,7 +809,7 @@ def make_members_from_signature(interface, signature):
     index = 1
 
     while index < len(signature) - 1:
-        indirections = argdef.get_indirection_level(signature)
+        indirections = argdef.get_indirection_level(signature, index)
         pointers = "*" * indirections
 
         index += indirections

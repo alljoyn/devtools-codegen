@@ -20,7 +20,7 @@ class ConfigException(Exception):
     """Configuration exceptions"""
 
 def get_version():
-    return "0.99"
+    return "0.0.1"
 
 class Config:
     """Contains the configuration obtained from the command line.

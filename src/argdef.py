@@ -1,4 +1,4 @@
-# Copyright (c) 2013 AllSeen Alliance. All rights reserved.
+# Copyright (c) 2013, 2014 AllSeen Alliance. All rights reserved.
 #
 # Permission to use, copy, modify, and/or distribute this software for any
 # purpose with or without fee is hereby granted, provided that the above
@@ -179,13 +179,14 @@ Examples:
 """
         return get_max_dictionary_depth(self.arg_type)
 
-def get_indirection_level(signature):
+def get_indirection_level(signature, index = 0):
     """Get the number of dimensions in the array or 0 if not an array."""
-    return len(signature) - len(signature.lstrip('a'))
+    sig = signature[index:len(signature)]
+    return len(sig) - len(sig.lstrip('a'))
 
-def get_base_signature(signature):
+def get_base_signature(signature, index = 0):
     """Return the base signature i.e. 'i', 'ai', and 'aai' all return 'i'."""
-    return signature.lstrip('a')
+    return signature[index:len(signature)].lstrip('a')
 
 def is_array(signature):
     """Return True if this argument is an array."""
@@ -221,6 +222,10 @@ def find_end_of_type(signature, index = 0):
         end_index = __find_container_end(signature, index, ')')
     elif c == '{':
         end_index = __find_container_end(signature, index, '}')
+    elif c == 'a':
+        base = get_base_signature(signature, index)
+        end_index = find_end_of_type(base)
+        end_index += index + get_indirection_level(signature, index)
     else:
         end_index = index + 1
 
@@ -239,7 +244,13 @@ cannot be handled the same as other types."""
     return index
 
 def get_next_marshal_args_signature(signature, index = 0):
-    end = find_end_of_basic_types(signature, index)
+    assert(index < len(signature))
+    c = signature[index]
+
+    if c == '(' or c == '{' or c == 'a' or c == 'v':
+        end = find_end_of_type(signature, index)
+    else:
+        end = find_end_of_basic_types(signature, index)
 
     return signature[index:end]
 
@@ -300,4 +311,3 @@ def __find_container_end(signature, index, end):
         index += 1
 
     return index
-

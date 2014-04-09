@@ -14,11 +14,16 @@
 
 from xml.etree import ElementTree
 import string
+import re
 
 class ValidateException(Exception):
     """Validation exceptions."""
 
 max_name_length = 255
+
+def raise_exception(xml, message):
+    message = get_xml_error(xml, message)
+    raise ValidateException(message)
 
 # Validator methods for many objects.
 #
@@ -32,7 +37,9 @@ max_name_length = 255
 #   interface_name(string)
 #   property_access(string)
 #   member_name(string)
+#   type_name(string)
 #   well_known_name(string)
+#   interface_completeness(interface)
 
 def alljoyn_data(service, target):
     """Validates the AllJoyn service data.
@@ -77,7 +84,56 @@ def arg_direction(direction, xml = None):
     return
 
 def data_signature(signature, xml = None):
-    """Validates a data signature used for a method or signal argument."""
+    """Validates a (non-flattened) data signature used in a method, property,
+       signal, struct or dictionary"""
+    error_format = "'{0}' is an invalid AllJoyn data type."
+
+    if signature is None or signature.find('[') == -1:
+        # treat this as a flattened signature
+        flat_data_signature(signature, xml)
+        return
+
+    # non-flattened signatures consist of zero or more 'a' modifiers
+    # followed by either a simple type or a [NamedType]
+    basesig = signature.lstrip('a')
+    valid_types = ( 'b', # AllJoyn boolean basic type
+                    'd', # AllJoyn IEEE 754 double basic type
+                    'g', # AllJoyn signature basic type
+                    'h', # AllJoyn socket handle basic type
+                    'i', # AllJoyn 32-bit signed integer basic type
+                    'n', # AllJoyn 16-bit signed integer basic type
+                    'o', # AllJoyn Name of an AllJoyn object instance
+                    'q', # AllJoyn 16-bit unsigned integer basic type
+                    's', # AllJoyn UTF-8 NULL terminated string basic type
+                    't', # AllJoyn 64-bit unsigned integer basic type
+                    'u', # AllJoyn 32-bit unsigned integer basic type
+                    'v', # AllJoyn variant container type
+                    'x', # AllJoyn 64-bit signed integer basic type
+                    'y'  # AllJoyn 8-bit unsigned integer basic type
+                    )
+    if basesig in valid_types:
+        return
+
+    if basesig[0] != '[' or basesig[-1] != ']':
+        error = error_format.format(signature)
+        error = get_xml_error(xml, error)
+        raise ValidateException(error)
+
+    typename = basesig[1:-1]
+    type_name(typename, xml)
+    return
+
+def type_name(name, xml = None):
+    """Validates the name of a named type."""
+    if name is None or len(name) == 0:
+        error = "Named types must have a name."
+        error = get_xml_error(xml, error)
+        raise ValidateException(error)
+    __name_length_check(name, xml)
+    __element_test(name, "type name", xml)
+
+def flat_data_signature(signature, xml = None):
+    """Validates a flattened data signature used for a method or signal argument."""
     error_format = "'{0}' is an invalid AllJoyn data type."
 
     if signature is None or len(signature) == 0:
@@ -557,3 +613,50 @@ def __thin_library_service(service):
 
 
     return
+
+def interface_completeness(interface):
+    """Checks that all named types referenced in an interface are indeed
+       defined by that interface, and that there are no circular references
+       between named types."""
+
+    def check_completeness(member, refchain):
+        if not member.references_named_type():
+            return
+        type = member.get_named_type()
+        if type is None:
+            mess = "Signature '{0}' in interface {1} references unknown named type."
+            mess = mess.format(member.arg_type, interface.interface_full_name)
+            raise_exception(None, mess)
+
+        if type.name in refchain:
+            mess = "Detected cyclic dependency in named types in interface {1}.\n" + \
+                   "Reference chain is {1}."
+            cycle = refchain[refchain.index(type.name):] + [type.name]
+            mess = mess.format(interface.interface_full_name, " -> ".join(cycle))
+            raise_exception(None, mess)
+
+        newrefchain = refchain + [type.name]
+        for field in type.get_field_list():
+            check_completeness(field, newrefchain)
+
+    allargs = []
+    for property in interface.properties:
+        if property.args is not None:
+            allargs += property.args
+    for method in interface.methods:
+        if method.args is not None:
+            allargs += method.args
+    for signal in interface.signals:
+        if signal.args is not None:
+            allargs += signal.args
+    for struct in interface.declared_structs.values():
+        allargs += struct.fields
+    for dict in interface.declared_dicts.values():
+        allargs += [dict.key, dict.value]
+
+    for arg in allargs:
+        check_completeness(arg, [])
+    for arg in allargs:
+        flat_data_signature(arg.get_flattened_signature())
+
+

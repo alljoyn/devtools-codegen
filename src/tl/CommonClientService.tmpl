@@ -40,7 +40,7 @@ const char* g_${code_name}[] = {
                 #assert $a.direction == "out"
                 #set $direction = ">"
             #end if
-            #set $args = $args + " " + $a.name+$direction+$a.arg_type
+            #set $args = $args + " " + $a.name+$direction+$a.get_flattened_signature()
         #end for
     "?$m.name$args",
     #end for
@@ -49,7 +49,7 @@ const char* g_${code_name}[] = {
         #for $a in $s.args
             #assert $a.direction == "out"
             #set $direction = ">"
-            #set $args = $args + " " + $a.name+$direction+$a.arg_type
+            #set $args = $args + " " + $a.name+$direction+$a.get_flattened_signature()
         #end for
     "!$s.name$args",
     #end for
@@ -62,7 +62,7 @@ const char* g_${code_name}[] = {
             #assert $p.access == "readwrite"
             #set $direction = "="
         #end if
-    "@$p.name$direction${p.args[0].arg_type}",
+    "@$p.name$direction${p.args[0].get_flattened_signature()}",
     #end for
     NULL
 };

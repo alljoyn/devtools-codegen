@@ -1,4 +1,4 @@
-# Copyright (c) 2013, AllSeen Alliance. All rights reserved.
+# Copyright (c) 2013, 2014 AllSeen Alliance. All rights reserved.
 #
 # Permission to use, copy, modify, and/or distribute this software for any
 # purpose with or without fee is hereby granted, provided that the above
@@ -198,15 +198,21 @@ class TestValidate(unittest.TestCase):
             self.assertTrue(string.find(message, name) != -1)
         return
 
-    def test_data_signature(self):
-        """Test validation for argument signatures."""
+    def test_flat_data_signature(self):
+        """Test validation for flattened argument signatures."""
+        self.__flat_data_signature_empty_tests()
+        self.__flat_data_signature_valid_tests()
+        self.__flat_data_signature_invalid_char_tests()
+        self.__flat_data_signature_paren_tests()
+        self.__flat_data_signature_dictionary_tests()
+        self.__flat_data_signature_length_tests()
+        return
+
+    def test_nonflat_data_signature(self):
+        """Test validation for non-flattened argument signatures."""
         self.__data_signature_empty_tests()
         self.__data_signature_valid_tests()
-        self.__data_signature_invalid_char_tests()
-        self.__data_signature_paren_tests()
-        self.__data_signature_dictionary_tests()
-        self.__data_signature_length_tests()
-        return
+        self.__data_signature_invalid_tests()
 
     def test_arg_direction(self):
         """Argument directions are only allowed to be 'in' and 'out'."""
@@ -262,7 +268,7 @@ class TestValidate(unittest.TestCase):
         self.assertTrue(string.find(message, response) != -1)
         return
 
-    def __data_signature_length_tests(self):
+    def __flat_data_signature_length_tests(self):
         """Signatures may be up to 255 characters long. No more."""
         # Create a signature 255 characters long.
         eight = "bdghiino"
@@ -273,13 +279,13 @@ class TestValidate(unittest.TestCase):
                  eight, eight, eight, eight, "sinsb))"
                 )
         valid_long_signature = ")(".join(elems)
-        validate.data_signature(valid_long_signature)
+        validate.flat_data_signature(valid_long_signature)
 
         # Expand it to 256 characters.
         invalid = string.replace(valid_long_signature, "sinsb)", "sinsbb)")
 
         with self.assertRaises(validate.ValidateException) as cm:
-            validate.data_signature(invalid)
+            validate.flat_data_signature(invalid)
 
         message = cm.exception.message
         response = "It is 256 characters long. The max is 255."
@@ -288,60 +294,60 @@ class TestValidate(unittest.TestCase):
 
         return
 
-    def __data_signature_dictionary_tests(self):
+    def __flat_data_signature_dictionary_tests(self):
         """Test validation for dictionary argument signatures."""
         with self.assertRaises(validate.ValidateException) as cm:
-            validate.data_signature("(a{id}uia{s(inu)in)")
+            validate.flat_data_signature("(a{id}uia{s(inu)in)")
 
         message = cm.exception.message
         response = "Unbalanced '{' in AllJoyn data signature '(a{id}uia{s(inu)in)'."
         self.assertTrue(string.find(message, response) != -1)
 
         with self.assertRaises(validate.ValidateException) as cm:
-            validate.data_signature("a}ib{")
+            validate.flat_data_signature("a}ib{")
 
         message = cm.exception.message
         response = "Unexpected '}' in 'a}ib{'."
         self.assertTrue(string.find(message, response) != -1)
 
         with self.assertRaises(validate.ValidateException) as cm:
-            validate.data_signature("{ib}")
+            validate.flat_data_signature("{ib}")
 
         message = cm.exception.message
         response = "All dictionary signatures must have an 'a' before them."
         self.assertTrue(string.find(message, response) != -1)
 
         with self.assertRaises(validate.ValidateException) as cm:
-            validate.data_signature("u{ib}")
+            validate.flat_data_signature("u{ib}")
 
         message = cm.exception.message
         self.assertTrue(string.find(message, response) != -1)
 
         response = "Dictionaries must have a basic type for a key."
         with self.assertRaises(validate.ValidateException) as cm:
-            validate.data_signature("a{(ib)b}")
+            validate.flat_data_signature("a{(ib)b}")
 
         message = cm.exception.message
         self.assertTrue(string.find(message, response) != -1)
 
         with self.assertRaises(validate.ValidateException) as cm:
-            validate.data_signature("a{")
+            validate.flat_data_signature("a{")
 
         message = cm.exception.message
         self.assertTrue(string.find(message, response) != -1)
         return
 
-    def __data_signature_paren_tests(self):
+    def __flat_data_signature_paren_tests(self):
         """Test for signatures that have paren (structures) in them."""
         with self.assertRaises(validate.ValidateException) as cm:
-            validate.data_signature("(ab(stu)hin")
+            validate.flat_data_signature("(ab(stu)hin")
 
         message = cm.exception.message
         response = "Unbalanced '(' in AllJoyn data signature '(ab(stu)hin'."
         self.assertTrue(string.find(message, response) != -1)
 
         with self.assertRaises(validate.ValidateException) as cm:
-            validate.data_signature(")abc(")
+            validate.flat_data_signature(")abc(")
 
         message = cm.exception.message
         response = "Unexpected ')' in ')abc('."
@@ -350,7 +356,7 @@ class TestValidate(unittest.TestCase):
         with self.assertRaises(validate.ValidateException) as cm:
             sig = \
             "(i(i(i(i(i(i(i(i(i(i(i(i(i(i(i(i(i(i(i(i(i(i(i(i(i(i(i(i(i(i(i(i("
-            validate.data_signature(sig)
+            validate.flat_data_signature(sig)
 
         message = cm.exception.message
         response = "Max depth of '(' is 32 and was exceeded in "
@@ -358,7 +364,7 @@ class TestValidate(unittest.TestCase):
 
         return
 
-    def __data_signature_invalid_char_tests(self):
+    def __flat_data_signature_invalid_char_tests(self):
         """Test to make sure all invalid characters are caught."""
         valid_chars = ('a', # AllJoyn array container type
                        'b', # AllJoyn boolean basic type
@@ -388,12 +394,29 @@ class TestValidate(unittest.TestCase):
 
             sig = "{0}i".format(c)
             with self.assertRaises(validate.ValidateException) as cm:
-                validate.data_signature(sig)
+                validate.flat_data_signature(sig)
 
             message = cm.exception.message
             response = err_format.format(c, sig)
             self.assertTrue(string.find(message, response) != -1)
         return
+
+    def __data_signature_invalid_tests(self):
+        """Do tests to make sure invalid signatures are caught."""
+        invalid_patterns = [
+            "[OpenButNotClosed",
+            "(i[Mixed]s)",
+            "[Multi][Named][Type]",
+            "[[Nested]]",
+            "[Invalid(In){Between}Brackets]",
+            "[Some%Invalid|Characters]",
+            "[0InvalidTypeName]"
+        ]
+        for sig in invalid_patterns:
+            with self.assertRaises(validate.ValidateException) as cm:
+                validate.data_signature(sig)
+        return
+
 
     def __data_signature_valid_tests(self):
         """Do tests to make sure valid signatures are accepted."""
@@ -401,6 +424,18 @@ class TestValidate(unittest.TestCase):
         validate.data_signature("(yxvutsqonihgdb)")
         validate.data_signature("((abd(ghi(no)))qstuvxy)")
         validate.data_signature("a{ib}")
+        validate.data_signature("[SomeType]")
+        validate.data_signature("a[SomeType]")
+        validate.data_signature("aa[SomeType]")
+        validate.data_signature("aaa[SomeType]")
+        return
+
+    def __flat_data_signature_valid_tests(self):
+        """Do tests to make sure valid signatures are accepted."""
+        validate.flat_data_signature("ab")
+        validate.flat_data_signature("(yxvutsqonihgdb)")
+        validate.flat_data_signature("((abd(ghi(no)))qstuvxy)")
+        validate.flat_data_signature("a{ib}")
         return
 
     def __data_signature_empty_tests(self):
@@ -414,6 +449,23 @@ class TestValidate(unittest.TestCase):
 
         with self.assertRaises(validate.ValidateException) as cm:
             validate.data_signature("")
+
+        message = cm.exception.message
+        response = "'NULL' is an invalid AllJoyn data type."
+        self.assertTrue(string.find(message, response) != -1)
+        return
+
+    def __flat_data_signature_empty_tests(self):
+        """Do tests to make sure empty signatures are detected."""
+        with self.assertRaises(validate.ValidateException) as cm:
+            validate.flat_data_signature(None)
+
+        message = cm.exception.message
+        response = "'NULL' is an invalid AllJoyn data type."
+        self.assertTrue(string.find(message, response) != -1)
+
+        with self.assertRaises(validate.ValidateException) as cm:
+            validate.flat_data_signature("")
 
         message = cm.exception.message
         response = "'NULL' is an invalid AllJoyn data type."

@@ -330,6 +330,36 @@ class TestParse(unittest.TestCase):
 
                 e = "'B' is an invalid AllJoyn data type in 'B'."
                 self.assertTrue(str.find(message, e) != -1)
+            elif str.find(f, "incomplete_named_types.xml") != -1:
+                with self.assertRaises(validate.ValidateException) as cm:
+                    self.__do_the_parse(f)
+                    print(file_report_format.format(f))
+
+                message = cm.exception.message
+
+                e = " references unknown named type."
+                self.assertTrue(str.find(message, e) != -1)
+            elif str.find(f, "cyclic_named_types.xml") != -1:
+                with self.assertRaises(validate.ValidateException) as cm:
+                    self.__do_the_parse(f)
+                    print(file_report_format.format(f))
+
+                message = cm.exception.message
+
+                e = "Detected cyclic dependency in named types in interface "
+                self.assertTrue(str.find(message, e) != -1)
+            elif str.find(f, "invalid_named_dict.xml") != -1:
+                with self.assertRaises(validate.ValidateException) as cm:
+                    self.__do_the_parse(f)
+                    print(file_report_format.format(f))
+
+                message = cm.exception.message
+
+                e = "must have a basic type as key, not "
+                self.assertTrue(str.find(message, e) != -1)
+            elif str.find(f, "valid_named_types.xml") != -1:
+                self.__do_the_parse(f)
+                print(file_report_format.format(f))
             elif str.find(f, "annotation_valid.xml") != -1:
                 service = self.__do_the_parse(f)
 

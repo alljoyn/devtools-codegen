@@ -35,7 +35,9 @@ from ReadMe import ReadMe
 
 from .. import config
 from .. import service
-from .. import argdef
+from .. import memberdef
+from .. import structdef
+from .. import dictdef
 
 AJ_PropertiesIface = "AJ_PropertiesIface"
 
@@ -254,7 +256,7 @@ class ArgInfo:
                 continue
 
             self.args.append(a)
-            self.signature = "".join([self.signature, a.arg_type])
+            self.signature = "".join([self.signature, a.get_flattened_signature()])
 
         if len(self.args) == 0:
             self.marshal_args_string = None
@@ -302,7 +304,7 @@ class ArgInfo:
         return_value = False
 
         for a in self.args:
-            if a.arg_type.find('a') != -1:
+            if a.is_array():
                 return_value = True
                 break
 
@@ -355,9 +357,8 @@ class ArgInfo:
             else:
                 return_value = "{0}, ".format(return_value)
 
-            sig = a.arg_type.lstrip('a')
-            ptr = "*" * (len(a.arg_type) - len(sig))
-            c_type = get_c_type(a.interface, sig)
+            ptr = "*" * a.get_indirection_level()
+            c_type = get_base_c_type(a)
 
             if a.is_array():
                 const = "const "
@@ -368,9 +369,8 @@ class ArgInfo:
                                              c_type, ptr, a.name)
 
             if a.is_array():
-                name = "{0}Elements".format(a.name)
-                return_value = arg_format.format(return_value, "",
-                                                 ", int", "", name)
+                # append element count argument
+                return_value = "{0}, int {1}Elements".format(return_value, a.name)
 
         return return_value
 
@@ -773,26 +773,23 @@ def get_complete_name(aj_object, interface, component):
                           input_args)
     return return_value
 
-def get_base_c_type(interface, signature):
-    """Get the non-array type of this signature"""
-    return get_c_type(interface, signature.lstrip('a'))
+def get_base_c_type(member):
+    """Get the base (non-array) type of this member."""
+    return __get_c_type(member.interface, member.get_base_signature())
 
-def get_c_type(interface, signature):
+def __get_c_type(interface, signature):
     """Get the 'C' type corresponding to this signature or None if not found."""
     t = None
-
     if signature in type_dictionary:
         t = type_dictionary[signature]
-    elif signature in interface.structures:
-        s = interface.structures[signature]
-        t = "struct {0}".format(s.name)
-    elif signature in interface.dictionaries:
-        d = interface.dictionaries[signature]
-        t = "struct {0}".format(d.name)
-
+    elif signature[0] == '[':
+        named_type = interface.get_named_type(signature[1:-1])
+        if isinstance(named_type, structdef.StructDef) or \
+           isinstance(named_type, dictdef.DictDef):
+            t = "struct {0}".format(named_type.name)
     return t
 
-def get_scaler_member(signature):
+def get_scaler_member(argdef):
     """Return first member name that is a scaler in this structure signature."""
 
     reject_types = ['(', '{', 'v', 'g', 'o', 's', 'x', 't', 'b', 'd']
@@ -801,50 +798,31 @@ def get_scaler_member(signature):
     # The reject type list gets smaller as we get more desperate. We never
     # return a structure, dictionary, variant, object, signature, or string.
     while return_value is None and len(reject_types) > 6:
-        return_value = __do_get_scaler_member_search(signature, reject_types)
+        return_value = __do_get_scaler_member_search(argdef, reject_types)
         reject_types.pop() # If not found relax the requirements.
 
     return return_value
 
-def make_members_from_signature(interface, signature):
-    """Return the member types and names from the structure signature."""
-    return_value = []
+def make_member_from_memberdef(interface, member):
+    """transform a single member definition into it's C declaration equivalent"""
+    indirection_level = member.get_indirection_level()
+    c_type = get_base_c_type(member)
+    # some arcane manipulations are needed to patch this up
+    basesig = member.get_base_signature()
+    if basesig == 'b':
+        comment = "/*bool*/ "
+    elif member.is_dictionary():
+        comment = "/*dictionary*/"
+    else:
+        comment = ""
 
-    member_num = 0
-    assert(signature[0] == '(' or signature[0] == '{')
-    index = 1
+    if indirection_level > 0:
+        if basesig == 'b':
+            c_type = "bool"
+        comment = "/*'{0}{1}'*/ ".format(c_type, "*"*indirection_level)
+        c_type = __get_c_type(interface, 'a')
 
-    while index < len(signature) - 1:
-        indirections = argdef.get_indirection_level(signature, index)
-        pointers = "*" * indirections
-
-        index += indirections
-
-        end_index = argdef.find_end_of_type(signature, index)
-        sig_type = signature[index:end_index]
-        c_type = get_c_type(interface, sig_type)
-
-        index = end_index
-
-        if sig_type == 'b':
-            comment = "/*bool*/ "
-        elif sig_type[0] == '{':
-            comment = "/*dictionary*/"
-        else:
-            comment = ""
-
-        if len(pointers) > 0:
-            if sig_type == 'b':
-                c_type = "bool"
-            comment = "/*'{0}{1}'*/ ".format(c_type, pointers)
-            c_type = get_c_type(interface, 'a')
-
-        m = "{0} {1}member{2};".format(c_type, comment, member_num)
-
-        return_value.append(m)
-        member_num += 1
-
-    return return_value
+    return "{0} {1}{2}".format(c_type, comment, member.name)
 
 def get_array_container_variant_data(arg):
     """Get the initialization strings to use for variants found in arrays of containers.
@@ -854,29 +832,24 @@ def get_array_container_variant_data(arg):
     return_value = []
 
     if arg.is_array():
-        base = arg.get_base_signature()
-        if base[0] == '(' or base[0] == '{':
-            container = argdef.get_container(base)
-            member_num = -1 # Because we are starting with the '(' or '{'
-            for c in container:
-                if c == 'v':
-                    data = "static uint8_t {0}Member{1}_uint8V[3];".format(arg.name, member_num)
+        if arg.is_structure() or arg.is_dictionary():
+            container = arg.get_named_type()
+            for field in container.get_field_list():
+                if field.arg_type == 'v':
+                    data = "static uint8_t {0}{1}_uint8V[3];".format(arg.name, field.name.capitalize())
                     return_value.append(data)
-
-                member_num += 1
 
     return return_value
 
 def get_initialization(arg, indent_count):
     """Get the initialization string to use for this argument."""
-    t = get_base_c_type(arg.interface, arg.arg_type)
+    t = get_base_c_type(arg)
 
     if arg.is_array():
         if t == "char*":
             init = '[] = { "String 1", "String 2", "String 0" }'
         else:
-            b = arg.get_base_signature()
-            if b[0] == '(' or b[0] == '{':
+            if arg.is_dictionary() or arg.is_structure():
                 indent = indent_count * " "
                 si0 = __make_structure_init_string(arg, 0)
                 si1 = __make_structure_init_string(arg, 1)
@@ -903,44 +876,42 @@ def __make_structure_init_string(arg, array_index = -1):
 Each member will be set to zero except those which are pointers or variants in arrays.
 If this arg is an array of structures then the index will be >= 0 and indicate which
 element of the array being initialized."""
-    signature = arg.get_base_signature()
-    no_init_list = ( '(', ')', '{', '}')
-    assert(signature[0] == '(' or signature[0] == '{')
+    assert(arg.is_structure() or arg.is_dictionary())
     member_num = 0
     index = 1
     init_values = []
-    while index < len(signature):
-        c = signature[index]
-
-        if c == 's':
+    for field in arg.get_named_type().get_field_list():
+        if field.arg_type == 's':
             if array_index >= 0:
-                value = '"Hello world from initial {0}[{1}] member{2}!"'.format(arg.name,
+                value = '"Hello world from initial {0}[{1}] {2}!"'.format(arg.name,
                                                                        array_index,
-                                                                       member_num)
+                                                                       field.name)
             else:
-                value = '"Hello world from {0} member{1}!"'.format(arg.name, member_num)
-        elif c == 'o':
+                value = '"Hello world from {0} {1}!"'.format(arg.name, field.name)
+        elif field.arg_type == 'o':
             value = '"/test/foo"'
-        elif c == 'g':
+        elif field.arg_type == 'g':
             value = '"(sig)"'
-        elif c == 'd':
+        elif field.arg_type == 'd':
             value = "0.0"
-        elif c == 'b':
+        elif field.arg_type == 'b':
             value = "FALSE"
-        elif c == 'v' and index >= 0:
-            variant_init = "{0}Member{1}_uint8V[{2}]".format(arg.name,
-                                                             member_num,
-                                                             array_index)
+        elif field.arg_type == 'v' and index >= 0:
+            variant_init = "{0}{1}_uint8V[{2}]".format(arg.name,
+                                                       field.name.capitalize(),
+                                                       array_index)
             value = '{{ AJ_ARG_BYTE, 1, 0, &{0}, "y", 0 }}'.format(variant_init)
+        elif field.is_structure():
+            value = __make_structure_init_string(field)
+        elif field.is_dictionary():
+            value = "{{ {0} , {1} , {2} }}".format(__make_structure_init_string(field, 0), __make_structure_init_string(field, 1), __make_structure_init_string(field, 2))
         else:
             value = "0"
 
-        if c not in no_init_list:
-            init_values.append(value)
+        init_values.append(value)
 
         index += 1
-        member_num += 1
-
+        
     return "{{ {0} }}".format(", ".join(init_values))
 
 def __get_method_handler_name(path_index, interface, m):
@@ -1011,29 +982,14 @@ def __get_client_switch_entries(interface, aj_object, iface_index, include_prop)
 
     return return_value
 
-def __do_get_scaler_member_search(signature, reject_types):
-    assert(signature[0] == '(' or signature[0] == '{')
-    index = 1
-    member_num = 0
-    return_value = None
+def __do_get_scaler_member_search(argdef, reject_types):
+    assert(argdef.is_dictionary() or argdef.is_structure())
+    fieldlist = argdef.get_named_type().get_field_list()
 
-    while index < len(signature) - 1:
-        is_array = signature[index] == 'a'
+    for field in fieldlist:
+        if len(field.arg_type) != 1: continue
+        if field.arg_type in reject_types: continue
+        return [field.name, field.arg_type]
 
-        while signature[index] == 'a':
-            index += 1
-
-        end_index = argdef.find_end_of_type(signature, index)
-        sig_type = signature[index:end_index]
-        index = end_index
-
-        return_value = ["member{0}".format(member_num), sig_type]
-        member_num += 1
-
-        if not is_array and (sig_type[0] not in reject_types):
-            break;
-
-        return_value = None
-
-    return return_value
+    return None
 

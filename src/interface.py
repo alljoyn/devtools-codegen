@@ -14,7 +14,12 @@
 
 import signaldef
 import methoddef
+import argdef
+import memberdef
 import propertydef
+import structdef
+import fielddef
+import dictdef
 import common
 import validate
 import container
@@ -34,7 +39,10 @@ class Interface:
         self.parents = []
         self.structures = {}
         self.dictionaries = {}
-        self.has_arrays = False
+
+        self.declared_names = []
+        self.declared_structs = {}
+        self.declared_dicts = {}
 
         return
 
@@ -72,6 +80,16 @@ class Interface:
                 # Don't count this as a child for purposes of defining the
                 # interface.
                 common.get_annotations(xml, self)
+            elif o.tag == "struct":
+                # Don't count this as a valid child.
+                new_struct = structdef.StructDef()
+                new_struct.parse(o, lax_naming)
+                self.add_declared_struct(o, new_struct)
+            elif o.tag == "dict":
+                # Don't count this as a valid child.
+                new_dict = dictdef.DictDef()
+                new_dict.parse(o, lax_naming)
+                self.add_declared_dict(o, new_dict)
             else:
                 # Don't count this as a valid child.
                 warn_format = "\nWarning! Ignoring interface xml object '{0}'."
@@ -85,6 +103,10 @@ class Interface:
             raise validate.ValidateException(mess)
 
         self.__add_structs_dictionaries_arrays()
+        self.__declare_undeclared_types()
+        self.__add_interface_to_all_members()
+
+        validate.interface_completeness(self)
 
         return
 
@@ -151,6 +173,30 @@ class Interface:
 
         return None
 
+    def add_declared_struct(self, xml, struct):
+        """Add a new declared struct to this interface."""
+        if struct.name in self.declared_names:
+            validate.raise_exception(xml, "Duplicate struct name '{0}' not allowed.".format(struct.name))
+        self.declared_structs[struct.name] = struct
+        self.declared_names.append(struct.name)
+        return
+
+    def add_declared_dict(self, xml, dict):
+        """Add a new declared dict to this interface."""
+        if dict.name in self.declared_names:
+            validate.raise_exception(xml, "Duplicate dict name '{0}' not allowed.".format(dict.name))
+        self.declared_dicts[dict.name] = dict
+        self.declared_names.append(dict.name)
+        return
+
+    def get_named_type(self, typename):
+        """Retrieve a named type (struct or dict)."""
+        if typename in self.declared_structs:
+            return self.declared_structs[typename]
+        if typename in self.declared_dicts:
+            return self.declared_dicts[typename]
+        return None
+
     def add_signal(self, xml, signal):
         """Add a new signal to this interface."""
         for s in self.signals:
@@ -189,12 +235,7 @@ class Interface:
 
         return None
 
-    def get_structs_in_struct_order(self):
-        """Returns the structures in definition order for a header file.
-
-This includes the dictionaries which are just a special case of a structure."""
-        return_value = []
-
+    def __name_unnamed_containers(self):
         unnamed = 0
 
         for k in sorted(self.structures):
@@ -203,7 +244,6 @@ This includes the dictionaries which are just a special case of a structure."""
                 n = "{0}Unnamed{1}".format(self.interface_name, unnamed)
                 s.set_name(n)
                 unnamed += 1
-            return_value.append(s)
 
         for k in sorted(self.dictionaries):
             d = self.dictionaries[k]
@@ -211,21 +251,26 @@ This includes the dictionaries which are just a special case of a structure."""
                 n = "{0}UnnamedDict{1}".format(self.interface_name, unnamed)
                 d.set_name(n)
                 unnamed += 1
-            return_value.append(d)
 
-        return_value.sort(key=container.Container.get_order)
+        return
 
+    def get_containers_in_declaration_order(self):
+        """Returns the declared containers in definition order for a header file"""
+        return_value = []
+        return_value += self.declared_structs.values()
+        return_value += self.declared_dicts.values()
+        return_value.sort(key = lambda x: x.get_order())
         return return_value
 
     def __add_structs_dictionaries_arrays(self):
         for m in self.methods:
-            self.__find_add_structs_dictionaries_arrays(m.args)
+            self.__find_add_structs_dictionaries(m.args)
 
         for m in self.signals:
-            self.__find_add_structs_dictionaries_arrays(m.args)
+            self.__find_add_structs_dictionaries(m.args)
 
         for m in self.properties:
-            self.__find_add_structs_dictionaries_arrays(m.args)
+            self.__find_add_structs_dictionaries(m.args)
 
         return
 
@@ -255,13 +300,12 @@ This includes the dictionaries which are just a special case of a structure."""
         self.__name_and_extract_to_list(arg, self.dictionaries)
         return
 
-    def __find_add_structs_dictionaries_arrays(self, args):
+    def __find_add_structs_dictionaries(self, args):
         if args is not None:
             for a in args:
                 a.interface = self
-                if not self.has_arrays and str.find(a.arg_type, 'a'):
-                    self.has_arrays = True
-
+                if a.references_named_type():
+                    continue
                 if a.is_structure():
                     self.__name_and_extract_struct(a)
                 elif a.is_dictionary():
@@ -269,17 +313,82 @@ This includes the dictionaries which are just a special case of a structure."""
 
         return
 
-    def __add_container_type(self, container_list, arg):
-        if arg.arg_type not in container_list:
-            container_list[arg.arg_type] = arg.name
+    def __resolve_contained_containers(self, fieldsig):
+        baseidx = memberdef.get_indirection_level(fieldsig)
+        basesig = memberdef.get_base_signature(fieldsig)
+        if basesig[0] == '(':
+            basesig = '[{0}]'.format(self.structures[basesig].name)
+        elif basesig[0] == '{':
+            basesig = '[{0}]'.format(self.dictionaries[basesig].name)
+            baseidx = baseidx - 1 #the last 'a' is part of the dictionary definition
+        return fieldsig[:baseidx] + basesig
+
+    def __declare_undeclared_types(self):
+        self.__name_unnamed_containers()
+
+        for d in self.dictionaries.values():
+            dict = dictdef.DictDef()
+            dict.name = d.name
+            fields = memberdef.split_signature(d.signature)
+            dict.set_key_signature(self.__resolve_contained_containers(fields[0]))
+            dict.set_value_signature(self.__resolve_contained_containers(fields[1]))
+            self.add_declared_dict(None, dict)
+
+        for s in self.structures.values():
+            struct = structdef.StructDef()
+            struct.name = s.name
+            fields = memberdef.split_signature(s.signature)
+            for index in range(len(fields)):
+                structfield = fielddef.FieldDef("member{0}".format(index), \
+                                                self.__resolve_contained_containers(fields[index]))
+                struct.add_field(None, structfield)
+            self.add_declared_struct(None, struct)
+
+        # resolve unnamed types in the property/method/signal arguments as well
+        for m in self.methods:
+            if m.args is None: continue
+            for arg in m.args:
+                arg.arg_type = self.__resolve_contained_containers(arg.arg_type)
+
+        for m in self.signals:
+            if m.args is None: continue
+            for arg in m.args:
+                arg.arg_type = self.__resolve_contained_containers(arg.arg_type)
+
+        for m in self.properties:
+            if m.args is None: continue
+            for arg in m.args:
+                arg.arg_type = self.__resolve_contained_containers(arg.arg_type)
 
         return
+
+    def __add_interface_to_all_members(self):
+        for m in self.methods:
+            if m.args is None: continue
+            for arg in m.args:
+                arg.interface = self
+        for m in self.signals:
+            if m.args is None: continue
+            for arg in m.args:
+                arg.interface = self
+        for m in self.properties:
+            if m.args is None: continue
+            for arg in m.args:
+                arg.interface = self
+
+        for s in self.declared_structs.values():
+            for f in s.fields:
+                f.interface = self
+        for d in self.declared_dicts.values():
+            d.key.interface = self
+            d.value.interface = self
+
 
     def __eq__(self, other):
         """Compares this interface to another and returns true if equal.
 
-        This comparision includes the names, methods, signals, and properties
-        but not the parents."""
+        This comparision includes the names, methods, signals, properties
+        and declared types but not the parents."""
 
         if (self is None and other is not None or
            self is not None and other is None or
@@ -288,7 +397,9 @@ This includes the dictionaries which are just a special case of a structure."""
 
         if (len(self.properties) != len(other.properties) or
            len(self.signals) != len(other.signals) or
-           len(self.methods) != len(other.methods)):
+           len(self.methods) != len(other.methods) or
+           len(self.declared_structs) != len(other.declared_structs) or
+           len(self.declared_dicts) != len(other.declared_dicts)):
             return False
 
         for m in self.methods:
@@ -304,6 +415,16 @@ This includes the dictionaries which are just a special case of a structure."""
         for p in self.properties:
             p_other = other.get_property(p.name)
             if p_other is None or p_other != p:
+                return False
+
+        for ds in self.declared_structs.values():
+            ds_other = other.get_named_type(ds.name)
+            if ds_other is None or ds_other != ds:
+                return False
+
+        for dd in self.declared_dicts.values():
+            dd_other = other.get_named_type(dd.name)
+            if dd_other is None or dd_other != dd:
                 return False
 
         return True

@@ -1,4 +1,4 @@
-# Copyright (c) 2013 AllSeen Alliance. All rights reserved.
+# Copyright (c) 2013, 2014 AllSeen Alliance. All rights reserved.
 #
 # Permission to use, copy, modify, and/or distribute this software for any
 # purpose with or without fee is hereby granted, provided that the above
@@ -12,7 +12,7 @@
 # ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
 # OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 
-import argdef
+import memberdef
 
 class Container:
     """Describes AllJoyn structure and dictionary containers not arrays."""
@@ -56,7 +56,7 @@ is a Container with no name."""
         return
 
     def set_name(self, name):
-        temp = argdef.make_clean_name(self.signature)
+        temp = memberdef.make_clean_name(self.signature)
 
         if name.find(temp) == -1:
             self.name = "{0}{1}".format(name, temp)

@@ -15,6 +15,9 @@
 ###############################################################################
 #import GenTL
 #from .. import argdef
+#from .. import memberdef
+#from .. import structdef
+#from .. import dictdef
 
 #@staticmethod
 #def function_header($object, $component, $is_service)
@@ -30,7 +33,7 @@
         len($component.output_arg_info.args) > 0
         #set $is_first = True
         #for $a in $component.output_arg_info.args
-            #set $t = $GenTL.get_base_c_type($a.interface, $a.arg_type)
+            #set $t = $GenTL.get_base_c_type($a)
             #set $ptrs = $a.get_indirection_level() * "*"
             #if $is_first
  * Output: $t$ptrs $a.name
@@ -77,18 +80,15 @@ ${indent}}
 #def define_static_structure_variants($args, $indent_count)
     #set $indent = $indent_count * " "
     #for $a in $args
-        #set $c = $a.get_container()
-        #if $c is not None
-            #set $index = 1
-            #set $member_num = 0
-            #while $c[$index] != ')' and $c[$index] != '}'
-                #if $c[$index] == 'v'
-${indent}static int32_t s_${a.name}Member${member_num}Vint32;
-${indent}static uint8_t s_${a.name}Member${member_num}Vuint8;
+        #if $a.is_structure() and not $a.is_array()
+            #set $container = $a.get_named_type()
+            #for $f in $container.get_field_list()
+                #if $f.arg_type == 'v'
+                    #set $capitalized_name = $f.name.capitalize()
+${indent}static int32_t s_${a.name}${capitalized_name}Vint32;
+${indent}static uint8_t s_${a.name}${capitalized_name}Vuint8;
                 #end if
-                #set $index += 1
-                #set $member_num += 1
-            #end while
+            #end for
         #end if
     #end for
 #end def
@@ -101,27 +101,24 @@ ${indent}static uint8_t s_${a.name}Member${member_num}Vuint8;
 #def initialize_structure_variants($args, $indent_count)
     #set $indent = $indent_count * " "
     #for $a in $args
-        #set $c = $a.get_container()
-        #if $c is not None
-            #set $index = 1
-            #set $member_num = 0
-            #while $c[$index] != ')' and $c[$index] != '}'
-                #if $c[$index] == 'v'
-${indent}/* Variant structure member s_${a.name}.member$member_num is one of two types. */
-${indent}if (s_${a.name}Member${member_num}Vuint8 % 2) {
-${indent}    AJ_InitArg(&s_${a.name}.member$member_num, AJ_ARG_BYTE, 0, &s_${a.name}Member${member_num}Vuint8, 0);
-${indent}    s_${a.name}.member${member_num}.sigPtr = "y";
+        #if $a.is_structure() and not $a.is_array()
+            #set $container = $a.get_named_type()
+            #for $f in $container.get_field_list()
+                #if $f.arg_type == 'v'
+                    #set $capitalized_name = $f.name.capitalize()
+${indent}/* Variant structure member s_${a.name}.${f.name} is one of two types. */
+${indent}if (s_${a.name}${capitalized_name}Vuint8 % 2) {
+${indent}    AJ_InitArg(&s_${a.name}.${f.name}, AJ_ARG_BYTE, 0, &s_${a.name}${capitalized_name}Vuint8, 0);
+${indent}    s_${a.name}.${f.name}.sigPtr = "y";
 ${indent}} else {
-${indent}    AJ_InitArg(&s_${a.name}.member$member_num, AJ_ARG_INT32, 0, &s_${a.name}Member${member_num}Vint32, 0);
-${indent}    s_${a.name}.member${member_num}.sigPtr = "i";
+${indent}    AJ_InitArg(&s_${a.name}.${f.name}, AJ_ARG_INT32, 0, &s_${a.name}${capitalized_name}Vint32, 0);
+${indent}    s_${a.name}.${f.name}.sigPtr = "i";
 ${indent}}
 
-${indent}s_${a.name}Member${member_num}Vuint8++;
-${indent}s_${a.name}Member${member_num}Vint32--;
+${indent}s_${a.name}${capitalized_name}Vuint8++;
+${indent}s_${a.name}${capitalized_name}Vint32--;
                 #end if
-                #set $index += 1
-                #set $member_num += 1
-            #end while
+            #end for
         #end if
     #end for
 #end def
@@ -135,7 +132,7 @@ ${indent}s_${a.name}Member${member_num}Vint32--;
 ${indent}/* Initializing. */
 $CommonCheetah.initialize_structure_variants($args, $indent_count)
     #for $a in $args
-        #set $s = $a.get_base_signature()[0]
+        #set $s = $a.get_flattened_base_signature()[0]
         #if $a.is_array()
 ${indent}${a.name}Elements = ArraySize(s_$a.name);
 ${indent}$a.name = s_$a.name;
@@ -178,7 +175,7 @@ $CommonCheetah.increment_arg($indent_count, $complete_name, $a)#slurp
 ${indent}/* Define the static version of the arg(s). */
 $CommonCheetah.define_static_structure_variants($args, $indent_count)#slurp
     #for $a in $args
-        #set $t = $GenTL.get_base_c_type($a.interface, $a.arg_type)
+        #set $t = $GenTL.get_base_c_type($a)
         #set $ptrs = $a.get_indirection_level() * "*"
         #if $t == "char*"
 ${indent}char stringBuffer${a.name}[128];
@@ -198,7 +195,7 @@ ${indent}const size_t sizeof${a.name} = ArraySize(stringBuffer$a.name);
 ${indent}$avd
             #end for
 ${indent}static $t s_$a.name$init;
-            #set $s = $a.get_base_signature()[0]
+            #set $s = $a.get_flattened_base_signature()[0]
             #if $s == 's' or $s == 'o' or $s == 'g' or $s == '(' or $s == '{'
 ${indent}$t temp_$a.name = s_${a.name}[ArraySize(s_${a.name}) - 1];
             #end if
@@ -220,7 +217,7 @@ ${indent}static $t s_$a.name$init;
         #for $a in $args
             #set $init_val = "0"
             #set $const = ""
-            #set $t = $GenTL.get_base_c_type($a.interface, $a.arg_type)
+            #set $t = $GenTL.get_base_c_type($a)
             #set $ptrs = $a.get_indirection_level() * "*"
             #if $a.is_array()
                 #set $init_val = "NULL"
@@ -272,42 +269,47 @@ $CommonCheetah.unmarshal_one_argument($a, $runnable, $indent_count)#slurp
 #def unmarshal_one_argument($arg, $runnable, $indent_count)
     #set $indent = $indent_count * " "
     #set $free_list = []
-    #set $index = 0
     #if $arg.is_array()
-        #while $arg.arg_type[$index] == 'a'
-            #set $t = $arg.arg_type[$index + 1]
-            #if $t != 'a' and $t != 's' and $t != 'o' and $t != 'g' and $t != '(' and $t != '{'
-                #break
-            #else
+        #set $indirection_level = $arg.get_indirection_level()
+        #set $basesig = $arg.get_base_signature()
+        #set $openclosecount = $indirection_level - 1
+        #if $basesig in ('s', 'o', 'g') or $arg.is_structure() or $arg.is_dictionary()
+            #set $openclosecount  = $indirection_level
+        #end if
+        ## unmarshal the array openers
+        #for $index in $range($openclosecount)
 ${indent}status = AJ_UnmarshalContainer(msg, &array$index, AJ_ARG_ARRAY);
 
 $CommonCheetah.handle_error($runnable, "AJ_UnmarshalContainer", $indent_count)
 ${indent}${arg.name}Elements = 0;
-                #set $index += 1
-            #end if
-        #end while
-        #if $t == 's' or $t == 'o' or $t == 'g'
-$CommonCheetah.unmarshal_string_array($runnable, $arg.name, $t, $free_list, $index - 1, $indent_count)#slurp
-        #elif $t == '(' or $t == '{'
-            #set $sig = $arg.get_container($index)
-$CommonCheetah.unmarshal_container_array($runnable, $arg.name, $sig, $free_list, "msg", $index - 1, $indent_count)#slurp
+        #end for
+        ## unmarshal the array elements
+        #if $basesig == 's' or $basesig == 'o' or $basesig == 'g'
+$CommonCheetah.unmarshal_string_array($runnable, $arg.name, $basesig, $free_list, $indirection_level - 1, $indent_count)#slurp
+        #elif $arg.is_structure() or $arg.is_dictionary()
+            #set $containerdef = $arg.get_named_type()
+$CommonCheetah.unmarshal_container_array($runnable, $arg.name, $containerdef, $free_list, "msg", $indirection_level - 1, $indent_count)#slurp
         #else
-${indent}status = AJ_UnmarshalArg(msg, &array$index);
+            ##basic scalar arrays are handled here
+            #set $depth = $indirection_level - 1
+${indent}status = AJ_UnmarshalArg(msg, &array$depth);
 
 $CommonCheetah.handle_error($runnable, "AJ_UnmarshalArg", $indent_count, $free_list)
-$indent$arg.name = array${index}.val.$GenTL.val_dictionary[$t];
-$indent${arg.name}Elements = array${index}.len / sizeof(*$arg.name);
+$indent$arg.name = array${depth}.val.$GenTL.val_dictionary[$basesig];
+$indent${arg.name}Elements = array${depth}.len/sizeof(*$arg.name);
         #end if
-        #while $index > 0
-            #set $index -= 1
+        ## unmarshal the array closers
+        #for $index in $reversed($range($openclosecount))
 ${indent}status = AJ_UnmarshalCloseContainer(msg, &array$index);
 
 $CommonCheetah.handle_error($runnable, "AJ_UnmarshalCloseContainer", $indent_count, $free_list)#slurp
-        #end while
+        #end for
     #else
         #if $arg.is_structure()
-            #set $sig = $arg.get_container()
-$CommonCheetah.unmarshal_container($runnable, $arg.name, $sig, "msg", 0, $indent_count, False, $free_list)#slurp
+            ## no need to check for dictionaries here, as they are by definition also arrays
+            ## and hence handled above
+            #set $containerdef = $arg.get_named_type()
+$CommonCheetah.unmarshal_container($runnable, $arg.name, $containerdef, "msg", 0, $indent_count, False, $free_list)#slurp
         #elif $arg.arg_type == 'v'
 ${indent}status = AJ_UnmarshalVariant(msg, &${arg.name}.sigPtr);
 
@@ -391,7 +393,7 @@ ${indent}${name} = realloc((void*)${name}, --${name}Elements * sizeof(${name}[0]
 ## Unmarshal an array of structures.
 #####################
 #@staticmethod
-#def unmarshal_container_array($runnable, $name, $sig, $free_list, $msg_ptr, $depth, $indent_count)
+#def unmarshal_container_array($runnable, $name, $containerdef, $free_list, $msg_ptr, $depth, $indent_count)
     #set $indent = $indent_count * " "
 ${indent}index$depth = 0;
 
@@ -399,7 +401,7 @@ ${indent}while (TRUE) {
 ${indent}    ${name} = realloc((void*)${name}, ++${name}Elements * sizeof(${name}[0]));
 $free_list.append($name)#slurp
     #set $struct_name = "{0}[index{1}]".format($name, $depth)
-$CommonCheetah.unmarshal_container($runnable, $struct_name, $sig, $msg_ptr, $depth, $indent_count + 4, True, $free_list)
+$CommonCheetah.unmarshal_container($runnable, $struct_name, $containerdef, $msg_ptr, $depth, $indent_count + 4, True, $free_list)
 ${indent}    index$depth++;
 ${indent}}
 
@@ -409,11 +411,11 @@ ${indent}${name} = realloc((void*)${name}, --${name}Elements * sizeof(${name}[0]
 ## Unmarshal a container and its contents.
 #####################
 #@staticmethod
-#def unmarshal_container($runnable, $name, $sig, $msg_ptr, $depth, $indent_count, $is_array, $free_list = [])
-#set $indent = $indent_count * " "
-    #set $t = $sig[0]
-    #assert($t == '(' or $t == '{')
-    #if $t == '('
+#def unmarshal_container($runnable, $name, $container, $msg_ptr, $depth, $indent_count, $is_array, $free_list = [])
+    #set $indent = $indent_count * " "
+    #assert($isinstance($container, $structdef.StructDef) or $isinstance($container, $dictdef.DictDef)) 
+    #set $isstruct = $isinstance($container, $structdef.StructDef)
+    #if $isstruct
 ${indent}status = AJ_UnmarshalContainer($msg_ptr, &struct$depth, AJ_ARG_STRUCT);
     #else
 ${indent}status = AJ_UnmarshalContainer($msg_ptr, &dictionary$depth, AJ_ARG_DICT_ENTRY);
@@ -426,32 +428,29 @@ ${indent}}
 
     #end if
 $CommonCheetah.handle_error($runnable, "AJ_UnmarshalContainer", $indent_count, $free_list)
-    #set $member_num = 0
-    #set $index = 1
-    #while $sig[$index] != ')' and $sig[$index] != '}'
-        #set $subArgSig = $argdef.get_next_marshal_args_signature($sig, $index)
-        #set $end_basic = $argdef.find_end_of_basic_types($subArgSig)
-        #if $end_basic == 0
-            #set $subArgName = "{0}.member{1}".format($name, $member_num)
-            #set $subArg = $argdef.ArgDef(None, $subArgName, $subArgSig, "in")
-$CommonCheetah.unmarshal_one_argument($subArg, $runnable, $indent_count)
-            #set $index += len($subArgSig)
-            #set $member_num += 1
-        #else
-            #set $subIndex = 0
-${indent}status = AJ_UnmarshalArgs($msg_ptr, "$subArgSig"#slurp
-            #while $subIndex < $end_basic
-, &${name}.member$member_num#slurp
-                #set $member_num += 1
-                #set $subIndex += 1
+    #set $fieldlist = $container.get_field_list()
+    #set $index = 0
+    #while $index < $len($fieldlist)
+        #set $f = $fieldlist[$index]
+        #if $f.is_basic_type()
+            #set $end_basic_type_index = $index + 1
+            #while $end_basic_type_index < $len($fieldlist) and $fieldlist[$end_basic_type_index].is_basic_type()
+                #set $end_basic_type_index += 1
             #end while
-);
-            #set $index += $end_basic
-
+            #set $basicfields = $fieldlist[$index:$end_basic_type_index]
+            #set $marshal_sig = "".join([x.get_flattened_signature() for x in $basicfields])
+            #set $marshal_args = ", ".join(["&{0}.{1}".format($name, x.name) for x in $basicfields])
+${indent}status = AJ_UnmarshalArgs($msg_ptr, "$marshal_sig", $marshal_args);
 $CommonCheetah.handle_error($runnable, "AJ_UnmarshalArgs", $indent_count, $free_list)
+            #set $index = $end_basic_type_index
+        #else
+            #set $fakemember = $memberdef.MemberDef($name+"."+$f.name, $f.arg_type)
+            #set $fakemember.interface = $f.interface
+$CommonCheetah.unmarshal_one_argument($fakemember, $runnable, $indent_count)
+            #set $index += 1
         #end if
     #end while
-    #if $t == '('
+    #if $isstruct
 ${indent}status = AJ_UnmarshalCloseContainer($msg_ptr, &struct$depth);
     #else
 ${indent}status = AJ_UnmarshalCloseContainer($msg_ptr, &dictionary$depth);
@@ -487,45 +486,50 @@ $CommonCheetah.marshal_one_argument($runnable, $a, $msg_ptr, $indent_count)#slur
 #@staticmethod
 #def marshal_one_argument($runnable, $arg, $msg_ptr, $indent_count)
     #set $indent = $indent_count * " "
-    #set $index = 0
     #if $arg.is_array()
+        #set $indirection_level = $arg.get_indirection_level()
+        #set $basesig = $arg.get_base_signature()
+        #set $openclosecount = $indirection_level - 1
+        #if $basesig in ('s', 'o', 'g') or $arg.is_structure() or $arg.is_dictionary()
+            #set $openclosecount = $indirection_level
+        #end if
+        ## marshal the array openers
+        #for $index in $range($openclosecount)
 ${indent}/* Marshal array at depth $index. */
-        #while $arg.arg_type[$index] == 'a'
-            #set $t = $arg.arg_type[$index + 1]
-            #if $t != 'a' and $t != 's' and $t != 'o' and $t != 'g' and $t != '(' and $t != '{'
-                #break
-            #else
 ${indent}status = AJ_MarshalContainer($msg_ptr, &array$index, AJ_ARG_ARRAY);
 
 $CommonCheetah.handle_error($runnable, "AJ_MarshalContainer", $indent_count)
-                #set $index += 1
-            #end if
-        #end while
-        #if $t == 's' or $t == 'o' or $t == 'g'
-$CommonCheetah.marshal_string_array($runnable, $arg.name, $msg_ptr, $t, $index - 1, $indent_count)#slurp
-        #elif $t == '(' or $t == '{'
-            #set $sig = $arg.get_container(index)
-$CommonCheetah.marshal_container_array($runnable, $arg.name, $sig, $msg_ptr, $index - 1, $indent_count)#slurp
+        #end for
+        ##marshal the array elements
+        #if $basesig == 's' or $basesig == 'o' or $basesig == 'g'
+$CommonCheetah.marshal_string_array($runnable, $arg.name, $msg_ptr, $basesig, $indirection_level - 1, $indent_count)#slurp
+        #elif $arg.is_structure() or $arg.is_dictionary()
+            #set $containerdef = $arg.get_named_type()
+$CommonCheetah.marshal_container_array($runnable, $arg.name, $containerdef, $msg_ptr, $indirection_level - 1, $indent_count)#slurp
         #else
-${indent}AJ_InitArg(&array$index, '$t', AJ_ARRAY_FLAG, $arg.name, ${arg.name}Elements * sizeof(*$arg.name));
-${indent}status = AJ_MarshalArg($msg_ptr, &array$index);
+            ##basic scalar arrays are handled here
+            #set $depth = $indirection_level - 1
+${indent}/* Marshal array at depth $depth. */
+${indent}AJ_InitArg(&array$depth, '$basesig', AJ_ARRAY_FLAG, $arg.name, ${arg.name}Elements * sizeof(*$arg.name));
+${indent}status = AJ_MarshalArg($msg_ptr, &array$depth);
 
 $CommonCheetah.handle_error($runnable, "AJ_MarshalArg", $indent_count)
         #end if
 
-        #while $index > 0
-            #set $index -= 1
+        ## marshal the array closers
+        #for $index in $reversed($range($openclosecount))
 ${indent}/* Close array at depth $index. */
 ${indent}status = AJ_MarshalCloseContainer($msg_ptr, &array$index);
 
 $CommonCheetah.handle_error($runnable, "AJ_MarshalCloseContainer", $indent_count)#slurp
-        #end while
+        #end for
     #else
-        #set $sig = $arg.arg_type
         #if $arg.is_structure()
-            #set $sig = $arg.get_container()
-$CommonCheetah.marshal_container($runnable, $arg.name, $sig, $msg_ptr, 0, $indent_count)#slurp
-        #elif $sig == 'v'
+            ## no need to check for dictionaries here, as they are by definition also arrays
+            ## and hence handled above
+            #set $containerdef = $arg.get_named_type()
+$CommonCheetah.marshal_container($runnable, $arg.name, $containerdef, $msg_ptr, 0, $indent_count)#slurp
+        #elif $arg.arg_type == 'v'
 ${indent}status = AJ_MarshalVariant($msg_ptr, ${arg.name}.sigPtr);
 
 $CommonCheetah.handle_error($runnable, "AJ_MarshalVariant", $indent_count)
@@ -543,14 +547,14 @@ ${indent}   status = AJ_MarshalArgs($msg_ptr, ${arg.name}.sigPtr, *${arg.name}.v
 ${indent} */
             #end if
         #else
-${indent}status = AJ_MarshalArgs($msg_ptr, "$sig", $arg.name);
+${indent}status = AJ_MarshalArgs($msg_ptr, "$arg.arg_type", $arg.name);
 
 $CommonCheetah.handle_error($runnable, "AJ_MarshalArgs", $indent_count)#slurp
         #end if
     #end if
 #end def
 #####################
-## Marshal an array of strings or object pathes.
+## Marshal an array of strings or object paths.
 #####################
 #@staticmethod
 #def marshal_string_array($runnable, $name, $msg_ptr, $t, $depth, $indent_count)
@@ -565,55 +569,53 @@ ${indent}}
 ## Marshal an array of structures or dictionaries.
 #####################
 #@staticmethod
-#def marshal_container_array($runnable, $name, $sig, $msg_ptr, $depth, $indent_count)
+#def marshal_container_array($runnable, $name, $containerdef, $msg_ptr, $depth, $indent_count)
     #set $indent = $indent_count * " "
 ${indent}for (index$depth = 0; index$depth < ${name}Elements; index$depth++) {
     #set $struct_name = "{0}[index{1}]".format($name, $depth)
-$CommonCheetah.marshal_container($runnable, $struct_name, $sig, $msg_ptr, $depth, $indent_count + 4)#slurp
+$CommonCheetah.marshal_container($runnable, $struct_name, $containerdef, $msg_ptr, $depth, $indent_count + 4)#slurp
 ${indent}}
 #end def
 #####################
 ## Marshal a container and its contents.
 #####################
 #@staticmethod
-#def marshal_container($runnable, $name, $sig, $msg_ptr, $depth, $indent_count)
+#def marshal_container($runnable, $name, $container, $msg_ptr, $depth, $indent_count)
     #set $indent = $indent_count * " "
-    #set $t = $sig[0]
-    #assert($t == '(' or $t == '{')
-    #if $t == '('
+    #assert($isinstance($container, $structdef.StructDef) or $isinstance($container, $dictdef.DictDef)) 
+    #set $isstruct = $isinstance($container, $structdef.StructDef)
+    #if $isstruct
 ${indent}status = AJ_MarshalContainer($msg_ptr, &struct$depth, AJ_ARG_STRUCT);
     #else
 ${indent}status = AJ_MarshalContainer($msg_ptr, &dictionary$depth, AJ_ARG_DICT_ENTRY);
     #end if
 
 $CommonCheetah.handle_error($runnable, "AJ_MarshalContainer", $indent_count)
-    #set $member_num = 0
-    #set $index = 1
-    #while $sig[$index] != ')' and $sig[$index] != '}'
-        #set $subArgSig = $argdef.get_next_marshal_args_signature($sig, $index)
-        #set $end_basic = $argdef.find_end_of_basic_types($subArgSig)
-        #set $end_basic = $argdef.find_end_of_basic_types($subArgSig)
-        #if $end_basic == 0
-            #set $subArgName = "{0}.member{1}".format($name, $member_num)
-            #set $subArg = $argdef.ArgDef(None, $subArgName, $subArgSig, "in")
-$CommonCheetah.marshal_one_argument($runnable, $subArg, $msg_ptr, $indent_count)
-            #set $index += len($subArgSig)
-            #set $member_num += 1
-        #else
-            #set $subIndex = 0
-${indent}status = AJ_MarshalArgs($msg_ptr, "$subArgSig"#slurp
-            #while $subIndex < $end_basic
-, ${name}.member$member_num#slurp
-                #set $member_num += 1
-                #set $subIndex += 1
+    #set $fieldlist = $container.get_field_list()
+    #set $index = 0
+    #while $index < $len($fieldlist)
+        #set $f = $fieldlist[$index]
+        #if $f.is_basic_type()
+            #set $end_basic_type_index = $index + 1
+            #while $end_basic_type_index < $len($fieldlist) and $fieldlist[$end_basic_type_index].is_basic_type()
+                #set $end_basic_type_index += 1
             #end while
-);
-            #set $index += $end_basic
+            #set $basicfields = $fieldlist[$index:$end_basic_type_index]
+            #set $marshal_sig = "".join([x.get_flattened_signature() for x in $basicfields])
+            #set $marshal_args = ", ".join(["{0}.{1}".format($name, x.name) for x in $basicfields])
+${indent}status = AJ_MarshalArgs($msg_ptr, "$marshal_sig", $marshal_args);
 
 $CommonCheetah.handle_error($runnable, "AJ_MarshalArgs", $indent_count)
+            #set $index = $end_basic_type_index
+        #else
+            ## create a fake memberdef with the right prefix to its name
+            #set $fakemember = $memberdef.MemberDef($name+"."+$f.name, $f.arg_type)
+            #set $fakemember.interface = $f.interface
+$CommonCheetah.marshal_one_argument($runnable, $fakemember, $msg_ptr, $indent_count)
+            #set $index += 1
         #end if
     #end while
-    #if $t == '('
+    #if $isstruct
 ${indent}status = AJ_MarshalCloseContainer($msg_ptr, &struct$depth);
     #else
 ${indent}status = AJ_MarshalCloseContainer($msg_ptr, &dictionary$depth);
@@ -621,6 +623,7 @@ ${indent}status = AJ_MarshalCloseContainer($msg_ptr, &dictionary$depth);
 
 $CommonCheetah.handle_error($runnable, "AJ_MarshalCloseContainer", $indent_count)#slurp
 #end def
+
 #####################
 ## Print the values received from the various arguments.
 #####################
@@ -652,7 +655,7 @@ ${indent} Multi-dimension arrays are not fully supported in "Runnable" mode
 ${indent} by the code generator at this time.
 ${indent} */
         #elif $arg.is_structure() or $arg.is_dictionary()
-            #set $member = $GenTL.get_scaler_member($base_sig)
+            #set $member = $GenTL.get_scaler_member($arg)
             #if $member is not None
                 #set $t = $GenTL.printf_dictionary[$member[1]]
                 #set $m_name = $member[0]
@@ -664,17 +667,17 @@ ${indent} by the code generator at this time.
 ${indent} */
             #end if
         #else
-            #set $t = $GenTL.printf_dictionary[$arg.get_base_signature()]
+            #set $t = $GenTL.printf_dictionary[$arg.get_flattened_base_signature()]
 ${indent}AJ_InfoPrintf(("\tReceived '${arg.name}[%d]' = $t.\n", index0, ${arg.name}[index0]));
         #end if
     #elif $arg.is_structure()
-        #set $member = $GenTL.get_scaler_member($arg.arg_type)
+        #set $member = $GenTL.get_scaler_member($arg)
         #if $member is not None
             #set $t = $GenTL.printf_dictionary[$member[1]]
             #set $m_name = $member[0]
             #if $t == 'v'
 
-${indent}if (${arg.name.m_name}.typeId == 's') {
+${indent}if (${arg.name}.${m_name}.typeId == 's') {
 ${indent}AJ_InfoPrintf(("\tReceived variant string '${arg.name}.$m_name' = '%s'.\n", ${arg.name}.${m_name}.val.v_string));
 ${indent}} else {
 ${indent}AJ_InfoPrintf(("\tReceived variant int '${arg.name}.$m_name' = %d.\n", *${arg.name}.${m_name}.val.v_int32));
@@ -689,7 +692,7 @@ ${indent} by the code generator at this time.
 ${indent} */
         #end if
     #else
-        #set $t = $GenTL.printf_dictionary[$arg.arg_type]
+        #set $t = $GenTL.printf_dictionary[$arg.get_flattened_signature()]
             #if $t == 'v'
 
 ${indent}if (${arg.name}.typeId == 's') {
@@ -707,18 +710,21 @@ ${indent}AJ_InfoPrintf(("\tReceived '$arg.name' = $t.\n", $arg.name));
 #####################
 #@staticmethod
 #def define_containers($interface)
-    #set $structures = $interface.get_structs_in_struct_order()
-    #for $s in $structures
-        #if $s.signature[0] == '('
-struct $s.name {
-        #else
-struct $s.name /*dictionary*/ {
-        #end if
-        #set $members = $GenTL.make_members_from_signature($interface, $s.signature)
-        #for $m in $members
-    $m
-        #end for
+    #set $containers = $interface.get_containers_in_declaration_order()
+    #for $c in $containers
+        #if $isinstance($c, $structdef.StructDef)
+struct $c.name {
+            #for $f in $c.fields
+    ${GenTL.make_member_from_memberdef($interface, $f)};
+            #end for
 };
+        #end if
+        #if $isinstance($c, $dictdef.DictDef)
+struct $c.name /*dictionary*/ {
+    ${GenTL.make_member_from_memberdef($interface, $c.key)};
+    ${GenTL.make_member_from_memberdef($interface, $c.value)};
+};
+        #end if
     #end for
 #end def
 #####################
@@ -788,7 +794,7 @@ ${indent}$name$element0 = ++s_$name$element0;
             #if not $arg.is_array()
 ${indent}$arg.name = s_$arg.name;
             #end if
-            #set $scaler_member = $GenTL.get_scaler_member($sig)
+            #set $scaler_member = $GenTL.get_scaler_member($arg)
             #if $scaler_member is None
 ${indent}/* TODO: Make a change in $arg.name */
             #else
@@ -853,11 +859,12 @@ $CommonCheetah.increment_object($indent, $arg.name, $element0, $sig, $complete_n
 #def free_and_null_arrays($arg_info)
     #if $arg_info is not None and len($arg_info.args) > 0
         #for $a in $arg_info.args
+            #set $flatsig = $a.get_flattened_signature()
             #set $index = 0
-            #if $a.arg_type[$index] == 'a'
-                #set $t = $a.arg_type[$index + 1]
+            #if $flatsig[$index] == 'a'
+                #set $t = $flatsig[$index + 1]
                 #if not ($t != 'a' and $t != 's' and $t != 'o' and $t != 'g' and $t != '(' and $t != '{')
-                    #while $a.arg_type[$index] == 'a'
+                    #while $flatsig[$index] == 'a'
 ## TODO: This should be freeing different arrays in the multi-dimension case.
     free((void*)$a.name);
     $a.name = NULL;

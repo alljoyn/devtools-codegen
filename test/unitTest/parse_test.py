@@ -1,4 +1,4 @@
-# Copyright (c) 2013, AllSeen Alliance. All rights reserved.
+# Copyright (c) 2013, 2014 AllSeen Alliance. All rights reserved.
 #
 # Permission to use, copy, modify, and/or distribute this software for any
 # purpose with or without fee is hereby granted, provided that the above
@@ -616,12 +616,18 @@ class TestParse(unittest.TestCase):
 
         # print(service)
 
+        # Ignore the built in interfaces.
+        built_in = {"org.freedesktop.DBus.Peer",
+                    "org.freedesktop.DBus.Introspectable",
+                    "org.freedesktop.DBus.Properties",
+                    "org.freedesktop.DBus.ObjectManager"}
+
         interfaces = self.__get_interfaces(node)
         for key, i in interfaces.items():
             i_name = i.get("name")
             service_interface = service.get_interface(key)
 
-            if i_name == "org.freedesktop.DBus.Introspectable":
+            if i_name in built_in:
                 mess_format = "From '{0}'.\nInterface '{1}' should be ignored."
                 message = mess_format.format(filename, i_name)
                 self.assertIsNone(service_interface, message)
@@ -643,7 +649,6 @@ class TestParse(unittest.TestCase):
                     mess_format = "Container extraction gave malformed dict signature {0} in {1}."
                     message = mess_format.format(dict, filename)
                     self.assertTrue(dict[0] == "{" and dict[-1] == "}", message)
-
 
         validate.alljoyn_data(service, "tc")
 
@@ -685,7 +690,5 @@ class TestParse(unittest.TestCase):
 
         return
 
-
 if __name__ == '__main__':
     unittest.main()
-

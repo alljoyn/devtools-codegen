@@ -1,4 +1,4 @@
-# Copyright (c) 2013 AllSeen Alliance. All rights reserved.
+# Copyright (c) 2013, 2014 AllSeen Alliance. All rights reserved.
 #
 # Permission to use, copy, modify, and/or distribute this software for any
 # purpose with or without fee is hereby granted, provided that the above
@@ -66,10 +66,14 @@ class AllJoynObject:
                 i = interface.Interface()
                 i.parse(o, lax_naming)
 
-                # Ignore the instrospectable interface. This is built in.
-                built_in = "org.freedesktop.DBus.Introspectable"
-                if i.interface_full_name == built_in:
-                    print("Ignoring built in interface '{0}'".format(built_in))
+                # Ignore the built in interfaces.
+                built_in = {"org.freedesktop.DBus.Peer",
+                            "org.freedesktop.DBus.Introspectable",
+                            "org.freedesktop.DBus.Properties",
+                            "org.freedesktop.DBus.ObjectManager"}
+
+                if i.interface_full_name in built_in:
+                    print("Ignoring built in interface '{0}'".format(i.interface_full_name))
                     continue
 
                 # If this is new interface it is added. If it is not a new

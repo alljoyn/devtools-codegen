@@ -1,4 +1,4 @@
-# Copyright (c) 2013, AllSeen Alliance. All rights reserved.
+# Copyright (c) 2013, 2014 AllSeen Alliance. All rights reserved.
 #
 # Permission to use, copy, modify, and/or distribute this software for any
 # purpose with or without fee is hereby granted, provided that the above
@@ -193,7 +193,13 @@ class ThinClient(unittest.TestCase):
         else:
             tc_home = os.environ[thin_client_home_environment_variable]
             pathname = os.path.join(tc_home, "codegen")
-            self.__empty_directory(pathname)
+
+            # Check to see if the path exists. If it does then empty it.
+            # If it doesn't exist then create it.
+            if os.path.isdir(pathname):
+                self.__empty_directory(pathname)
+            else:
+                os.makedirs(pathname)
 
         try:
             output_path_arg = "-p{0}".format(pathname)
@@ -270,7 +276,11 @@ class ThinClient(unittest.TestCase):
         self.assertEqual(expected_number_of_files, actual_number_of_files)
         return
 
-    ignore_interfaces = ["org.freedesktop.DBus.Introspectable"]
+    # Ignore the built in interfaces.
+    ignore_interfaces = {"org.freedesktop.DBus.Peer",
+                         "org.freedesktop.DBus.Introspectable",
+                         "org.freedesktop.DBus.Properties",
+                         "org.freedesktop.DBus.ObjectManager"}
 
     def __get_interface_names(self, xml):
         """Get the xml for all the interfaces in the xml file."""

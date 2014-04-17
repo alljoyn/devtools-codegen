@@ -31,6 +31,8 @@ from Client_H import Client_H
 from ClientIface import ClientIface
 from ClientIface_H import ClientIface_H
 
+from ReadMe import ReadMe
+
 from .. import config
 from .. import service
 from .. import argdef
@@ -96,6 +98,10 @@ def generate_code(command_line, service):
     make_target_file(temp, source, command_line, service)
     client_sources.append(source)
 
+    temp = ReadMe()
+    source = "ReadMe.txt"
+    make_target_file(temp, source, command_line, service)
+
     # For each interface generate service and client .c and .h Interface files.
     for key in sorted(service.interfaces):
         i = service.interfaces[key]
@@ -152,12 +158,12 @@ def make_target_file(template, filename, command_line, service = None):
     return
 
 # This is a comment string used at the start of all "runnable" code.
-comment_start_runnable =\
-"""/* Start of generated code which should be replaced by user. */"""
+comment_start_runnable ="""\
+/* TODO: Start of generated code which should be replaced by user. */"""
 
 # This is a comment string used at the end of all "runnable" code.
 comment_end_runnable = """\
-/* End of generated code which should be replaced by user. */"""
+/* TODO: End of generated code which should be replaced by user. */"""
 
 # This is a comment string used at the start of places where the user should
 # deal with a error condition.

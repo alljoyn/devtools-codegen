@@ -1,5 +1,5 @@
 ==================
-Copyright (c) 2013 AllSeen Alliance. All rights reserved.
+Copyright (c) 2013, 2014 AllSeen Alliance. All rights reserved.
 
 Permission to use, copy, modify, and/or distribute this software for any
 purpose with or without fee is hereby granted, provided that the above
@@ -16,9 +16,13 @@ OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 
 Unit tests can only be run after the code generator has been installed!
 
-To run all unit tests use this command:
+To run all unit tests on Windows use this command:
 
     python -m unittest discover . *_test.py
+
+To run all unit tests on Linux use this command:
+
+    python -m unittest discover . '*_test.py'
 
 To run a single file of tests use this command:
 
@@ -43,3 +47,12 @@ To run a single test use this command:
 For example:
 
     python -m unittest parse_test.TestParse.test_invalid_filename
+
+==================
+Thin Client Unit tests (tc_test.py) under Windows 
+==================
+If the enviroment variable ALLJOYN_THINCLIENT_HOME is set to the root directory
+of your Thin Client source installation then the thin client unit tests will
+compile 
+
+=C:\Workspace\core\ajtcl

@@ -49,10 +49,8 @@ For example:
     python -m unittest parse_test.TestParse.test_invalid_filename
 
 ==================
-Thin Client Unit tests (tc_test.py) under Windows 
+Thin Library Unit tests (tl_test.py) under Windows 
 ==================
-If the enviroment variable ALLJOYN_THINCLIENT_HOME is set to the root directory
-of your Thin Client source installation then the thin client unit tests will
-compile 
-
-=C:\Workspace\core\ajtcl
+If the enviroment variable ALLJOYN_THINLIBRARY_HOME is set to the root directory
+of your Thin Library source installation then the thin library unit tests will
+compile the code using SCons as well as generate the code.

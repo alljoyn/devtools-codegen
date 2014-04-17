@@ -36,7 +36,7 @@ class Config:
         overwrite (None or True)
         output_path (string)
         runnable (None or True)
-        target_language (string of 'c', 'cpp', 'o', or 'tc')
+        target_language (string of 'c', 'cpp', 'o', or 'tl')
         well_known_name (None or string)
     """
     def __init__(self):
@@ -90,10 +90,10 @@ class Config:
         help_text = """The target language. 'c' is for the AllJoyn 'C' binding
             to AllJoyn Standard Client (not implemented). 'cpp' is C++ code
             for AllJoyn Standard Client (not implemented). 'o' is for
-            Objective C for Apple Targets (not implemented). 'tc' is C code
-            for AllJoyn Thin Client."""
+            Objective C for Apple Targets (not implemented). 'tl' is C code
+            for AllJoyn Thin Library."""
         parser.add_argument("-t", "--target-language", required=True,
-                            choices=['c', 'cpp', 'o', 'tc'],
+                            choices=['c', 'cpp', 'o', 'tl'],
                             help=help_text)
 
         ver_text = "Version {0}.".format(ver)
@@ -113,9 +113,9 @@ class Config:
 
     def __validate(self):
         """Validates various command line arguments beyond simple syntax."""
-        if self.command_line.target_language != 'tc':
-            e1 = "The only target language supported at this time is 'tc'."
-            e2 = "Use the option '-ttc'."
+        if self.command_line.target_language != 'tl':
+            e1 = "The only target language supported at this time is 'tl'."
+            e2 = "Use the option '-ttl'."
 
             raise ConfigException("{0} {1}".format(e1, e2))
 

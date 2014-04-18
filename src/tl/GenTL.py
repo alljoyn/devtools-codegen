@@ -54,9 +54,9 @@ class Executable:
         return
 
 def generate_code(command_line, service):
-    """Generate the AllJoyn Thin Client code."""
+    """Generate the AllJoyn Thin Library code."""
 
-    assert(command_line.target_language == "tc")
+    assert(command_line.target_language == "tl")
 
     temp = CommonClientService_H()
     make_target_file(temp, "CommonClientService.h", command_line, service)
@@ -204,7 +204,7 @@ val_dictionary = {'b': "v_bool",
                   'y': "v_byte",
                  }
 
-# This converts an AllJoyn data type into the thin client 'C' data type.
+# This converts an AllJoyn data type into the Thin Library 'C' data type.
 type_dictionary = {'a': "AJ_Arg",
                    'b': "uint32_t",
                    'd': "double",
@@ -221,7 +221,7 @@ type_dictionary = {'a': "AJ_Arg",
                    'y': "uint8_t",
                   }
 
-# This converts an AllJoyn data type into the thin client 'C' printf data type.
+# This converts an AllJoyn data type into the Thin Library 'C' printf data type.
 printf_dictionary = {'b': "%d",
                      'd': "%g",
                      'g': "%s",

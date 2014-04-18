@@ -13,7 +13,7 @@
 ## ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
 ## OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 ###############################################################################
-#import GenTL as GenTC
+#import GenTL
 #from .. import argdef
 
 #@staticmethod
@@ -30,7 +30,7 @@
         len($component.output_arg_info.args) > 0
         #set $is_first = True
         #for $a in $component.output_arg_info.args
-            #set $t = $GenTC.get_base_c_type($a.interface, $a.arg_type)
+            #set $t = $GenTL.get_base_c_type($a.interface, $a.arg_type)
             #set $ptrs = $a.get_indirection_level() * "*"
             #if $is_first
  * Output: $t$ptrs $a.name
@@ -55,11 +55,11 @@
     #set $indent = $indent_count * " "
 ${indent}if (AJ_OK != status) {
     #if $runable
-    ${indent}$GenTC.comment_start_runnable
+    ${indent}$GenTL.comment_start_runnable
     ${indent}AJ_InfoPrintf(("${func_name}() returned status 0x%x.\n", status));
-    ${indent}$GenTC.comment_end_runnable
+    ${indent}$GenTL.comment_end_runnable
     #else
-    ${indent}$GenTC.comment_handle_error
+    ${indent}$GenTL.comment_handle_error
     #end if
     #for $f in $free_list
     ${indent}free((void*)$f);
@@ -179,7 +179,7 @@ $CommonCheetah.increment_arg($indent_count, $complete_name, $a)#slurp
 ${indent}/* Define the static version of the arg(s). */
 $CommonCheetah.define_static_structure_variants($args, $indent_count)#slurp
     #for $a in $args
-        #set $t = $GenTC.get_base_c_type($a.interface, $a.arg_type)
+        #set $t = $GenTL.get_base_c_type($a.interface, $a.arg_type)
         #set $ptrs = $a.get_indirection_level() * "*"
         #if $t == "char*"
 ${indent}char stringBuffer${a.name}[128];
@@ -192,9 +192,9 @@ ${indent}char stringBuffer${a.name}[30];    /* Variant string value derived from
 ${indent}const size_t sizeof${a.name} = ArraySize(stringBuffer$a.name);
             #continue
         #end if
-        #set $init = $GenTC.get_initialization($a, indent_count + 4)
+        #set $init = $GenTL.get_initialization($a, indent_count + 4)
         #if $a.is_array()
-            #set $array_variant_data = $GenTC.get_array_container_variant_data($a)
+            #set $array_variant_data = $GenTL.get_array_container_variant_data($a)
             #for $avd in $array_variant_data
 ${indent}$avd
             #end for
@@ -221,7 +221,7 @@ ${indent}static $t s_$a.name$init;
         #for $a in $args
             #set $init_val = "0"
             #set $const = ""
-            #set $t = $GenTC.get_base_c_type($a.interface, $a.arg_type)
+            #set $t = $GenTL.get_base_c_type($a.interface, $a.arg_type)
             #set $ptrs = $a.get_indirection_level() * "*"
             #if $a.is_array()
                 #set $init_val = "NULL"
@@ -296,7 +296,7 @@ $CommonCheetah.unmarshal_container_array($runnable, $arg.name, $sig, $free_list,
 ${indent}status = AJ_UnmarshalArg(msg, &array$index);
 
 $CommonCheetah.handle_error($runnable, "AJ_UnmarshalArg", $indent_count, $free_list)
-$indent$arg.name = array${index}.val.$GenTC.val_dictionary[$t];
+$indent$arg.name = array${index}.val.$GenTL.val_dictionary[$t];
 $indent${arg.name}Elements = array${index}.len/sizeof(*$arg.name);
         #end if
         #while $index > 0
@@ -650,9 +650,9 @@ ${indent} Multi-dimension arrays are not fully supported in "Runnable" mode
 ${indent} by the code generator at this time.
 ${indent} */
         #elif $arg.is_structure() or $arg.is_dictionary()
-            #set $member = $GenTC.get_scaler_member($base_sig)
+            #set $member = $GenTL.get_scaler_member($base_sig)
             #if $member is not None
-                #set $t = $GenTC.printf_dictionary[$member[1]]
+                #set $t = $GenTL.printf_dictionary[$member[1]]
                 #set $m_name = $member[0]
 ${indent}AJ_InfoPrintf(("\tReceived '${arg.name}[%d].$m_name' = $t.\n", index0, ${arg.name}[index0].$m_name));
             #else
@@ -662,13 +662,13 @@ ${indent} by the code generator at this time.
 ${indent} */
             #end if
         #else
-            #set $t = $GenTC.printf_dictionary[$arg.get_base_signature()]
+            #set $t = $GenTL.printf_dictionary[$arg.get_base_signature()]
 ${indent}AJ_InfoPrintf(("\tReceived '${arg.name}[%d]' = $t.\n", index0, ${arg.name}[index0]));
         #end if
     #elif $arg.is_structure()
-        #set $member = $GenTC.get_scaler_member($arg.arg_type)
+        #set $member = $GenTL.get_scaler_member($arg.arg_type)
         #if $member is not None
-            #set $t = $GenTC.printf_dictionary[$member[1]]
+            #set $t = $GenTL.printf_dictionary[$member[1]]
             #set $m_name = $member[0]
             #if $t == 'v'
 
@@ -687,7 +687,7 @@ ${indent} by the code generator at this time.
 ${indent} */
         #end if
     #else
-        #set $t = $GenTC.printf_dictionary[$arg.arg_type]
+        #set $t = $GenTL.printf_dictionary[$arg.arg_type]
             #if $t == 'v'
 
 ${indent}if (${arg.name}.typeId == 's') {
@@ -712,7 +712,7 @@ struct $s.name {
         #else
 struct $s.name /*dictionary*/ {
         #end if
-        #set $members = $GenTC.make_members_from_signature($interface, $s.signature)
+        #set $members = $GenTL.make_members_from_signature($interface, $s.signature)
         #for $m in $members
     $m
         #end for
@@ -788,7 +788,7 @@ ${indent}$name$element0 = ++s_$name$element0;
             #if not $arg.is_array()
 ${indent}$arg.name = s_$arg.name;
             #end if
-            #set $scaler_member = $GenTC.get_scaler_member($sig)
+            #set $scaler_member = $GenTL.get_scaler_member($sig)
             #if $scaler_member is None
 ${indent}/* TODO: Make a change in $arg.name */
             #else

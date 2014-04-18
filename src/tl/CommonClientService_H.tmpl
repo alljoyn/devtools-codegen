@@ -16,7 +16,7 @@
 #ifndef _COMMONCLIENTSERVICE_H
 #define _COMMONCLIENTSERVICE_H
 
-#import GenTC
+#import GenTL
 /* Source: "$command_line.xml_input_file" */
 
 /* This is defined on the command line to the code generator. */
@@ -28,16 +28,16 @@ extern const char g_ServiceName[];
 
 #for $key in $sorted($service.interfaces)
     #set $i = $service.interfaces[$key]
-    #set $code_name = $GenTC.get_interface_coded_name(i)
+    #set $code_name = $GenTL.get_interface_coded_name(i)
 extern const char* g_${code_name}[];
 #end for
 
 /* These tables are the set of interfaces that comprise each object (node). */
 #set $objects = $service.get_objects()
 #for $o in $objects
-    #set $interface_names = $GenTC.get_all_interface_coded_names($o)
+    #set $interface_names = $GenTL.get_all_interface_coded_names($o)
     #if len($interface_names) > 0
-extern const AJ_InterfaceDescription $GenTC.get_interface_set_name($o)[];
+extern const AJ_InterfaceDescription $GenTL.get_interface_set_name($o)[];
     #end if
 #end for
 

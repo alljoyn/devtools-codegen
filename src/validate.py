@@ -44,11 +44,11 @@ def alljoyn_data(service, target):
 
     __validate_aj_object(service.alljoyn_object)
 
-    if target == "tc":
-        __thin_client_service(service)
+    if target == "tl":
+        __thin_library_service(service)
     else:
         # TODO: Validation for other target types.
-        assert(target == "tc")
+        assert(target == "tl")
 
     return
 
@@ -438,7 +438,7 @@ def __validate_aj_object(node):
     return
 
 def __search_for_multidimension_array(args):
-    mess = "Thin Client code generator does not support multidimensional arrays."
+    mess = "Thin Library code generator does not support multidimensional arrays."
 
     for a in args:
         if a.arg_type.find("aa") != -1:
@@ -454,9 +454,9 @@ c_key_words = ("auto", "break", "case", "char", "const", "continue", "default",
 
 windows_key_words = ("interface",)
 
-def __search_for_tc_arg_keywords(args):
-    c_mess = "Thin Client code may not use the 'C' keyword '{0}' as an argument name."
-    win_mess = "Thin Client code may not use the Windows 'C' language keyword '{0}' as an argument name."
+def __search_for_tl_arg_keywords(args):
+    c_mess = "Thin Library code may not use the 'C' keyword '{0}' as an argument name."
+    win_mess = "Thin Library code may not use the Windows 'C' language keyword '{0}' as an argument name."
 
     for a in args:
         if a.name in c_key_words:
@@ -466,8 +466,8 @@ def __search_for_tc_arg_keywords(args):
             raise ValidateException(win_mess.format(a.name))
     return
 
-def __thin_client_service(service):
-    """Thin Client applications have some limitations. Check for those limits
+def __thin_library_service(service):
+    """Thin Library applications have some limitations. Check for those limits
 
     There is a max of 256 objects (nodes) per application.
     There is a max of 256 interfaces (255 if any of the interfaces have
@@ -475,28 +475,28 @@ def __thin_client_service(service):
     There is a max of 256 signals + methods per interface.
     There is a max of 256 properties per interface."""
 
-    mess = "Thin Client code may not use the 'C' keyword '{0}' as a {1} name."
+    mess = "Thin Library code may not use the 'C' keyword '{0}' as a {1} name."
 
     for k in sorted(service.interfaces):
         i = service.interfaces[k]
 
         for m in i.methods:
             __search_for_multidimension_array(m.args)
-            __search_for_tc_arg_keywords(m.args)
+            __search_for_tl_arg_keywords(m.args)
 
             if m.name in c_key_words:
                 raise ValidateException(mess.format(m.name, "method"))
 
         for p in i.properties:
             __search_for_multidimension_array(p.args)
-            __search_for_tc_arg_keywords(p.args)
+            __search_for_tl_arg_keywords(p.args)
 
             if p.name in c_key_words:
                 raise ValidateException(mess.format(m.name, "property"))
 
         for s in i.signals:
             __search_for_multidimension_array(s.args)
-            __search_for_tc_arg_keywords(s.args)
+            __search_for_tl_arg_keywords(s.args)
 
             if s.name in c_key_words:
                 raise ValidateException(mess.format(s.name, "signal"))
@@ -505,7 +505,7 @@ def __thin_client_service(service):
 
     if len(objects) >= 256:
         max_mess1 = "There is a max of 256 objects (nodes)"
-        max_mess2 = "in Thin Client applications."
+        max_mess2 = "in Thin Library applications."
         mess_format = "{0} {1}\nThis one has {2} objects."
         mess = mess_format.format(max_mess1, max_mess2, len(objects))
         raise ValidateException(mess)
@@ -516,7 +516,7 @@ def __thin_client_service(service):
         for i in o.interfaces:
             if len(i.methods) + len(i.signals) > 256:
                 max_mess1 = "There is a max of 256 methods + signals per"
-                max_mess2 = "interface in Thin Client applications."
+                max_mess2 = "interface in Thin Library applications."
                 f = "{0} has {1} methods and {2} signals (total = {3})."
                 max_mess3 = f.format(i.interface_full_name,
                                         len(i.methods),
@@ -533,7 +533,7 @@ def __thin_client_service(service):
 
             if num_props > 256:
                 max_mess1 = "There is a max of 256 properties per interface"
-                max_mess2 = "in Thin Client applications."
+                max_mess2 = "in Thin Library applications."
                 mess_format = "{0} {1}\n{2} has {3} properties."
                 mess = mess_format.format(max_mess1,
                                             max_mess2,
@@ -546,7 +546,7 @@ def __thin_client_service(service):
         if num > 256 or (has_properties and num > 255):
             max_mess1 = "There is a max of 256 interfaces (255 if any of the"
             max_mess2 = "interfaces have properties) per object (node)"
-            max_mess3 = "in Thin Client applications."
+            max_mess3 = "in Thin Library applications."
             mess_format = "{0} {1} {2}\nObject {3} has {4} interfaces."
             mess = mess_format.format(max_mess1,
                                       max_mess2,

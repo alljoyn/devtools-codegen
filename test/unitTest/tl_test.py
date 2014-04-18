@@ -27,13 +27,13 @@ import AllJoynCodeGen.config as config
 import AllJoynCodeGen.parseajxml as parseajxml
 import AllJoynCodeGen.validate as validate
 
-import AllJoynCodeGen.tc.GenTC as tc
+import AllJoynCodeGen.tl.GenTL as tl
 
-thin_client_home_environment_variable = "ALLJOYN_THINCLIENT_HOME"
+thin_client_home_environment_variable = "ALLJOYN_THINLIBRARY_HOME"
 thin_client_home_environment_variable_warning = False
 
-class ThinClient(unittest.TestCase):
-    """Tests the Thin Client code generation components."""
+class ThinLibrary(unittest.TestCase):
+    """Tests the Thin Library code generation components."""
 
     def test_interface_set_name(self):
         """Tests getting an interface set name from an AJ object."""
@@ -41,7 +41,7 @@ class ThinClient(unittest.TestCase):
         r_name = "root"
         r = ajobject.AllJoynObject(r_name)
 
-        set_name = tc.get_interface_set_name(r)
+        set_name = tl.get_interface_set_name(r)
         self.assertTrue(str.find(set_name, r_name) != -1)
         self.assertTrue(str.find(set_name, '/') == -1)
         self.assertTrue(str.find(set_name, "IfaceSet") != -1)
@@ -49,7 +49,7 @@ class ThinClient(unittest.TestCase):
         c_name = "child"
         c = ajobject.AllJoynObject(c_name, r)
 
-        set_name = tc.get_interface_set_name(c)
+        set_name = tl.get_interface_set_name(c)
         self.assertTrue(str.find(set_name, r_name) != -1)
         self.assertTrue(str.find(set_name, c_name) != -1)
         self.assertTrue(str.find(set_name, '/') == -1)
@@ -58,7 +58,7 @@ class ThinClient(unittest.TestCase):
         g_name = "grandchild"
         g = ajobject.AllJoynObject(g_name, c)
 
-        set_name = tc.get_interface_set_name(g)
+        set_name = tl.get_interface_set_name(g)
         self.assertTrue(str.find(set_name, r_name) != -1)
         self.assertTrue(str.find(set_name, c_name) != -1)
         self.assertTrue(str.find(set_name, g_name) != -1)
@@ -76,7 +76,7 @@ class ThinClient(unittest.TestCase):
         i = interface.Interface()
         i.set_name("Testing_3.AllSeen2_.MyInterface0")
 
-        coded_name = tc.get_interface_coded_name(i)
+        coded_name = tl.get_interface_coded_name(i)
 
         for c in string.punctuation:
             if c == '_':
@@ -191,8 +191,8 @@ class ThinClient(unittest.TestCase):
 
             pathname = tempfile.mkdtemp(".CodGen")
         else:
-            tc_home = os.environ[thin_client_home_environment_variable]
-            pathname = os.path.join(tc_home, "codegen")
+            tl_home = os.environ[thin_client_home_environment_variable]
+            pathname = os.path.join(tl_home, "codegen")
 
             # Check to see if the path exists. If it does then empty it.
             # If it doesn't exist then create it.
@@ -203,7 +203,7 @@ class ThinClient(unittest.TestCase):
 
         try:
             output_path_arg = "-p{0}".format(pathname)
-            args = ["arg0", output_path_arg, "-ttc", "-wTest.Foo", filename]
+            args = ["arg0", output_path_arg, "-ttl", "-wTest.Foo", filename]
             if runnable:
                 args.append("-R")
 
@@ -218,10 +218,10 @@ class ThinClient(unittest.TestCase):
             service = parser.parse(c.command_line)
 
             target = c.command_line.target_language
-            self.assertEqual(target, "tc")
+            self.assertEqual(target, "tl")
 
             validate.alljoyn_data(service, target)
-            tc.generate_code(c.command_line, service)
+            tl.generate_code(c.command_line, service)
 
             self.__verify_all_file_generated(parser.tree.getroot(), pathname,
                                             len(service.interfaces))
@@ -240,6 +240,7 @@ class ThinClient(unittest.TestCase):
                             "ClientMain.c",
                             "CommonClientService.c",
                             "CommonClientService.h",
+                            "ReadMe.txt",
                             "SConscript",
                             "Service.h",
                             "ServiceDoWork.c",

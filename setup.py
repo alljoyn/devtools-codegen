@@ -20,7 +20,7 @@ setup(name='AllJoynCodeGenSetup',
       description='AllJoyn Code Generator',
       url='http://www.alljoyn.org',
       package_dir={'AllJoynCodeGen': 'src'},
-      packages=['AllJoynCodeGen', 'AllJoynCodeGen.tc'],
+      packages=['AllJoynCodeGen', 'AllJoynCodeGen.tl'],
       scripts=['scripts/ajcodegen.py']
           )
 

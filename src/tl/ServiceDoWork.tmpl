@@ -13,7 +13,7 @@
 ## ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
 ## OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 ###############################################################################
-#import GenTC
+#import GenTL
 #import CommonCheetah as cc
 /* Source: "$command_line.xml_input_file" */
 
@@ -33,10 +33,10 @@
 uint8_t dbgSERVICEDOWORK = 1;
 
 #if $command_line.runnable
-$GenTC.comment_start_runnable
+$GenTL.comment_start_runnable
 static AJ_SessionId s_activeSessions[5];
 static const size_t s_maxSessions = ArraySize(s_activeSessions);
-$GenTC.comment_end_runnable
+$GenTL.comment_end_runnable
 #end if
 
 /*
@@ -53,7 +53,7 @@ void ServiceAppDoWork(void* context)
         #set $interface = $service.interfaces[$key]
         #for $o in $interface.parents
             #set $iface_index = $o.get_interface_index($interface)
-            #set $comp = $GenTC.get_interface_components($interface, $o, $iface_index, True)
+            #set $comp = $GenTL.get_interface_components($interface, $o, $iface_index, True)
             #for $c in $comp:
                 #if $c.comp_type == "sig"
                     #set $number_of_signals += 1
@@ -62,7 +62,7 @@ void ServiceAppDoWork(void* context)
         #end for
     #end for
 #if $command_line.runnable and $number_of_signals > 0
-    $GenTC.comment_start_runnable
+    $GenTL.comment_start_runnable
 
     /* Only a small number of messages can be queued up before returning
      * control to AllJoyn so it can send them out and receive messages.
@@ -76,13 +76,13 @@ void ServiceAppDoWork(void* context)
         #set $interface = $service.interfaces[$key]
         #for $o in $interface.parents
             #set $iface_index = $o.get_interface_index($interface)
-            #set $comp = $GenTC.get_interface_components($interface, $o, $iface_index, False)
+            #set $comp = $GenTL.get_interface_components($interface, $o, $iface_index, False)
             #for $c in $comp
                 ## Only signals messages originate from the service.
                 #if $c.comp_type != "sig"
                     #continue
                 #end if
-                #set $complete_name = $GenTC.get_complete_name($o, $interface, $c)
+                #set $complete_name = $GenTL.get_complete_name($o, $interface, $c)
     if ($component == s_turn) {
                 #if $c.output_arg_info is not None
                     #set $output_args = $c.output_arg_info.args
@@ -143,7 +143,7 @@ $cc.CommonCheetah.initialize_args($output_args, $complete_name, 8)#slurp
         s_turn = 0;
     }
 
-    $GenTC.comment_end_runnable
+    $GenTL.comment_end_runnable
 #else
     AJ_InfoPrintf(("ServiceAppDoWork()\n"));
 #end if
@@ -179,7 +179,7 @@ AJ_Status SessionJoined(AJ_Message* msg, AJ_Message* reply)
 {
     AJ_Status status = AJ_OK;
 #if $command_line.runnable
-    $GenTC.comment_start_runnable
+    $GenTL.comment_start_runnable
     size_t index = GetOpenSessionIndex();
 
     if (index != s_maxSessions) {
@@ -188,7 +188,7 @@ AJ_Status SessionJoined(AJ_Message* msg, AJ_Message* reply)
     } else {
         status = AJ_ERR_RESOURCES;
     }
-    $GenTC.comment_end_runnable
+    $GenTL.comment_end_runnable
 #else
 
     AJ_InfoPrintf(("\nSession 0x%x joined. Path = '%s'.\n", msg->sessionId, msg->objPath));
@@ -204,7 +204,7 @@ AJ_Status SessionLost(AJ_Message* msg, AJ_Message* reply)
 {
     AJ_Status status = AJ_OK;
 #if $command_line.runnable
-    $GenTC.comment_start_runnable
+    $GenTL.comment_start_runnable
     size_t index = 0;
 
     do {
@@ -214,7 +214,7 @@ AJ_Status SessionLost(AJ_Message* msg, AJ_Message* reply)
         }
     } while (++index < s_maxSessions);
 
-    $GenTC.comment_end_runnable
+    $GenTL.comment_end_runnable
 #end if
 
     AJ_InfoPrintf(("\nSession 0x%x lost. Path = '%s'.\n", msg->sessionId, msg->objPath));

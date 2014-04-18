@@ -13,7 +13,7 @@
 ## ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
 ## OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 ###############################################################################
-#import GenTC
+#import GenTL
 /* Source: "$command_line.xml_input_file" */
 
 /**
@@ -48,7 +48,7 @@ extern AJ_Status SessionLost(AJ_Message* msg);
         #if $o.has_properties()
 ClientPropHandlerEntry PropHandlers$o.get_full_coded_name()[] = {
             #for $i in $o.interfaces
-                #set $handlers = $GenTC.get_client_property_handlers_table($o.index, $o, $i)
+                #set $handlers = $GenTL.get_client_property_handlers_table($o.index, $o, $i)
                     #for $h in $handlers
     { $h },
                     #end for
@@ -157,7 +157,7 @@ int main()
                 status = SessionLost(&msg);
                 break;
 
-#set $comp = $GenTC.get_message_defines_names($service)
+#set $comp = $GenTL.get_message_defines_names($service)
 #for $c in $comp
     #if $c.no_reply
         #continue

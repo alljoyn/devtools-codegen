@@ -17,7 +17,7 @@ import parseajxml
 import config
 import validate
 import service
-import tc.GenTC
+import tl.GenTL
 
 ##################################
 # This is the start of execution.
@@ -39,8 +39,8 @@ def main():
         if configuration.command_line.xml:
             print(service)
 
-        if target == "tc":
-            tc.GenTC.generate_code(configuration.command_line, service)
+        if target == "tl":
+            tl.GenTL.generate_code(configuration.command_line, service)
         elif target == 'c':
             # Also must enable this option in config.__validate()
             pass # The 'C' generator has not been implemented.

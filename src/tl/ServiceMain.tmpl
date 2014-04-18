@@ -13,7 +13,7 @@
 ## ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
 ## OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 ###############################################################################
-#import GenTC
+#import GenTL
 /* Source: "$command_line.xml_input_file" */
 
 /**
@@ -43,7 +43,7 @@ extern AJ_Status CanJoinSession();
 
 /* The table of message handlers */
 static const MessageHandlerEntry MessageHandlers[] = {
-#set $handlers = $GenTC.get_message_handlers_table($service)
+#set $handlers = $GenTL.get_message_handlers_table($service)
 #for $h in $handlers
     { $h },
 #end for
@@ -62,7 +62,7 @@ static const MessageHandlerEntry MessageHandlers[] = {
         #if $o.has_properties()
 static const PropHandlerEntry PropHandlers$o.get_full_coded_name()[] = {
             #for $i in $o.interfaces
-                #set $handlers = $GenTC.get_service_property_handlers_table($o.index, $o, $i)
+                #set $handlers = $GenTL.get_service_property_handlers_table($o.index, $o, $i)
                     #for $h in $handlers
     { $h },
                     #end for
@@ -122,7 +122,7 @@ static AJ_Status PropSetHandler(AJ_Message* replyMsg, uint32_t propId, void* con
  * (node) has the property to be get or set.
  */
 static const PropHandlerEntry GetSetPropHandlers[] = {
-#set $handlers = $GenTC.get_service_property_get_set_entries($service)
+#set $handlers = $GenTL.get_service_property_get_set_entries($service)
 #for $h in $handlers
     { $h },
 #end for

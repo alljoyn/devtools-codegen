@@ -13,7 +13,7 @@
 ## ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
 ## OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 ###############################################################################
-#import GenTC
+#import GenTL
 #import CommonCheetah as cc
 /* Source: "$command_line.xml_input_file" */
 
@@ -45,7 +45,7 @@ void ClientAppDoWork(AJ_BusAttachment* bus, uint32_t sessionId)
         #set $interface = $service.interfaces[$key]
         #for $o in $interface.parents
             #set $iface_index = $o.get_interface_index($interface)
-            #set $comp = $GenTC.get_interface_components($interface, $o, $iface_index, True)
+            #set $comp = $GenTL.get_interface_components($interface, $o, $iface_index, True)
             #for $c in $comp:
                 #if $c.comp_type != "sig"
                     #set $number_of_components += 1
@@ -54,7 +54,7 @@ void ClientAppDoWork(AJ_BusAttachment* bus, uint32_t sessionId)
         #end for
     #end for
     #if $number_of_components > 0
-    $GenTC.comment_start_runnable
+    $GenTL.comment_start_runnable
 
     /* Only a small number of messages can be queued up before returning
      * control to AllJoyn so it can send them out and receive messages.
@@ -68,12 +68,12 @@ void ClientAppDoWork(AJ_BusAttachment* bus, uint32_t sessionId)
         #set $interface = $service.interfaces[$key]
         #for $o in $interface.parents
             #set $iface_index = $o.get_interface_index($interface)
-            #set $comp = $GenTC.get_interface_components($interface, $o, $iface_index, True)
+            #set $comp = $GenTL.get_interface_components($interface, $o, $iface_index, True)
             #for $c in $comp
                 #if $c.comp_type == "sig"
                     #continue
                 #end if
-                #set $complete_name = $GenTC.get_complete_name($o, $interface, $c)
+                #set $complete_name = $GenTL.get_complete_name($o, $interface, $c)
     if ($component == s_turn) {
                 #if $c.comp_type == "meth"
 $do_method_turn($complete_name, $c)#slurp
@@ -91,7 +91,7 @@ $do_property_turn($complete_name, $c)#slurp
         s_turn = 0;
     }
 
-    $GenTC.comment_end_runnable
+    $GenTL.comment_end_runnable
     #end if
 #else
     /* TODO: Add stuff for client to do while waiting for a message. */

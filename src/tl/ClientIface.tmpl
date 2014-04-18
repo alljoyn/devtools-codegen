@@ -13,7 +13,7 @@
 ## ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
 ## OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 ###############################################################################
-#import GenTC
+#import GenTL
 #import CommonCheetah as cc
 /* Source: "$command_line.xml_input_file" */
 
@@ -35,7 +35,7 @@ uint8_t dbgCLIENT$interface.get_full_coded_name() = 1;
 
 #for $o in $interface.parents
     #set $iface_index = $o.get_interface_index($interface)
-    #set $comp = $GenTC.get_interface_components($interface, $o, $iface_index, True)
+    #set $comp = $GenTL.get_interface_components($interface, $o, $iface_index, True)
     #for $c in $comp
 $cc.CommonCheetah.function_header($o, $c, False)#slurp
 $function_definition($o, $c)
@@ -139,7 +139,7 @@ $message_handler($o, $c)#slurp
 #def message_handler($o, $c)
 {
     #set $runnable = $command_line.runnable 
-    #set $complete_name = $GenTC.get_complete_name($o, $interface, $c)
+    #set $complete_name = $GenTL.get_complete_name($o, $interface, $c)
     #if $c.output_arg_info is not None and len($c.output_arg_info.args) > 0
     AJ_Status status;
 $cc.CommonCheetah.define_arrays_and_structures($c, False)
@@ -147,7 +147,7 @@ $cc.CommonCheetah.define_arguments($c.output_arg_info.args, 4)
 $cc.CommonCheetah.unmarshal_arguments($c.comp_type, $runnable, $c.output_arg_info, 4, True)
     /* Output value(s) have been received. Now use them. */
         #if $runnable
-    $GenTC.comment_start_runnable
+    $GenTL.comment_start_runnable
 
             #if $c.comp_type == "sig"
     AJ_InfoPrintf(("'$complete_name' signal received.\n"));
@@ -155,7 +155,7 @@ $cc.CommonCheetah.unmarshal_arguments($c.comp_type, $runnable, $c.output_arg_inf
     AJ_InfoPrintf(("'$complete_name' replied.\n"));
             #end if
 $cc.CommonCheetah.print_args($c.output_arg_info.args, 4)
-    $GenTC.comment_end_runnable
+    $GenTL.comment_end_runnable
         #else
     /* TODO: Put user code here to handle the reply. */
         #end if
@@ -163,11 +163,11 @@ $cc.CommonCheetah.print_args($c.output_arg_info.args, 4)
     AJ_Status status = AJ_OK;
 
         #if $runnable
-    $GenTC.comment_start_runnable
+    $GenTL.comment_start_runnable
 
     AJ_InfoPrintf(("Received a reply from '$complete_name'\n"));
 
-    $GenTC.comment_end_runnable
+    $GenTL.comment_end_runnable
         #else
     /* TODO: Put user code here to handle the reply. */
         #end if

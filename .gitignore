@@ -8,7 +8,7 @@ bin
 *.pyc
 *.bak
 src/tl/*.py
-!src/tl/GenTc.py
+!src/tl/GenTL.py
 !src/tl/__init__.py
 build
 dist

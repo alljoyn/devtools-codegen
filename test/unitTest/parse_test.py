@@ -602,7 +602,7 @@ class TestParse(unittest.TestCase):
         p = parseajxml.ParseAjXml(filename)
         node = p.tree.getroot()
 
-        args = ["parse_test.py", "-ttc", "-wTest.Foo"]
+        args = ["parse_test.py", "-ttl", "-wTest.Foo"]
         args.append(filename)
 
         if additional_args is not None:
@@ -650,7 +650,7 @@ class TestParse(unittest.TestCase):
                     message = mess_format.format(dict, filename)
                     self.assertTrue(dict[0] == "{" and dict[-1] == "}", message)
 
-        validate.alljoyn_data(service, "tc")
+        validate.alljoyn_data(service, "tl")
 
         return service
 

@@ -13,7 +13,7 @@
 ## ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
 ## OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 ###############################################################################
-#import GenTC
+#import GenTL
 #import CommonCheetah as cc
 /* Source: "$command_line.xml_input_file" */
 
@@ -22,7 +22,7 @@
 /* Interface: "$interface.interface_full_name" */
 
 ## Get the service side defines for this interface.
-#set $defines = $GenTC.get_defines($interface, False)
+#set $defines = $GenTL.get_defines($interface, False)
 #for $d in $defines
 $d
 #end for
@@ -31,7 +31,7 @@ $cc.CommonCheetah.define_containers($interface)
 ## For this interface find all the AllJoyn objects that instantiate it.
 #for $o in $interface.parents
     #set $iface_index = $o.get_interface_index($interface)
-    #set $comp = $GenTC.get_interface_components($interface, $o, $iface_index, False)
+    #set $comp = $GenTL.get_interface_components($interface, $o, $iface_index, False)
     #for $c in $comp
 $cc.CommonCheetah.function_header($o, $c, True)#slurp
 $function_declaration($c)

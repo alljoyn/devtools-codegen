@@ -34,14 +34,14 @@ class TestConfig(unittest.TestCase):
 
     def test_object_path(self):
         """Test the object path (-b) flag."""
-        args = ["arg0", "-b/TestFoo", "-ttc", "-wTest.Foo", "file.xml"]
+        args = ["arg0", "-b/TestFoo", "-ttl", "-wTest.Foo", "file.xml"]
         sys.argv = args
         c = config.Config()
         self.assertTrue(c.command_line.xml_input_file == "file.xml")
-        self.assertTrue(c.command_line.target_language == "tc")
+        self.assertTrue(c.command_line.target_language == "tl")
         self.assertTrue(c.command_line.object_path == "/TestFoo")
 
-        args = ["arg0", "-b", "/TestFoo", "-wTest.Foo", "-ttc", "file.xml"]
+        args = ["arg0", "-b", "/TestFoo", "-wTest.Foo", "-ttl", "file.xml"]
         sys.argv = args
         c = config.Config()
         self.assertTrue(c.command_line.object_path == "/TestFoo")
@@ -84,13 +84,13 @@ class TestConfig(unittest.TestCase):
         return
 
     def test_target_language(self):
-        """Test the target language (-tc) flag."""
-        args = ["arg0", "-ttc", "-wTest.foo", "file.xml"]
+        """Test the target language (-t) flag."""
+        args = ["arg0", "-ttl", "-wTest.foo", "file.xml"]
         sys.argv = args
 
         c = config.Config()
         self.assertTrue(c.command_line.xml_input_file == "file.xml")
-        self.assertTrue(c.command_line.target_language == "tc")
+        self.assertTrue(c.command_line.target_language == "tl")
 
         args[1] = "-tcpp"
 
@@ -98,7 +98,7 @@ class TestConfig(unittest.TestCase):
             c = config.Config()
             self.assertTrue(c.command_line.target_language == "cpp")
         except config.ConfigException as e:
-            self.assertTrue(str.find(e.message, "Use the option '-ttc'") != -1)
+            self.assertTrue(str.find(e.message, "Use the option '-ttl'") != -1)
 
         args[1] = "-to"
 
@@ -106,15 +106,15 @@ class TestConfig(unittest.TestCase):
             c = config.Config()
             self.assertTrue(c.command_line.target_language == "o")
         except config.ConfigException as e:
-            self.assertTrue(str.find(e.message, "Use the option '-ttc'") != -1)
+            self.assertTrue(str.find(e.message, "Use the option '-ttl'") != -1)
 
-        args[1] = "-tc"
+        args[1] = "-ttl"
 
         try:
             c = config.Config()
-            self.assertTrue(c.command_line.target_language == "tc")
+            self.assertTrue(c.command_line.target_language == "tl")
         except config.ConfigException as e:
-            self.assertTrue(str.find(e.message, "Use the option '-ttc'") != -1)
+            self.assertTrue(str.find(e.message, "Use the option '-ttl'") != -1)
 
         args[1] = "-tFoo"
 
@@ -128,7 +128,7 @@ class TestConfig(unittest.TestCase):
 
     def test_well_known_name(self):
         """Test the well known name flag."""
-        args = ["arg0", "-ttc", "-wTest.My.Foo", "file.xml"]
+        args = ["arg0", "-ttl", "-wTest.My.Foo", "file.xml"]
         sys.argv = args
         c = config.Config()
         self.assertTrue(c.command_line.well_known_name == "Test.My.Foo")
@@ -147,7 +147,7 @@ class TestConfig(unittest.TestCase):
 
     def __one_arg_test(self, arg_to_test):
         """Test this one argument when creating a configuration."""
-        args = ["arg0", arg_to_test, "-ttc", "-wTest.Foo", "file.xml"]
+        args = ["arg0", arg_to_test, "-ttl", "-wTest.Foo", "file.xml"]
         sys.argv = args
         c = config.Config()
         return c

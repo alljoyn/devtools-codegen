@@ -13,7 +13,7 @@
 ## ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
 ## OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 ###############################################################################
-#import GenTC
+#import GenTL
 #import CommonCheetah as cc
 /* Source: "$command_line.xml_input_file" */
 
@@ -35,7 +35,7 @@ uint8_t dbgSERVICE$interface.get_full_coded_name() = 1;
 
 #for $o in $interface.parents
     #set $iface_index = $o.get_interface_index($interface)
-    #set $comp = $GenTC.get_interface_components($interface, $o, $iface_index, False)
+    #set $comp = $GenTL.get_interface_components($interface, $o, $iface_index, False)
     #for $c in $comp
 $cc.CommonCheetah.function_header($o, $c, False)#slurp
 $function_definition($o, $c)
@@ -81,9 +81,9 @@ $cc.CommonCheetah.define_arrays_and_structures($c)
 $cc.CommonCheetah.define_arguments($c.input_arg_info.args, 8)
 $cc.CommonCheetah.unmarshal_arguments($c.comp_type, $command_line.runnable, $c.input_arg_info, 8, False)
         #if $command_line.runnable
-        $GenTC.comment_start_runnable
+        $GenTL.comment_start_runnable
 $cc.CommonCheetah.print_args($c.input_arg_info.args, 8)#slurp
-        $GenTC.comment_end_runnable
+        $GenTL.comment_end_runnable
         #else
         /* TODO: Do something with 'value'. */
         #end if
@@ -94,11 +94,11 @@ $cc.CommonCheetah.print_args($c.input_arg_info.args, 8)#slurp
     if (getOrSet == AJ_PROP_GET) {
         #if $command_line.runnable
 $cc.CommonCheetah.define_arguments($c.output_arg_info.args, 8)
-        $GenTC.comment_start_runnable
+        $GenTL.comment_start_runnable
 $cc.CommonCheetah.define_static_args($c.output_arg_info.args, 8)
 $cc.CommonCheetah.initialize_args($c.output_arg_info.args, $c.name, 8)
 $cc.CommonCheetah.marshal_arguments(True, $c.output_arg_info, "msg", 8)
-        $GenTC.comment_end_runnable
+        $GenTL.comment_end_runnable
         #else
         /* TODO: Replace 'value' with the actual property value of interest. */
 $cc.CommonCheetah.define_arguments($c.output_arg_info.args, 8)
@@ -125,9 +125,9 @@ $cc.CommonCheetah.define_arguments($c.input_arg_info.args, 4)#slurp
 
     #end if
     #if $command_line.runnable and $has_outputs
-    $GenTC.comment_start_runnable
+    $GenTL.comment_start_runnable
 $cc.CommonCheetah.define_static_args($c.output_arg_info.args, 4)#slurp
-    $GenTC.comment_end_runnable
+    $GenTL.comment_end_runnable
 
     #end if
     #if $has_outputs
@@ -143,9 +143,9 @@ $cc.CommonCheetah.define_arrays_and_structures($c)#slurp
 $cc.CommonCheetah.unmarshal_arguments($c.comp_type, $command_line.runnable, $c.input_arg_info, 4, False)#slurp
     #end if
     #if $command_line.runnable
-    $GenTC.comment_start_runnable
+    $GenTL.comment_start_runnable
 
-        #set $complete_name = $GenTC.get_complete_name($o, $interface, $c)
+        #set $complete_name = $GenTL.get_complete_name($o, $interface, $c)
     AJ_InfoPrintf(("'$complete_name' has been successfully called.\n"));
 
         #if $has_inputs
@@ -154,7 +154,7 @@ $cc.CommonCheetah.print_args($c.input_arg_info.args, 4)
         #if $has_outputs
 $cc.CommonCheetah.initialize_args($c.output_arg_info.args, $complete_name, 4)
         #end if
-    $GenTC.comment_end_runnable
+    $GenTL.comment_end_runnable
     #else
     /* TODO: Implement method. */
     #end if

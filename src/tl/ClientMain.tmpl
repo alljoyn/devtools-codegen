@@ -73,7 +73,7 @@ AJ_Status SetPropHandlerReplySerial(ClientPropHandlerEntry* table, AJ_ClientProp
             status = AJ_OK;
             break;
         }
-    } while((++table)->callback != 0);
+    } while ((++table)->callback != 0);
 
     return status;
 }
@@ -100,7 +100,7 @@ static AJ_Status PropGetHandler(AJ_Message* replyMsg, const void* context)
             status = entry->callback(replyMsg, entry->context);
             break;
         }
-    } while((++entry)->callback != NULL);
+    } while ((++entry)->callback != NULL);
 
     return status;
 }
@@ -123,7 +123,7 @@ int main()
     AJ_RegisterObjects(NULL, g_ObjectTable);
 
     while (TRUE) {
-        AJ_Message msg = {0};
+        AJ_Message msg = { 0 };
 
         if (!connected) {
             status = AJ_StartClient(&bus, NULL, TIMEOUT_CONNECT, FALSE, g_ServiceName, SERVICE_PORT, &sessionId, NULL);

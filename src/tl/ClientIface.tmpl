@@ -51,8 +51,7 @@ $function_definition($o, $c)
         #set $input_args = None
     #end if
     #if $input_args is not None
-AJ_Status ${c.name}_Caller(AJ_BusAttachment* bus, uint32_t sessionId,
-          $input_args)
+AJ_Status ${c.name}_Caller(AJ_BusAttachment* bus, uint32_t sessionId, $input_args)
     #else
 AJ_Status ${c.name}_Caller(AJ_BusAttachment* bus, uint32_t sessionId)
     #end if
@@ -81,8 +80,7 @@ $message_handler($o, $c)#slurp
 ###################### 
 #def property_definition($o, $c)
     #if $c.input_arg_info is not None and $c.input_arg_info.arg_declaration is not None
-AJ_Status ${c.name}_Set(AJ_BusAttachment* bus, uint32_t sessionId,
-          $c.input_arg_info.arg_declaration)
+AJ_Status ${c.name}_Set(AJ_BusAttachment* bus, uint32_t sessionId, $c.input_arg_info.arg_declaration)
 {
     AJ_Message msg;
     AJ_Status status;

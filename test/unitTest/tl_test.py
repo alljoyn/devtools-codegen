@@ -306,7 +306,7 @@ class ThinLibrary(unittest.TestCase):
         try:
             thin_client_home = os.environ[thin_client_home_environment_variable]
             os.chdir(thin_client_home)
-            subprocess.check_output(["scons.bat", "WS=off", "TARG=win32"])
+            subprocess.check_output(["scons.bat", "WS=detail", "TARG=win32"])
         finally:
             os.chdir(cwd)
 

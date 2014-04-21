@@ -873,7 +873,7 @@ def get_initialization(arg, indent_count):
 
     if arg.is_array():
         if t == "char*":
-            init = '[] = {"String 1", "String 2", "String 0"}'
+            init = '[] = { "String 1", "String 2", "String 0" }'
         else:
             b = arg.get_base_signature()
             if b[0] == '(' or b[0] == '{':
@@ -881,10 +881,10 @@ def get_initialization(arg, indent_count):
                 si0 = __make_structure_init_string(arg, 0)
                 si1 = __make_structure_init_string(arg, 1)
                 si2 = __make_structure_init_string(arg, 2)
-                f = "[3] =\n{0}{{ {1},\n{0}  {2},\n{0}  {3}\n{0}}}"
+                f = "[3] =\n{0}{{ {1},\n{0}  {2},\n{0}  {3} }}"
                 init = f.format(indent, si0, si1, si2)
             else:
-                init = "[10] = {0}"
+                init = "[10] = { 0 }"
     else:
         if arg.arg_type == "b":
             init = " = FALSE"

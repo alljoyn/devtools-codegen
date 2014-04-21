@@ -46,8 +46,7 @@ $function_definition($o, $c)
 ###################### 
 #def signal_definition($o, $c)
     #if $c.output_arg_info is not None and len($c.output_arg_info.args) > 0
-AJ_Status ${c.name}(AJ_BusAttachment* bus, AJ_SessionId sessionId,
-          $c.output_arg_info.arg_declaration)
+AJ_Status ${c.name}(AJ_BusAttachment* bus, AJ_SessionId sessionId, $c.output_arg_info.arg_declaration)
     #else
 AJ_Status ${c.name}(AJ_BusAttachment* bus, AJ_SessionId sessionId)
     #end if

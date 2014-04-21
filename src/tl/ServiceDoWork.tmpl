@@ -129,7 +129,7 @@ $cc.CommonCheetah.initialize_args($output_args, $complete_name, 8)#slurp
 
                 if (AJ_OK != status) {
                     AJ_InfoPrintf(("Calling '$complete_name' with session ID 0x%x failed with status code 0x%x.\n",
-                                  sessionId, status));
+                                   sessionId, status));
                 }
             }
         }
@@ -168,7 +168,7 @@ static int GetOpenSessionIndex()
  */
 AJ_Status CanJoinSession()
 {
-    return GetOpenSessionIndex() == s_maxSessions? AJ_ERR_RESOURCES: AJ_OK;
+    return GetOpenSessionIndex() == s_maxSessions ? AJ_ERR_RESOURCES : AJ_OK;
 }
 #end if
 

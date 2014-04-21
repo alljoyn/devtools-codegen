@@ -150,11 +150,10 @@ ${indent}${a.name}[0] = temp_$a.name;
         #elif $s == 'v'
 ${indent}if (s_${a.name}_int % 2) {
 \#ifdef _WINDOWS_
-${indent}    _snprintf_s(stringBuffer$a.name, sizeof${a.name}, _TRUNCATE,
+${indent}    _snprintf_s(stringBuffer$a.name, sizeof${a.name}, _TRUNCATE, "Variant arg #%d.", s_${a.name}_int);
 \#else
-${indent}    snprintf(stringBuffer$a.name, sizeof${a.name},
+${indent}    snprintf(stringBuffer$a.name, sizeof${a.name}, "Variant arg #%d.", s_${a.name}_int);
 \#endif
-${indent}             "Variant arg #%d.", s_${a.name}_int);
 ${indent}    AJ_InitArg(&$a.name, AJ_ARG_STRING, 0, stringBuffer$a.name, 0);
 ${indent}    ${a.name}.sigPtr = "s";
 ${indent}} else {
@@ -192,7 +191,7 @@ ${indent}char stringBuffer${a.name}[30];    /* Variant string value derived from
 ${indent}const size_t sizeof${a.name} = ArraySize(stringBuffer$a.name);
             #continue
         #end if
-        #set $init = $GenTL.get_initialization($a, indent_count + 4)
+        #set $init = $GenTL.get_initialization($a, indent_count)
         #if $a.is_array()
             #set $array_variant_data = $GenTL.get_array_container_variant_data($a)
             #for $avd in $array_variant_data
@@ -297,7 +296,7 @@ ${indent}status = AJ_UnmarshalArg(msg, &array$index);
 
 $CommonCheetah.handle_error($runnable, "AJ_UnmarshalArg", $indent_count, $free_list)
 $indent$arg.name = array${index}.val.$GenTL.val_dictionary[$t];
-$indent${arg.name}Elements = array${index}.len/sizeof(*$arg.name);
+$indent${arg.name}Elements = array${index}.len / sizeof(*$arg.name);
         #end if
         #while $index > 0
             #set $index -= 1
@@ -315,14 +314,15 @@ ${indent}status = AJ_UnmarshalVariant(msg, &${arg.name}.sigPtr);
 $CommonCheetah.handle_error($runnable, "AJ_MarshalVariant", $indent_count)
             #if $runnable
 ${indent}/* Figure out which data type the variant is. */
-${indent}switch(${arg.name}.sigPtr[0]) {
-${indent}    case 's':
+${indent}switch (${arg.name}.sigPtr[0]) {
+${indent}case 's':
 ${indent}    {
 ${indent}        ${arg.name}.val.v_data = &${arg.name}.val.v_string;
 ${indent}        ${arg.name}.typeId = 's';
 ${indent}        break;
 ${indent}    }
-${indent}    case 'i':
+
+${indent}case 'i':
 ${indent}    {
 ${indent}        static int32_t variantIntBuffer;
 
@@ -330,7 +330,8 @@ ${indent}        ${arg.name}.val.v_int32 = &variantIntBuffer;
 ${indent}        ${arg.name}.typeId = 'i';
 ${indent}        break;
 ${indent}    }
-${indent}    case 'y':
+
+${indent}case 'y':
 ${indent}    {
 ${indent}        static uint8_t variantByteBuffer;
 
@@ -338,8 +339,9 @@ ${indent}        ${arg.name}.val.v_byte = &variantByteBuffer;
 ${indent}        ${arg.name}.typeId = 'y';
 ${indent}        break;
 ${indent}    }
-${indent}    default: /* Unexpected variant type. */
-${indent}        assert(0);
+
+${indent}default: /* Unexpected variant type. */
+${indent}    assert(0);
 ${indent}}
 
 ${indent}status = AJ_UnmarshalArgs(msg, ${arg.name}.sigPtr, ${arg.name}.val.v_data);
@@ -347,11 +349,11 @@ ${indent}status = AJ_UnmarshalArgs(msg, ${arg.name}.sigPtr, ${arg.name}.val.v_da
 $CommonCheetah.handle_error($runnable, "AJ_MarshalArg", $indent_count)#slurp
             #else
 ${indent}/* TODO: Unmarshal your variant value with code something like:
-${indent}if (${arg.name}.sigPtr[0] == 's') {
-${indent}   status = AJ_UnmarshalArgs(msg, ${arg.name}.sigPtr, &myStringValue);
-${indent}} else {
-${indent}   status = AJ_UnmarshalArgs(msg, ${arg.name}.sigPtr, &myIntValue);
-${indent}}
+${indent}   if (${arg.name}.sigPtr[0] == 's') {
+${indent}      status = AJ_UnmarshalArgs(msg, ${arg.name}.sigPtr, &myStringValue);
+${indent}   } else {
+${indent}      status = AJ_UnmarshalArgs(msg, ${arg.name}.sigPtr, &myIntValue);
+${indent}   }
 ${indent} */
             #end if
         #else
@@ -736,30 +738,28 @@ ${indent}s_$name$element0 = !s_$name$element0;
         #if not $arg.is_array
 ${indent}$name = s_$name;
         #end if
-    #elif ($sig == 's' or $sig == 'o' or $sig == 'g') and not $arg.is_array## Arrays of strings are handled differently.
+## Arrays of strings are handled differently.
+    #elif ($sig == 's' or $sig == 'o' or $sig == 'g') and not $arg.is_array
         #if $sig == 'o'
 \#ifdef _WINDOWS_
-${indent}_snprintf_s(stringBuffer$arg.name, sizeof${arg.name}, _TRUNCATE,
+${indent}_snprintf_s(stringBuffer$arg.name, sizeof${arg.name}, _TRUNCATE, "/object/path/test%d", ++s_helloNumber$arg.name);
 \#else
-${indent}snprintf(stringBuffer$arg.name, sizeof${arg.name},
+${indent}snprintf(stringBuffer$arg.name, sizeof${arg.name}, "/object/path/test%d", ++s_helloNumber$arg.name);
 \#endif
-${indent}            "/object/path/test%d", ++s_helloNumber$arg.name);
 ${indent}$arg.name = stringBuffer$arg.name;
         #elif $sig == 'g'
 \#ifdef _WINDOWS_
-${indent}_snprintf_s(stringBuffer$arg.name, sizeof${arg.name}, _TRUNCATE,
+${indent}_snprintf_s(stringBuffer$arg.name, sizeof${arg.name}, _TRUNCATE, "(sig%c)", 's' + (s_helloNumber$arg.name++ % 3));
 \#else
-${indent}snprintf(stringBuffer$arg.name, sizeof${arg.name},
+${indent}snprintf(stringBuffer$arg.name, sizeof${arg.name}, "(sig%c)", 's' + (s_helloNumber$arg.name++ % 3));
 \#endif
-${indent}            "(sig%c)", 's' + (s_helloNumber$arg.name++ % 3));
 ${indent}$arg.name = stringBuffer$arg.name;
         #else
 \#ifdef _WINDOWS_
-${indent}_snprintf_s(stringBuffer$arg.name, sizeof${arg.name}, _TRUNCATE,
+${indent}_snprintf_s(stringBuffer$arg.name, sizeof${arg.name}, _TRUNCATE, "Hello # %d from '$complete_name'.\n", ++s_helloNumber$arg.name);
 \#else
-${indent}snprintf(stringBuffer$arg.name, sizeof${arg.name},
+${indent}snprintf(stringBuffer$arg.name, sizeof${arg.name}, "Hello # %d from '$complete_name'.\n", ++s_helloNumber$arg.name);
 \#endif
-${indent}            "Hello # %d from '$complete_name'.\n", ++s_helloNumber$arg.name);
 ${indent}$arg.name = stringBuffer$arg.name;
         #end if
     #else

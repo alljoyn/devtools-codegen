@@ -42,8 +42,7 @@ $function_declaration(c)
 ###################### 
 #def property_declaration($c)
     #if len($c.input_arg_info.args) > 0
-extern AJ_Status ${c.name}_Set(AJ_BusAttachment* bus, uint32_t sessionId,
-                 $c.input_arg_info.arg_declaration);
+extern AJ_Status ${c.name}_Set(AJ_BusAttachment* bus, uint32_t sessionId, $c.input_arg_info.arg_declaration);
     #end if
     #if len($c.output_arg_info.args) > 0
 extern AJ_Status ${c.name}_Get(AJ_BusAttachment* bus, uint32_t sessionId);
@@ -54,8 +53,7 @@ extern AJ_Status ${c.name}_Get(AJ_BusAttachment* bus, uint32_t sessionId);
 ###################### 
 #def method_declaration($c)
         #if $c.input_arg_info is not None and len($c.input_arg_info.args) > 0
-extern AJ_Status ${c.name}_Caller(AJ_BusAttachment* bus, uint32_t sessionId,
-                 $c.input_arg_info.arg_declaration);
+extern AJ_Status ${c.name}_Caller(AJ_BusAttachment* bus, uint32_t sessionId, $c.input_arg_info.arg_declaration);
         #else
 extern AJ_Status ${c.name}_Caller(AJ_BusAttachment* bus, uint32_t sessionId);
         #end if

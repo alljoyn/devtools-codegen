@@ -23,7 +23,6 @@
  */
 \#define AJ_MODULE CLIENTDOWORK
 
-\#include <alljoyn.h>
 \#include "Client.h"
 
 /**
@@ -159,7 +158,9 @@ $do_method_call($complete_name, $c, $input_args)#slurp
         #end if
 
         if (AJ_OK != status) {
-            AJ_InfoPrintf(("Calling '$complete_name' failed with status code 0x%x.\n", status));
+            const char* statusText = AJ_StatusText(status);
+
+            AJ_InfoPrintf(("Calling '$complete_name' failed with status code 0x%x (%s).\n", status, statusText));
         }
 #end def
 #####################
@@ -220,7 +221,9 @@ ${indent}AJ_InfoPrintf(("Calling '$complete_name'(Get).\n"));
 ${indent}status = ${c.name}_Get(bus, sessionId);
 
 ${indent}if (AJ_OK != status) {
-${indent}    AJ_InfoPrintf(("Getting '$complete_name' property failed with status code 0x%x.\n", status));
+${indent}    const char* statusText = AJ_StatusText(status);
+
+${indent}    AJ_InfoPrintf(("Getting '$complete_name' property failed with status code 0x%x (%s).\n", status, statusText));
 ${indent}}
     #else
 ${indent}AJ_InfoPrintf(("Calling '$complete_name'(Set).\n"));
@@ -234,7 +237,8 @@ ${indent}status = ${c.name}_Set(bus, sessionId#slurp
 );
 
 ${indent}if (AJ_OK != status) {
-${indent}    AJ_InfoPrintf(("Setting '$complete_name' property failed with status code 0x%x.\n", status));
+${indent}    const char* statusText = AJ_StatusText(status);
+${indent}    AJ_InfoPrintf(("Setting '$complete_name' property failed with status code 0x%x (%s).\n", status, statusText));
 ${indent}}
     #end if
 #end def

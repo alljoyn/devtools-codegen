@@ -24,7 +24,6 @@
 \#define AJ_DEBUG_RESTRICT AJ_DEBUG_INFO
 
 \#include <alljoyn.h>
-\#include <aj_debug.h>
 
 \#include "Client.h"
 \#include "CommonClientService.h"
@@ -127,11 +126,14 @@ int main()
 
         if (!connected) {
             status = AJ_StartClient(&bus, NULL, TIMEOUT_CONNECT, FALSE, g_ServiceName, SERVICE_PORT, &sessionId, NULL);
+
             if (AJ_OK == status) {
                 connected = TRUE;
                 authStatus = AJ_OK;
             } else {
-                AJ_Printf("StartClient returned %d.\n", status);
+                const char* statusText = AJ_StatusText(status);
+
+                AJ_InfoPrintf(("StartClient returned 0x%x (%s).\n", status, statusText));
                 break;
             }
         }
@@ -195,7 +197,7 @@ int main()
         }
     }
 
-    AJ_InfoPrintf(("ClientMain exit status: %d.", status));
+    AJ_InfoPrintf(("ClientMain exit status: 0x%x (%s).", status, AJ_StatusText(status)));
 
     return status;
 }

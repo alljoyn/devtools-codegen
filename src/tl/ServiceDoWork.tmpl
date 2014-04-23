@@ -23,7 +23,6 @@
  */
 \#define AJ_MODULE SERVICEDOWORK
 
-\#include <alljoyn.h>
 \#include "Service.h"
 
 /**
@@ -128,8 +127,10 @@ $cc.CommonCheetah.initialize_args($output_args, $complete_name, 8)#slurp
                 AJ_InfoPrintf(("Sending signal '$complete_name' to sessionId 0x%x.\n", sessionId));
 
                 if (AJ_OK != status) {
-                    AJ_InfoPrintf(("Calling '$complete_name' with session ID 0x%x failed with status code 0x%x.\n",
-                                   sessionId, status));
+                    const char* statusText = AJ_StatusText(status);
+
+                    AJ_InfoPrintf(("Calling '$complete_name' with session ID 0x%x failed with status code 0x%x (%s).\n",
+                                   sessionId, status, statusText));
                 }
             }
         }

@@ -56,7 +56,7 @@
 ${indent}if (AJ_OK != status) {
     #if $runable
     ${indent}$GenTL.comment_start_runnable
-    ${indent}AJ_InfoPrintf(("${func_name}() returned status 0x%x.\n", status));
+    ${indent}AJ_InfoPrintf(("${func_name}() returned status 0x%x (%s).\n", status, AJ_StatusText(status)));
     ${indent}$GenTL.comment_end_runnable
     #else
     ${indent}$GenTL.comment_handle_error

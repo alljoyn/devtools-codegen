@@ -23,8 +23,6 @@
 \#define AJ_MODULE SERVICEMAIN
 \#define AJ_DEBUG_RESTRICT AJ_DEBUG_INFO
 
-\#include <aj_target.h>
-\#include <aj_link_timeout.h>
 \#include <alljoyn.h>
 
 \#include "Service.h"
@@ -155,7 +153,9 @@ static uint8_t AcceptSession(AJ_Message* msg)
             AJ_InfoPrintf(("Rejected session_id=0x%x joiner=%s\n", sessionId, joiner));
         }
     } else {
-        AJ_InfoPrintf(("Rejected session due to AJ_UnMarshalArgs() returning status %d.\n", status));
+        const char* statusText = AJ_StatusText(status);
+
+        AJ_InfoPrintf(("Rejected session due to AJ_UnMarshalArgs() returning status 0x%x (%s).\n", status, statusText));
     }
 
     return accepted;

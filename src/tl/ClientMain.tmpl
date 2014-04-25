@@ -105,7 +105,7 @@ static AJ_Status PropGetHandler(AJ_Message* replyMsg, const void* context)
 }
 #end if ## $service.has_properties()
 
-int main()
+int AJ_Main(void)
 {
     AJ_Status status = AJ_OK;
     AJ_BusAttachment bus;
@@ -201,3 +201,10 @@ int main()
 
     return status;
 }
+
+#ifdef AJ_MAIN
+int main()
+{
+    return AJ_Main();
+}
+#endif

@@ -161,7 +161,7 @@ static uint8_t AcceptSession(AJ_Message* msg)
     return accepted;
 }
 
-int main(void)
+int AJ_Main(void)
 {
     /* Start calling ServiceAppDoWork() in this many milliseconds. */
     const uint32_t work_start = 5 * 1000;
@@ -203,3 +203,9 @@ int main(void)
     return status;
 }
 
+#ifdef AJ_MAIN
+int main()
+{
+    return AJ_Main();
+}
+#endif

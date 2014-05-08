@@ -12,20 +12,28 @@
 # ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
 # OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 
-The Cheetah template files must be compiled into Python files before
-running the code generator or building the installers.
+If you have SCons installed you may simply run SCons from the root
+directory and either the Windows or Linux installation program will
+be built in the ./dist directory.
 
-To build the Python files from the Cheetah .TMPL files run the following
-command from the src directory:
+If you do not have SCons installed then you must do a manual build of
+the installers. To do this follow the instructions below:
 
-    cheetah.py compile tc/*.tmpl
+1) The Cheetah template files must be compiled into Python files before
+   running the code generator or building the installers.
 
-To build the Windows installer:
+   To build the Python files from the Cheetah .TMPL files run the following
+   command from the src directory:
 
-    python setup.py bdist_wininst
+        cheetah.py compile tc/*.tmpl
 
-To build the Linux installer:
+2) To build the Windows installer:
 
-    python setup.py bdist_rpm
+        python setup.py bdist_wininst
+OR
 
-The installers will be in the 'dist' directory.
+2) To build the Linux installer:
+
+        python setup.py bdist_rpm
+
+The installer will be in the 'dist' directory.

@@ -61,7 +61,25 @@ class Executable:
 
         return
 
-def generate_code(command_line, service):
+def hooks():
+    """Return the hooks for the AllJoyn Thin Library language binding."""
+
+    hooks = {'validate_cmdline' : __validate_cmdline,
+             'generate_code' : __generate_code }
+    return hooks
+
+def __validate_cmdline(command_line):
+    """Validate the command-line arguments.
+
+    The Well-known name is required.
+
+    Arguments:
+    command_line -- the command-line arguments to be validated"""
+
+    if command_line.well_known_name is None:
+        raise config.ConfigException("Well-known name is required.")
+
+def __generate_code(command_line, service):
     """Generate the AllJoyn Thin Library code."""
 
     assert(command_line.target_language == "tl")

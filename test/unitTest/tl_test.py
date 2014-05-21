@@ -221,6 +221,8 @@ class ThinLibrary(unittest.TestCase):
             sys.argv = args
 
             c = config.Config()
+            c.register_target('tl', tl.hooks())
+            c.parse()
 
             parser = parseajxml.ParseAjXml(c.command_line.xml_input_file)
             service = parser.parse(c.command_line)
@@ -229,7 +231,7 @@ class ThinLibrary(unittest.TestCase):
             self.assertEqual(target, "tl")
 
             validate.alljoyn_data(service, target)
-            tl.generate_code(c.command_line, service)
+            c.target_hook('generate_code')(c.command_line, service)
 
             self.__verify_all_file_generated(parser.tree.getroot(), pathname,
                                             len(service.interfaces))

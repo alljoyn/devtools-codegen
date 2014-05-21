@@ -1,0 +1,127 @@
+###############################################################################
+## Copyright (c) 2014 AllSeen Alliance. All rights reserved.
+##
+## Permission to use, copy, modify, and/or distribute this software for any
+## purpose with or without fee is hereby granted, provided that the above
+## copyright notice and this permission notice appear in all copies.
+##
+## THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES
+## WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
+## MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR
+## ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
+## WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
+## ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
+## OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
+###############################################################################
+
+#import GenCPP
+/* Source: "$command_line.xml_input_file" */
+
+/** \file
+ * Generated provider code for AllSeen DataDriven API.
+ */
+
+\#ifndef ${interface.get_full_coded_namespace_name.upper()}_${interface.prov_class.upper()}_H_
+\#define ${interface.get_full_coded_namespace_name.upper()}_${interface.prov_class.upper()}_H_
+
+#if $interface.properties
+\#include <vector>
+#end if
+\#include <qcc/String.h>
+\#include <datadriven/datadriven.h>
+
+\#include "${interface.intf_class}.h"
+
+namespace gen { namespace ${interface.get_full_coded_namespace_name} {
+
+/**
+ * Provided interface class for the ${interface.interface_full_name} interface.
+ */
+class ${interface.prov_class} : public datadriven::ProvidedInterface {
+public:
+    /**
+     * Type definition for the associated type description.
+     */
+    typedef ::gen::${interface.get_full_coded_namespace_name}::${interface.intf_class} Type;
+
+    /**
+     * Constructor for a provided interface of a provided object.
+     */
+    ${interface.prov_class}(datadriven::ProvidedObject* obj);
+
+    /**
+     * Destructor for the provided interface.
+     */
+    virtual ~${interface.prov_class}();
+
+    // Methods
+#for $method in $interface.methods
+    #set $argsin = $method.get_args_for_direction('in')
+    #set $argsout = $method.get_args_for_direction('out')
+
+    /**
+     * Class for handling incoming invocations of the ${method.name} method.
+     */
+    class ${method.name}Reply: public datadriven::ProviderMethodReply {
+    public:
+        /**
+         * To be called for sending the method reply.
+         */
+        QStatus Send(${GenCPP.args_string($argsout)});
+
+        /**
+         * \internal Constructor called by the framework to create an incoming
+         * method's reply.
+         */
+        ${method.name}Reply(datadriven::ProvidedObject& po, ajn::Message& message);
+    };
+#end for
+
+    // Signals
+#for $signal in $interface.signals
+
+    /**
+     * Method to be called for sending the ${signal.name} signal.
+     */
+    void ${signal.name}(${GenCPP.args_string($signal.args)});
+#end for
+
+protected:
+
+    // Properties
+
+#for $property in $interface.properties
+    ${GenCPP.cpp_type($property)} ${property.name};
+#end for
+
+    /**
+     * \internal Marshaler for all properties of the interface.
+     */
+    std::vector< ajn::MsgArg> MarshalProperties();
+
+    // Methods
+#for $method in $interface.methods
+    #set $argsin = $method.get_args_for_direction('in')
+
+    /**
+     * Virtual method that needs to be overloaded for the handling of an
+     * invocation of the ${method.name} method.
+     */
+    virtual void ${method.name}(#slurp
+    #if $argsin
+${GenCPP.args_string($method.get_args_for_direction('in'))}, #slurp
+    #end if
+${method.name}Reply& _reply) = 0;
+#end for
+
+private:
+#for $method in $interface.methods
+    void ${method.name}(const ajn::InterfaceDescription::Member *, ajn::Message &);
+#end for
+    ${interface.prov_class}(const ${interface.prov_class}&); // prevent copy by construction
+    void operator=(const ${interface.prov_class}&); // prevent copy by assignment
+};
+
+}}
+
+\#endif // ${interface.get_full_coded_namespace_name.upper()}_${interface.prov_class.upper()}_H_

@@ -1,0 +1,170 @@
+###############################################################################
+## Copyright (c) 2014 AllSeen Alliance. All rights reserved.
+##
+## Permission to use, copy, modify, and/or distribute this software for any
+## purpose with or without fee is hereby granted, provided that the above
+## copyright notice and this permission notice appear in all copies.
+##
+## THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES
+## WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
+## MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR
+## ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
+## WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
+## ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
+## OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
+###############################################################################
+
+#import GenCPP
+#import Util as u
+/* Source: "$command_line.xml_input_file" */
+
+/** \file
+ * Generated consumer code for AllSeen DataDriven API.
+ */
+
+\#ifndef ${interface.get_full_coded_namespace_name.upper()}_${interface.cons_class.upper()}_H_
+\#define ${interface.get_full_coded_namespace_name.upper()}_${interface.cons_class.upper()}_H_
+
+\#include <memory>
+\#include <qcc/String.h>
+\#include <qcc/Mutex.h>
+\#include <datadriven/datadriven.h>
+
+\#include "${interface.intf_class}.h"
+
+namespace gen { namespace ${interface.get_full_coded_namespace_name} {
+
+/**
+ * Proxy interface class for the ${interface.interface_full_name} interface.
+ */
+class ${interface.cons_class} : public datadriven::ProxyInterface {
+public:
+    /**
+     * \internal Constructor called by the framework to create a proxy
+     * interface instance for a newly discovered remote object.
+     */
+    ${interface.cons_class}(const datadriven::RegisteredTypeDescription& desc, const datadriven::ObjectId& objId);
+
+    /**
+     * Type definition for the associated type description.
+     */
+    typedef ::gen::${interface.get_full_coded_namespace_name}::${interface.intf_class} Type;
+
+    // Properties
+
+    /**
+     * Class containing all properties of the ${interface.interface_full_name}
+     * interface.
+     */
+    class Properties {
+    public:
+#for $property in $interface.properties
+        ${GenCPP.cpp_type($property)} ${property.name};
+#end for
+    };
+
+    /**
+     * Get the cached properties for this object.
+     */
+    Properties GetProperties() const;
+
+    /**
+     * \internal
+     */
+    void SetProperties(const Properties &props);
+
+    // Methods
+#for $method in $interface.methods
+
+    /**
+     * Class containing all output arguments for the ${method.name} method.
+     */
+    class ${method.name}Reply : public datadriven::ConsumerMethodReply {
+    public:
+    #for $arg in $method.get_args_for_direction('out')
+        ${GenCPP.cpp_type($arg)} ${arg.name};
+    #end for
+
+        /**
+         * Unmarshaler for output arguments of ${method.name} method.
+         */
+        virtual QStatus Unmarshal(ajn::Message& message);
+    };
+
+    /**
+     * Method for invoking the remote ${method.name} method.
+     */
+    std::shared_ptr<datadriven::MethodInvocation<${method.name}Reply> > ${method.name}(${GenCPP.args_string($method.args, 'in', append='uint32_t _timeout = datadriven::MethodInvocation<' + $method.name + 'Reply>::DefaultCallTimeout')}) const;
+#end for
+
+    // Signals
+#for $signal in $interface.signals
+
+    /**
+     * Class containing all arguments for the ${signal.name} signal.
+     */
+    class ${signal.name} : public datadriven::SignalBase<${interface.cons_class}> {
+    public:
+    #for $arg in $signal.args
+        ${GenCPP.cpp_type($arg)} ${arg.name};
+    #end for
+
+        /**
+         * \internal Constructor called by the framework to create an incoming
+         * signal.
+         */
+        ${signal.name}(const std::shared_ptr<${interface.cons_class}>& emitter);
+
+        /**
+         * \internal Use by the framework to get a description of this specific
+         * signal.
+         */
+        static const ajn::InterfaceDescription::Member& GetMember(const datadriven::RegisteredTypeDescription& desc);
+
+        /**
+         * \internal Unmarshaler for all arguments of ${signal.name} signal.
+         */
+        virtual QStatus Unmarshal(ajn::Message& message);
+    };
+#end for
+
+    // Infrastructure signal
+
+    /**
+     * \internal Class used by the framework's <em>properties updated</em> signal.
+     */
+    class PropertiesUpdate : public datadriven::SignalBase<${interface.cons_class}> {
+    public:
+        /**
+         * \internal All the properties.
+         */
+        Properties properties;
+
+        /**
+         * \internal Constructor called by the framework to create an incoming
+         * signal.
+         */
+        PropertiesUpdate(const std::shared_ptr<${interface.cons_class}>& emitter);
+
+        /**
+         * \internal Use by the framework to get a description of this specific
+         * signal.
+         */
+        static const ajn::InterfaceDescription::Member& GetMember(const datadriven::RegisteredTypeDescription& desc);
+
+        /**
+         * \internal Unmarshaler for all arguments of <em>properties updated</em> signal.
+         */
+        virtual QStatus Unmarshal(ajn::Message& message);
+    };
+
+private:
+    Properties props;
+    mutable qcc::Mutex mutex;
+    ${interface.cons_class}(const ${interface.cons_class}&); // prevent copy by construction
+    void operator=(const ${interface.cons_class}&); // prevent copy by assignment
+};
+
+}}
+
+\#endif // ${interface.get_full_coded_namespace_name.upper()}_${interface.cons_class.upper()}_H_

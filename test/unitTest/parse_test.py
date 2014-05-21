@@ -20,7 +20,7 @@ import sys
 sys.path.append("../../src")
 import AllJoynCodeGen.parseajxml as parseajxml
 import AllJoynCodeGen.validate as validate
-import AllJoynCodeGen.config as config
+import util
 
 file_dictionary = {}
 interface_count = 0
@@ -640,7 +640,7 @@ class TestParse(unittest.TestCase):
                 args.append(a)
 
         sys.argv = args
-        c = config.Config()
+        c = util.get_config()
         service = p.parse(c.command_line)
         interface_count += len(service.interfaces)
 

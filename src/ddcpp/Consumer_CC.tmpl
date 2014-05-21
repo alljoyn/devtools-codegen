@@ -1,0 +1,60 @@
+###############################################################################
+## Copyright (c) 2014 AllSeen Alliance. All rights reserved.
+##
+## Permission to use, copy, modify, and/or distribute this software for any
+## purpose with or without fee is hereby granted, provided that the above
+## copyright notice and this permission notice appear in all copies.
+##
+## THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES
+## WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
+## MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR
+## ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
+## WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
+## ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
+## OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
+###############################################################################
+
+#import GenCPP
+#import Util as u
+/* Source: "$command_line.xml_input_file" */
+
+\#include "${interface.cons_class}.h"
+## Keep this after the generated header file since it might need un/marshal
+## function declarations.
+\#include <datadriven/Marshal.h>
+
+namespace gen { namespace ${interface.get_full_coded_namespace_name} {
+
+${interface.cons_class}::${interface.cons_class}(const datadriven::RegisteredTypeDescription& desc, const datadriven::ObjectId& objId) :
+    ProxyInterface(desc, objId)
+{
+}
+
+${interface.cons_class}::Properties ${interface.cons_class}::GetProperties() const
+{
+    mutex.Lock(__func__, __LINE__);
+    ${interface.cons_class}::Properties copy = props;
+    mutex.Unlock(__func__, __LINE__);
+    return copy;
+}
+
+void ${interface.cons_class}::SetProperties(const ${interface.cons_class}::Properties &props)
+{
+    mutex.Lock(__func__, __LINE__);
+    this->props = props;
+    mutex.Unlock(__func__, __LINE__);
+}
+#for $method in $interface.methods
+    #set $argsin = $method.get_args_for_direction('in')
+    #set $argsout = $method.get_args_for_direction('out')
+
+${u.Util.consumer_method_cc($interface.cons_class, $method.name, $argsin, $argsout)}#slurp
+#end for
+#for $signal in $interface.signals
+
+${u.Util.consumer_signal_cc($interface.cons_class, $signal.name, $signal.args)}#slurp
+#end for
+
+${u.Util.consumer_signal_cc($interface.cons_class, 'PropertiesUpdate', $interface.properties, 'properties.')}#slurp
+
+}}

@@ -36,11 +36,25 @@ class Config:
         overwrite (None or True)
         output_path (string)
         runnable (None or True)
-        target_language (string of 'c', 'cpp', 'o', or 'tl')
+        target_language (string)
         well_known_name (None or string)
     """
     def __init__(self):
         """Initialize an instance of the Config class."""
+        self.targets = {}
+
+    def register_target(self, target, hooks):
+        """Register hooks for a supported target.
+
+        The hooks should be a dictionary with two functions:
+
+            { 'validate_cmdline' : validate_cmdline_function,
+              'generate_code'    : generate_code_function }
+        """
+        self.targets[target] = hooks
+
+    def parse(self):
+        """Parse and validate the command-line arguments."""
         ver = get_version()
         descrip = "Generate AllJoyn code from XML source. Version {0}.".format(ver)
         parser = argparse.ArgumentParser(description=descrip)
@@ -91,9 +105,10 @@ class Config:
             to AllJoyn Standard Client (not implemented). 'cpp' is C++ code
             for AllJoyn Standard Client (not implemented). 'o' is for
             Objective C for Apple Targets (not implemented). 'tl' is C code
-            for AllJoyn Thin Library."""
+            for AllJoyn Thin Library. 'ddcpp' is C++ code for the Data-driven
+            API."""
         parser.add_argument("-t", "--target-language", required=True,
-                            choices=['c', 'cpp', 'o', 'tl'],
+                            choices=self.targets.keys(),
                             help=help_text)
 
         ver_text = "Version {0}.".format(ver)
@@ -101,8 +116,7 @@ class Config:
 
         help_text = """The well-known name that the interface will use when
             requesting a bus name or advertising a name."""
-        parser.add_argument("-w", "--well-known-name", required=True,
-                            help=help_text)
+        parser.add_argument("-w", "--well-known-name", help=help_text)
 
         help_text = """Output verbose information about the XML during
              parsing."""
@@ -111,18 +125,19 @@ class Config:
         self.command_line = parser.parse_args()
         self.__validate()
 
+    def target_hook(self, name):
+        """Return the hooks of the selected target."""
+        return self.targets[self.command_line.target_language][name]
+
     def __validate(self):
         """Validates various command line arguments beyond simple syntax."""
-        if self.command_line.target_language != 'tl':
-            e1 = "The only target language supported at this time is 'tl'."
-            e2 = "Use the option '-ttl'."
-
-            raise ConfigException("{0} {1}".format(e1, e2))
+        self.target_hook('validate_cmdline')(self.command_line)
 
         if self.command_line.object_path is not None:
             validate.bus_object_path(self.command_line.object_path)
 
-        validate.well_known_name(self.command_line.well_known_name)
+        if self.command_line.well_known_name is not None:
+            validate.well_known_name(self.command_line.well_known_name)
 
         if self.command_line.output_path is None:
             self.command_line.output_path = "."

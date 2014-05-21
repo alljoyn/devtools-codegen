@@ -1,4 +1,4 @@
-# Copyright (c) 2013 AllSeen Alliance. All rights reserved.
+# Copyright (c) 2014 AllSeen Alliance. All rights reserved.
 #
 # Permission to use, copy, modify, and/or distribute this software for any
 # purpose with or without fee is hereby granted, provided that the above
@@ -12,15 +12,18 @@
 # ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
 # OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 
-from distutils.core import setup
-from src import config
+import AllJoynCodeGen.config as config
 
-setup(name='AllJoynCodeGenSetup',
-      version=config.get_version(),
-      description='AllJoyn Code Generator',
-      url='http://www.alljoyn.org',
-      package_dir={'AllJoynCodeGen': 'src'},
-      packages=['AllJoynCodeGen', 'AllJoynCodeGen.tl', 'AllJoynCodeGen.ddcpp'],
-      scripts=['scripts/ajcodegen.py']
-          )
+def validate_cmdline(cmdline):
+    pass # no checks performed
 
+def validate_cmdline_wkn_required(cmdline):
+    if cmdline.well_known_name is None:
+        raise config.ConfigException("Well-known name is required.")
+
+def get_config():
+    c = config.Config()
+    c.register_target('tl', { 'validate_cmdline' : validate_cmdline_wkn_required })
+    c.register_target('ddcpp', { 'validate_cmdline' : validate_cmdline })
+    c.parse()
+    return c

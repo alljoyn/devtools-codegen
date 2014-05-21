@@ -85,6 +85,19 @@ class MethodDef:
 
         return return_value
 
+    def get_args_for_direction(self, direction = None):
+        """Get an array of method arguments.
+
+        If direction ('in' or 'out') is provided then only items for the given
+        direction are returned in the array."""
+        return_value = []
+
+        for a in self.args:
+            if not direction or direction == a.direction:
+                return_value.append(a)
+
+        return return_value
+
     def __add_arg(self, xml, new_arg):
         for a in self.args:
             if a.name == new_arg.name:

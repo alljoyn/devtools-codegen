@@ -18,6 +18,7 @@ import config
 import validate
 import service
 import tl.GenTL
+import ddcpp.GenCPP
 
 ##################################
 # This is the start of execution.
@@ -28,6 +29,9 @@ def main():
 
     try:
         configuration = config.Config()
+        configuration.register_target('tl', tl.GenTL.hooks())
+        configuration.register_target('ddcpp', ddcpp.GenCPP.hooks())
+        configuration.parse()
         report_config(configuration)
         parser = parseajxml.ParseAjXml(configuration.command_line.xml_input_file)
         service = parser.parse(configuration.command_line)
@@ -39,20 +43,7 @@ def main():
         if configuration.command_line.xml:
             print(service)
 
-        if target == "tl":
-            tl.GenTL.generate_code(configuration.command_line, service)
-        elif target == 'c':
-            # Also must enable this option in config.__validate()
-            pass # The 'C' generator has not been implemented.
-        elif target == 'cpp':
-            # Also must enable this option in config.__validate()
-            pass # The 'C++' generator has not been implemented.
-        elif target == 'o':
-            # Also must enable this option in config.__validate()
-            pass # The Objective C generator has not been implemented.
-        else:
-            print("Unexpected target language option. No code generated.")
-
+        configuration.target_hook('generate_code')(configuration.command_line, service)
 
     except config.ConfigException as e:
         print(error_format.format(e.message))
@@ -101,4 +92,4 @@ def report_config(c):
     return
 
 if __name__=="__main__":
-   main()
+    main()

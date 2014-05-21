@@ -113,7 +113,7 @@ class Interface:
     def set_name(self, name, xml = None):
         """Set the name of the interface.
 
-        This is a bit more that a simple string assignment. interface_full_name
+        This is a bit more than a simple string assignment. interface_full_name
         is the full D-Bus interfacename with at least two elements (such as
         org.alljoyn, one.two, or test.foo). interfaceName is the last element
         of fullInterface name. In the examples above they would be "alljoyn",
@@ -132,6 +132,12 @@ class Interface:
 
         Example: "com.example.Demo" is returned as "com_example_Demo". """
         return str.replace(self.interface_full_name, ".", "_")
+
+    def get_full_coded_namespace_name(self):
+        """Return the full namespace name of the interface name for use as an indentifier in c/c++ code.
+
+        Example: "com.example.Demo" is returned as "com_example". """
+        return '_'.join(self.interface_full_name.split('.')[:-1])
 
     def add_parent(self, aj_parent):
         """Add a new parent to this interface.

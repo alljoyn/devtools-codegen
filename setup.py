@@ -32,6 +32,7 @@ import string
 # will be part of the installation.
 #######
 template_directories = ["src/android",
+                        "src/ddcpp",
                         "src/tl"]
 
 def __create_data_file_collection():

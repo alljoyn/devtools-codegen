@@ -1,0 +1,119 @@
+###############################################################################
+## Copyright (c) 2014 AllSeen Alliance. All rights reserved.
+##
+## Permission to use, copy, modify, and/or distribute this software for any
+## purpose with or without fee is hereby granted, provided that the above
+## copyright notice and this permission notice appear in all copies.
+##
+## THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES
+## WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
+## MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR
+## ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
+## WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
+## ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
+## OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
+###############################################################################
+
+#import GenCPP
+#from .. import propertydef as pd
+
+#@staticmethod
+#def argarray_marshal($items, $name, $status, $container = '')
+    #set $i = 0
+    #for $item in $items
+        #set arg = $GenCPP.get_arg($item)
+        if (ER_OK != (${status} = datadriven::Marshal(${name}[${i}], ${container}${item.name}))) break;
+        #set $i = $i + 1
+    #end for
+#end def
+
+#@staticmethod
+#def argarray_unmarshal($items, $name, $status, $container = '')
+    #set $i = 0
+    #for $item in $items
+        #set arg = $GenCPP.get_arg($item)
+            if (ER_OK != (${status} = datadriven::Unmarshal(${container}${item.name}, ${name}[${i}]))) break;
+        #set $i = $i + 1
+    #end for
+#end def
+
+#@staticmethod
+#def consumer_method_cc($clazz, $name, $argsin, $argsout)
+QStatus ${clazz}::${name}Reply::Unmarshal(ajn::Message& _message)
+{
+    QStatus _status = ER_OK;
+    const ajn::MsgArg* _msgarg;
+    size_t _numArgs;
+
+    _message->GetArgs(_numArgs, _msgarg);
+    if (${len(argsout)} != _numArgs) {
+        _status = ER_BAD_ARG_COUNT;
+    }
+#if $argsout
+    else {
+        do  {
+${Util.argarray_unmarshal($argsout, '_msgarg', '_status')}#slurp
+        } while (0);
+    }
+#end if
+    SetStatus(_status);
+    return _status;
+}
+
+std::shared_ptr<datadriven::MethodInvocation<${clazz}::${name}Reply> > ${clazz}::${name}(${GenCPP.args_string($argsin, append='uint32_t _timeout')}) const
+{
+    datadriven::MethodInvocation<${clazz}::${name}Reply>* _inv = new datadriven::MethodInvocation<${clazz}::${name}Reply>();
+    std::shared_ptr<datadriven::MethodInvocation<${clazz}::${name}Reply> > sp = _inv->GetSharedThis();
+
+#if $argsin
+    QStatus _status = ER_OK;
+
+    do  {
+        ajn::MsgArg _msgarg[${len($argsin)}];
+
+${Util.argarray_marshal($argsin, '_msgarg', '_status')}#slurp
+        _inv->Exec(*this, GetTypeDescription().GetMember(Type::METHOD_${name.upper()}), _msgarg, ${len($argsin)}, _timeout);
+    } while (0);
+    if (ER_OK != _status) {
+        _inv->SetReplyStatus(_status);
+    }
+#else
+
+    _inv->Exec(*this, GetTypeDescription().GetMember(Type::METHOD_${name.upper()}));
+#end if
+    return sp;
+}
+#end def
+
+#@staticmethod
+#def consumer_signal_cc($clazz, $name, $args, $container = '')
+${clazz}::${name}::${name}(const std::shared_ptr<${clazz}>& emitter) :
+    datadriven::SignalBase<${clazz}>(emitter)
+{
+}
+
+const ajn::InterfaceDescription::Member& ${clazz}::${name}::GetMember(const datadriven::RegisteredTypeDescription& desc)
+{
+    return desc.GetMember(${clazz}::Type::SIGNAL_${name.upper()});
+}
+
+QStatus ${clazz}::${name}::Unmarshal(ajn::Message& _message)
+{
+    QStatus _status = ER_OK;
+    const ajn::MsgArg* _msgarg;
+    size_t _numArgs;
+
+    _message->GetArgs(_numArgs, _msgarg);
+    if (${len($args)} != _numArgs) {
+        _status = ER_BAD_ARG_COUNT;
+    }
+#if $args
+    else {
+        do  {
+${Util.argarray_unmarshal($args, '_msgarg', '_status', container = $container)}#slurp
+        } while (0);
+    }
+#end if
+    return _status;
+}
+#end def

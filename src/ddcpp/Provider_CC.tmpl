@@ -1,0 +1,128 @@
+###############################################################################
+## Copyright (c) 2014 AllSeen Alliance. All rights reserved.
+##
+## Permission to use, copy, modify, and/or distribute this software for any
+## purpose with or without fee is hereby granted, provided that the above
+## copyright notice and this permission notice appear in all copies.
+##
+## THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES
+## WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
+## MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR
+## ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
+## WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
+## ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
+## OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
+###############################################################################
+
+#import GenCPP
+#import Util as u
+/* Source: "$command_line.xml_input_file" */
+
+\#include "${interface.prov_class}.h"
+## Keep this after the generated header file since it might need un/marshal
+## function declarations.
+\#include <datadriven/Marshal.h>
+
+namespace gen { namespace ${interface.get_full_coded_namespace_name} {
+
+${interface.prov_class}::${interface.prov_class}(datadriven::ProvidedObject* obj) :
+    ProvidedInterface(Type::GetInstance(), *obj), _status(ER_FAIL)
+{
+#if $interface.methods
+## TODO clean up this typedef
+    typedef void (${interface.prov_class}::* MethodMember)(const ajn::InterfaceDescription::Member *, ajn::Message &);
+
+#end if
+    datadriven::ProvidedObject::MethodCallbacks callbacks [] = {
+#for $method in $interface.methods
+        datadriven::ProvidedObject::MethodCallbacks(Type::METHOD_${method.name.upper()}, static_cast<MessageReceiver::MethodHandler>((MethodMember)&${interface.prov_class}::${method.name})),
+#end for
+    };
+
+    _status = obj->AddProvidedInterface(this, callbacks, sizeof(callbacks)/sizeof(callbacks[0]));
+}
+
+${interface.prov_class}::~${interface.prov_class}()
+{
+}
+
+QStatus ${interface.prov_class}::GetStatus() const
+{
+    return _status;
+}
+
+std::vector< ajn::MsgArg> ${interface.prov_class}::MarshalProperties()
+{
+    std::vector< ajn::MsgArg> _msgarg(${len($interface.properties)});
+
+    do {
+${u.Util.argarray_marshal($interface.properties, '_msgarg', 'this->_status', set = True)}#slurp
+    } while (0);
+    return _msgarg;
+}
+#for $method in $interface.methods
+#set $argsin = $method.get_args_for_direction('in')
+#set $argsout = $method.get_args_for_direction('out')
+
+void ${interface.prov_class}::${method.name}(const ajn::InterfaceDescription::Member *_member, ajn::Message& _message)
+{
+    ${method.name}Reply _reply(GetProvidedObject(), _message);
+#if $argsin
+    const ajn::MsgArg* _msgarg;
+    size_t _numArgs;
+
+    _message->GetArgs(_numArgs, _msgarg);
+    if (${len($argsin)} != _numArgs) {
+        this->_status = ER_BAD_ARG_COUNT;
+    }
+    else {
+        do {
+#for $arg in $argsin
+            ${GenCPP.cpp_type($arg)} ${arg.name};
+#end for
+
+${u.Util.argarray_unmarshal($argsin, '_msgarg', 'this->_status')}#slurp
+            this->${method.name}(#slurp
+#for $arg in $argsin
+${arg.name}, #slurp
+#end for
+_reply);
+        } while (0);
+    }
+#else
+
+    this->${method.name}(_reply);
+#end if
+}
+
+${interface.prov_class}::${method.name}Reply::${method.name}Reply(datadriven::ProvidedObject& po, ajn::Message& message) :
+    datadriven::ProviderMethodReply(po, message)
+{
+}
+
+QStatus ${interface.prov_class}::${method.name}Reply::Send(${GenCPP.args_string($argsout)})
+{
+    ajn::MsgArg _msgarg[${len($argsout)}];
+    QStatus _status = ER_FAIL;
+
+    do {
+${u.Util.argarray_marshal($argsout, '_msgarg', '_status')}#slurp
+        _status = MethodReply(_msgarg, ${len($argsout)});
+    } while (0);
+    return _status;
+}
+#end for
+#for $signal in $interface.signals
+
+void ${interface.prov_class}::${signal.name}(${GenCPP.args_string($signal.args)})
+{
+    ajn::MsgArg _msgarg[${len($signal.args)}];
+
+    do {
+${u.Util.argarray_marshal($signal.args, '_msgarg', 'this->_status')}#slurp
+        this->_status = GetProvidedObject().EmitSignal(GetRegisteredTypeDescription()->GetMember(Type::SIGNAL_${signal.name.upper()}), _msgarg, ${len($signal.args)});
+    } while (0);
+}
+#end for
+
+}}

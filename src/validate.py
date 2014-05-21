@@ -53,6 +53,8 @@ def alljoyn_data(service, target):
 
     if target == "tl":
         __thin_library_service(service)
+    elif target == "ddcpp":
+        pass
     else:
         # TODO: Validation for other target types.
         assert(target == "tl")

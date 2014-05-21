@@ -1,0 +1,126 @@
+###############################################################################
+## Copyright (c) 2014 AllSeen Alliance. All rights reserved.
+##
+## Permission to use, copy, modify, and/or distribute this software for any
+## purpose with or without fee is hereby granted, provided that the above
+## copyright notice and this permission notice appear in all copies.
+##
+## THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES
+## WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
+## MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR
+## ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
+## WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
+## ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
+## OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
+###############################################################################
+
+#import GenCPP
+#from .. import structdef as sd
+#from .. import dictdef as dd
+/* Source: "$command_line.xml_input_file" */
+
+/**\file
+ * Generated type description and marshalling code for AllSeen DataDriven API.
+ */
+
+#ifndef ${interface.get_full_coded_namespace_name.upper()}_${interface.intf_class.upper()}_H_
+#define ${interface.get_full_coded_namespace_name.upper()}_${interface.intf_class.upper()}_H_
+
+## TODO make some includes optional depending on data model
+\#include <map>
+\#include <vector>
+\#include <qcc/String.h>
+\#include <datadriven/Signature.h>
+\#include <datadriven/ObjectPath.h>
+
+\#include <alljoyn/InterfaceDescription.h>
+\#include <datadriven/datadriven.h>
+
+namespace gen { namespace ${interface.get_full_coded_namespace_name} {
+
+/**
+ * Type description singleton class for the ${interface.interface_full_name} interface.
+ */
+class ${interface.intf_class} : public datadriven::TypeDescription {
+public:
+    /**
+     * \internal Enumeration for all methods and signals in the interface.
+     */
+    enum Member {
+        SIGNAL_PROPERTIESUPDATE,  /**< \internal infrastructure signal */
+#for $method in $interface.methods
+        METHOD_${method.name.upper()},
+#end for
+#for $signal in $interface.signals
+        SIGNAL_${signal.name.upper()},
+#end for
+    };
+#for $container in $interface.get_containers_in_declaration_order()
+
+#if $isinstance($container, $sd.StructDef)
+    /**
+     * Structure definition for ${container.name}.
+     */
+    typedef struct {
+#for $field in $container.get_field_list()
+        ${GenCPP.cpp_type($field, namespacing = False)} ${field.name};
+#end for
+    } ${container.name};
+#elif $isinstance($container, $dd.DictDef)
+    typedef std::map<const ${GenCPP.cpp_type($container.key)}, ${GenCPP.cpp_type($container.value, namespacing = False)}> ${container.name};
+#end if
+#end for
+
+    /**
+     * \internal Singleton instance getter for this class.
+     */
+    static ${interface.intf_class}& GetInstance()
+    {
+        static ${interface.intf_class} instance;
+        return instance;
+    }
+
+    /**
+     * Getter for the interface name.
+     */
+    virtual const qcc::String GetName() const;
+
+    /**
+     * \internal Construct an AllJoyn interface.
+     */
+    virtual QStatus BuildInterface(ajn::InterfaceDescription& iface) const;
+
+    /**
+     * \internal Resolve method and signal members.
+     */
+    virtual QStatus ResolveMembers(const ajn::InterfaceDescription& iface,
+                                   const ajn::InterfaceDescription::Member*** member) const;
+
+private:
+    const qcc::String IFACE_NAME;
+    ${interface.intf_class}() : IFACE_NAME("${interface.interface_full_name}") {};
+    ${interface.intf_class}(const ${interface.intf_class}&); // prevent copy by construction
+    void operator=(const ${interface.intf_class}&); // prevent copy by assignment
+};
+
+}}
+
+namespace datadriven {
+#for $container in $interface.get_containers_in_declaration_order()
+#if $isinstance($container, $sd.StructDef)
+
+/**
+ * \internal Marshaler for ${container.name} structure.
+ */
+QStatus Marshal(ajn::MsgArg& msgarg, const ::gen::${interface.get_full_coded_namespace_name}::${interface.intf_class}::${container.name}& data);
+
+/**
+ * \internal Unmarshaler for ${container.name} structure.
+ */
+QStatus Unmarshal(::gen::${interface.get_full_coded_namespace_name}::${interface.intf_class}::${container.name}& data, const ajn::MsgArg& msgarg);
+#end if
+#end for
+
+}
+
+#endif // ${interface.get_full_coded_namespace_name.upper()}_${interface.intf_class.upper()}_H_

@@ -18,6 +18,7 @@ import os
 import sys
 
 import AllJoynCodeGen.config as config
+import util
 
 class TestConfig(unittest.TestCase):
     """Tests the Config class."""
@@ -27,7 +28,7 @@ class TestConfig(unittest.TestCase):
         sys.argv = ["DummyArg0"]
 
         with self.assertRaises(SystemExit) as cm:
-            config.Config()
+            c = util.get_config()
 
         self.assertTrue(sys.exc_info() is not None)
         return
@@ -36,14 +37,14 @@ class TestConfig(unittest.TestCase):
         """Test the object path (-b) flag."""
         args = ["arg0", "-b/TestFoo", "-ttl", "-wTest.Foo", "file.xml"]
         sys.argv = args
-        c = config.Config()
+        c = util.get_config()
         self.assertTrue(c.command_line.xml_input_file == "file.xml")
         self.assertTrue(c.command_line.target_language == "tl")
         self.assertTrue(c.command_line.object_path == "/TestFoo")
 
         args = ["arg0", "-b", "/TestFoo", "-wTest.Foo", "-ttl", "file.xml"]
         sys.argv = args
-        c = config.Config()
+        c = util.get_config()
         self.assertTrue(c.command_line.object_path == "/TestFoo")
         return
 
@@ -88,52 +89,38 @@ class TestConfig(unittest.TestCase):
         args = ["arg0", "-ttl", "-wTest.foo", "file.xml"]
         sys.argv = args
 
-        c = config.Config()
+        c = util.get_config()
         self.assertTrue(c.command_line.xml_input_file == "file.xml")
         self.assertTrue(c.command_line.target_language == "tl")
-
-        args[1] = "-tcpp"
-
-        try:
-            c = config.Config()
-            self.assertTrue(c.command_line.target_language == "cpp")
-        except config.ConfigException as e:
-            self.assertTrue(str.find(e.message, "Use the option '-ttl'") != -1)
-
-        args[1] = "-to"
-
-        try:
-            c = config.Config()
-            self.assertTrue(c.command_line.target_language == "o")
-        except config.ConfigException as e:
-            self.assertTrue(str.find(e.message, "Use the option '-ttl'") != -1)
-
-        args[1] = "-ttl"
-
-        try:
-            c = config.Config()
-            self.assertTrue(c.command_line.target_language == "tl")
-        except config.ConfigException as e:
-            self.assertTrue(str.find(e.message, "Use the option '-ttl'") != -1)
 
         args[1] = "-tFoo"
 
         try:
-            c = config.Config()
+            c.parse()
             self.assertTrue(False,
                     "Invalid target language should result in a SystemExit.")
         except SystemExit:
             self.assertTrue(sys.exc_info() is not None)
         return
 
+    def test_well_known_name_optional(self):
+        """Test the well known name flag."""
+        args = ["arg0", "-ttl", "file.xml"]
+        sys.argv = args
+        # non-optional for 'tl'
+        self.assertRaises(config.ConfigException, util.get_config)
+        # optional for 'ddcpp'
+        args[1] = "-tddcpp"
+        c = util.get_config()
+        self.assertTrue(c.command_line.well_known_name == None)
+        return
+
     def test_well_known_name(self):
         """Test the well known name flag."""
         args = ["arg0", "-ttl", "-wTest.My.Foo", "file.xml"]
         sys.argv = args
-        c = config.Config()
+        c = util.get_config()
         self.assertTrue(c.command_line.well_known_name == "Test.My.Foo")
-        args[1] = "-w"
-
         return
 
     def test_xml(self):
@@ -149,7 +136,7 @@ class TestConfig(unittest.TestCase):
         """Test this one argument when creating a configuration."""
         args = ["arg0", arg_to_test, "-ttl", "-wTest.Foo", "file.xml"]
         sys.argv = args
-        c = config.Config()
+        c = util.get_config()
         return c
 
 if __name__ == '__main__':

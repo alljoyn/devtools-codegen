@@ -1,5 +1,5 @@
 ==================
-Copyright (c) 2013-2014 AllSeen Alliance. All rights reserved.
+Copyright (c) 2013, 2014 AllSeen Alliance. All rights reserved.
 
 Permission to use, copy, modify, and/or distribute this software for any
 purpose with or without fee is hereby granted, provided that the above
@@ -14,8 +14,7 @@ ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
 OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 ==================
 
-Unit tests can only be run after the code generator has been installed and
-the command ajcodegen.py has been run manually at least once!
+Unit tests can only be run after the code generator has been installed!
 
 To run all unit tests on Windows use this command:
 

@@ -1,5 +1,5 @@
 ==================
-Copyright (c) 2013, 2014 AllSeen Alliance. All rights reserved.
+Copyright (c) 2013-2014 AllSeen Alliance. All rights reserved.
 
 Permission to use, copy, modify, and/or distribute this software for any
 purpose with or without fee is hereby granted, provided that the above
@@ -49,7 +49,7 @@ For example:
     python -m unittest parse_test.TestParse.test_invalid_filename
 
 ==================
-Thin Library Unit tests (tl_test.py) under Windows 
+Thin Library Unit tests (tl_test.py)
 ==================
 If the enviroment variable ALLJOYN_THINLIBRARY_HOME is set to the root directory
 of your Thin Library source installation then the thin library unit tests will

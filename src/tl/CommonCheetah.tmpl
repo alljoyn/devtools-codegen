@@ -1,5 +1,5 @@
 ###############################################################################
-## Copyright (c) 2013, 2014 AllSeen Alliance. All rights reserved.
+## Copyright (c) 2013-2014 AllSeen Alliance. All rights reserved.
 ##
 ## Permission to use, copy, modify, and/or distribute this software for any
 ## purpose with or without fee is hereby granted, provided that the above
@@ -659,8 +659,8 @@ ${indent} */
 ${indent}AJ_InfoPrintf(("\tReceived '${arg.name}[%d].$m_name' = $t.\n", index0, ${arg.name}[index0].$m_name));
             #else
 ${indent}/*******
-${indent} Some nested structures are not fully supported in "Runnable" mode
-${indent} by the code generator at this time.
+${indent} * Some nested structures are not fully supported in "Runnable" mode
+${indent} * by the code generator at this time.
 ${indent} */
             #end if
         #else
@@ -684,8 +684,8 @@ ${indent}AJ_InfoPrintf(("\tReceived '${arg.name}.$m_name' = $t.\n", ${arg.name}.
             #end if
         #else
 ${indent}/*******
-${indent} Some nested structures are not fully supported in "Runnable" mode
-${indent} by the code generator at this time.
+${indent} * Some nested structures are not fully supported in "Runnable" mode
+${indent} * by the code generator at this time.
 ${indent} */
         #end if
     #else

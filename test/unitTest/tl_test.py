@@ -1,4 +1,4 @@
-# Copyright (c) 2013, 2014 AllSeen Alliance. All rights reserved.
+# Copyright (c) 2013-2014 AllSeen Alliance. All rights reserved.
 #
 # Permission to use, copy, modify, and/or distribute this software for any
 # purpose with or without fee is hereby granted, provided that the above
@@ -20,14 +20,22 @@ import string
 import tempfile
 import shutil
 import subprocess
+import platform
 
 import AllJoynCodeGen.ajobject as ajobject
 import AllJoynCodeGen.interface as interface
 import AllJoynCodeGen.config as config
 import AllJoynCodeGen.parseajxml as parseajxml
 import AllJoynCodeGen.validate as validate
+import AllJoynCodeGen.CheetahCompileExcept as cce
 
-import AllJoynCodeGen.tl.GenTL as tl
+try:
+    # All modules that contain Cheetah templates must be placed within this try.
+    import AllJoynCodeGen.tl.GenTL as tl
+except cce.CheetahCompilationException:
+    print("Unable to import compiled template modules.")
+    print("Run ajcodegen-compile.py and try again.")
+    sys.exit(1)
 
 thin_client_home_environment_variable = "ALLJOYN_THINLIBRARY_HOME"
 thin_client_home_environment_variable_warning = False
@@ -302,11 +310,20 @@ class ThinLibrary(unittest.TestCase):
 
     def __compile_code(self):
         cwd = os.getcwd()
+        system_type = platform.system()
+
+        if system_type == "Linux" or system_type == "Darwin":
+            scons_command = "scons"
+        elif system_type == "Windows":
+            scons_command = "scons.bat"
+        else:
+            print("Unrecognized system type '{0}'".format(system_type))
+            return
 
         try:
             thin_client_home = os.environ[thin_client_home_environment_variable]
             os.chdir(thin_client_home)
-            subprocess.check_output(["scons.bat", "WS=detail", "TARG=win32"])
+            subprocess.check_output([scons_command, "WS=detail"])
         finally:
             os.chdir(cwd)
 

@@ -1,4 +1,4 @@
-# Copyright (c) 2013-2014 AllSeen Alliance. All rights reserved.
+# Copyright (c) 2014 AllSeen Alliance. All rights reserved.
 #
 # Permission to use, copy, modify, and/or distribute this software for any
 # purpose with or without fee is hereby granted, provided that the above
@@ -12,14 +12,5 @@
 # ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
 # OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 
-from distutils.core import setup
-from src import config
-
-setup(name='AllJoynCodeGenSetup',
-      version=config.get_version(),
-      description='AllJoyn Code Generator',
-      url='http://www.alljoyn.org/',
-      package_dir={'AllJoynCodeGen': 'src'},
-      package_data={'AllJoynCodeGen': ['tl/GenTL.py', 'tl/__init__.py', 'tl/*.tmpl']},
-      packages=['AllJoynCodeGen'],
-      scripts=['scripts/ajcodegen.py', 'scripts/ajcodegen-compile.py'])
+class CheetahCompilationException(Exception):
+    """Cheetah template compilation exception."""

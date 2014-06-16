@@ -1,5 +1,5 @@
-# Copyright (c) 2013, 2014 AllSeen Alliance. All rights reserved.
-# 
+# Copyright (c) 2013-2014 AllSeen Alliance. All rights reserved.
+#
 # Permission to use, copy, modify, and/or distribute this software for any
 # purpose with or without fee is hereby granted, provided that the above
 # copyright notice and this permission notice appear in all copies.
@@ -15,23 +15,29 @@
 import sys
 import os
 
-from SConscript import SConscript
-from CommonClientService import CommonClientService
-from CommonClientService_H import CommonClientService_H
+from .. import CheetahCompileExcept as cce
 
-from ServiceMain import ServiceMain
-from ServiceDoWork import ServiceDoWork
-from Service_H import Service_H
-from ServiceIface import ServiceIface
-from ServiceIface_H import ServiceIface_H
+try:
+    from SConscript import SConscript
+    from CommonClientService import CommonClientService
+    from CommonClientService_H import CommonClientService_H
 
-from ClientMain import ClientMain
-from ClientDoWork import ClientDoWork
-from Client_H import Client_H
-from ClientIface import ClientIface
-from ClientIface_H import ClientIface_H
+    from ServiceMain import ServiceMain
+    from ServiceDoWork import ServiceDoWork
+    from Service_H import Service_H
+    from ServiceIface import ServiceIface
+    from ServiceIface_H import ServiceIface_H
 
-from ReadMe import ReadMe
+    from ClientMain import ClientMain
+    from ClientDoWork import ClientDoWork
+    from Client_H import Client_H
+    from ClientIface import ClientIface
+    from ClientIface_H import ClientIface_H
+
+    from ReadMe import ReadMe
+except ImportError:
+    # The exception message must be nothing but the file name.
+    raise cce.CheetahCompilationException(__file__)
 
 from .. import config
 from .. import service

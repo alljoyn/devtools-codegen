@@ -1,4 +1,4 @@
-# Copyright (c) 2013 AllSeen Alliance. All rights reserved.
+# Copyright (c) 2013-2014 AllSeen Alliance. All rights reserved.
 #
 # Permission to use, copy, modify, and/or distribute this software for any
 # purpose with or without fee is hereby granted, provided that the above
@@ -17,7 +17,15 @@ import parseajxml
 import config
 import validate
 import service
-import tl.GenTL
+import CheetahCompileExcept as cce
+
+try:
+    # All modules that contain Cheetah templates must be placed within this try.
+    import tl.GenTL
+except cce.CheetahCompilationException:
+    print("Unable to import compiled template modules.")
+    print("Run ajcodegen-compile.py and try again.")
+    sys.exit(1)
 
 ##################################
 # This is the start of execution.

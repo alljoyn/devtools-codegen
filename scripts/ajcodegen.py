@@ -13,6 +13,6 @@
 # ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
 # OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 
-#!Python script for invoking the AllJoyn code generator.
+# Python script for invoking the AllJoyn code generator.
 from AllJoynCodeGen.codegen import main
 main()

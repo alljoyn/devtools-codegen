@@ -18,7 +18,7 @@
 	<interface name="com.example.MyObject">
                 <dict name="Dict">
                   <key type="s"/>
-                  <value type="v"/>
+                  <value type="i"/>
                 </dict>
                 <struct name="Nested">
                   <field name="intField" type="i"/>

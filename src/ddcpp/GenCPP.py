@@ -49,7 +49,7 @@ def __validate_cmdline(command_line):
     # object path is optional but XML parser needs it
     # insert dummy if not present
     if command_line.object_path is None:
-        command_line.object_path = "/dummy"
+        command_line.object_path = "/ignored/not/relevant"
 
 def __generate_code(command_line, service):
     """Generate the AllJoyn Data-driven API C++ code.

@@ -1,4 +1,4 @@
-# Copyright (c) 2013 AllSeen Alliance. All rights reserved.
+# Copyright (c) 2013-2014 AllSeen Alliance. All rights reserved.
 #
 # Permission to use, copy, modify, and/or distribute this software for any
 # purpose with or without fee is hereby granted, provided that the above
@@ -35,6 +35,7 @@ class Interface:
         self.structures = {}
         self.dictionaries = {}
         self.has_arrays = False
+        self.has_arg_info = False
 
         return
 
@@ -105,11 +106,31 @@ class Interface:
         self.interface_name = s[-1]
         return
 
-    def get_full_coded_name(self):
+    def get_full_coded_name(self, make_camel_cased = False):
         """Return the full interface name for use as an indentifier in c/c++ code.
 
-        Example: "com.example.Demo" is returned as "com_example_Demo". """
+Example: "/com/example/Demo" is returned as "_com_example_Demo" if make_camel_cased is False.
+Example: "/com/example/Demo" is returned as "comExampleDemo" if make_camel_cased is True."""
+
+        if make_camel_cased:
+            return common.make_camel_case(self.interface_full_name, '.')
+
         return str.replace(self.interface_full_name, ".", "_")
+
+    def get_name_components(self):
+        """Return the interface full name as a list of components.
+
+        Example: "com.example.Demo" is returned as ["com", "example", "Demo"]."""
+
+        s = self.interface_full_name.split(".")
+        return s
+
+    def get_path(self):
+        """Return portion of the interface full name prior to the interface_name.
+
+        Example: "com.example.Demo" is returned as "com.example". """
+
+        return ".".join(self.get_name_components()[0:-1])
 
     def add_parent(self, aj_parent):
         """Add a new parent to this interface.
@@ -123,12 +144,11 @@ class Interface:
         """Return True if there is at least one property with read access."""
         return_value = False
 
-        if len(self.properties) > 0:
-            for p in self.properties:
-                if p.no_reply:
-                    continue
-                return_value = True
-                break
+        for p in self.properties:
+            if p.no_reply:
+                continue
+            return_value = True
+            break
 
         return return_value
 
@@ -319,17 +339,17 @@ This includes the dictionaries which are just a special case of a structure."""
         f = "Name: {0}\nFull: {1}"
         return_value = f.format(self.interface_name, self.interface_full_name)
 
-        if len(self.properties) > 0:
+        if self.properties:
             return_value = "{0}\nProperties:".format(return_value)
             for p in self.properties :
                 return_value = "{0}\n{1}".format(return_value, p)
 
-        if len(self.methods) > 0:
+        if self.methods:
             return_value = "{0}\nMethods:".format(return_value)
             for m in self.methods :
                 return_value = "{0}\n{1}".format(return_value, m)
 
-        if len(self.signals) > 0:
+        if self.signals:
             return_value = "{0}\nSignals:".format(return_value)
             for s in self.signals :
                 return_value = "{0}\n{1}".format(return_value, s)

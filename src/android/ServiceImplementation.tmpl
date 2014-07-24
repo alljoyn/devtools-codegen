@@ -1,0 +1,141 @@
+###############################################################################
+## Copyright (c) 2014 AllSeen Alliance. All rights reserved.
+##
+## Permission to use, copy, modify, and/or distribute this software for any
+## purpose with or without fee is hereby granted, provided that the above
+## copyright notice and this permission notice appear in all copies.
+##
+## THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES
+## WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
+## MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR
+## ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
+## WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
+## ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
+## OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
+###############################################################################
+/* Source: "$command_line.xml_input_file" */
+#import GenAndroid
+#import CommonCheetah as cc
+#from .. import common
+
+package $interface.get_path();
+
+import org.alljoyn.bus.BusObject;
+import org.alljoyn.bus.BusException;
+
+import android.os.Handler;
+
+/* The AllJoyn service implementation of $interface.interface_full_name. */
+public class ${interface.interface_name}Impl implements $interface.interface_name, BusObject {
+    private Handler mHandler;   /* Means by which to send message to the user interface. */
+    private int mMessageId;     /* Identifier to be used for this interface instance in UI messages. */
+#if $GenAndroid.interface_needs_persistent_data($interface, "out")
+    #if $command_line.runnable
+
+    $GenAndroid.comment_start_runnable
+$cc.CommonCheetah.define_interface_persistent_classes($interface, "out", 4)#slurp
+$cc.CommonCheetah.declare_interface_persistent_data(None, $interface, "out", 4)#slurp
+    $GenAndroid.comment_end_runnable
+    #end if
+#end if
+
+    /*
+     * Constructor for the ${interface.interface_name}Impl class.
+     * h is used to send messages sent back to the user interface.
+     * messageId, is the identifier to use for sending message from this interface instance.
+     */
+    public ${interface.interface_name}Impl(Handler h, int messageId)
+    {
+        mHandler = h;
+        mMessageId = messageId;
+        sendUiMessage("Created an instance of ${interface.interface_name}Imp.");
+    }
+
+## Implement all of the methods in this interface.
+    #for $m in $interface.methods
+        #set $return_type = $GenAndroid.get_java_return_type(m)
+    public $return_type $common.make_camel_case($m.name, None)($m.input_arg_info.arg_declaration) {
+        #if $return_type != "void"
+            #set $arg = $GenAndroid.get_return_arg($m)
+        $return_type returnValue$GenAndroid.get_initialization($arg, 12);
+
+            #if $return_type == "String"
+        returnValue = "${m.name}() successfully called.";
+            #end if
+        #end if
+
+        sendUiMessage("${m.name}() successfully called.");
+
+        /* TODO: Implement the method. */
+
+        #if $return_type != "void"
+        return returnValue;
+        #end if
+    }
+
+    #end for
+## Implement all of the properties in this interface.
+    #for $p in $interface.properties
+        #if $p.is_writeable()
+    public void set${p.name}($p.input_arg_info.arg_declaration) {
+            #set $arg = $p.input_arg_info.args[0]
+            #if $command_line.runnable
+        $GenAndroid.comment_start_runnable
+                #if $arg.arg_type == 's'
+        String message = String.format("set${p.name}('%s') called.", $arg.name);
+                #elif $arg.arg_type == 'b'
+        String message = String.format("set${p.name}('%b') called.", $arg.name);
+                #else
+        String message = String.format("set${p.name}(%s) called.", ${arg.name}.toString());
+                #end if
+
+        sendUiMessage(message);
+        $GenAndroid.comment_end_runnable
+            #else
+        /* TODO: Do something with the request to change the property value. */
+            #end if
+    }
+
+        #end if
+        #if $p.is_readable()
+            #set $arg = $p.output_arg_info.args[0]
+            #set $return_type = $GenAndroid.get_java_return_type(p)
+    public $return_type get${p.name}() {
+            #if $command_line.runnable
+        $GenAndroid.comment_start_runnable
+$cc.CommonCheetah.increment_args(None, $interface, $p, $p.output_arg_info.args, 8)
+            #set $instance_name = $cc.CommonCheetah.make_persistent_instance_name(None, $interface, $p)
+            #set $arg_name = $p.output_arg_info.args[0].name
+        return $instance_name.$arg_name;
+        $GenAndroid.comment_end_runnable
+            #else
+        /* TODO: Implement the property and return the value. */
+                #if $arg.arg_type == 's'
+        $return_type returnValue = "Return value";
+                #elif $arg.arg_type == 'b'
+        $return_type returnValue = false;
+                #else
+        $return_type returnValue = 0;
+                #end if
+
+        return returnValue;
+            #end if
+    }
+        #end if
+
+    #end for
+## Create an empty implementation of all the signals in this interface.
+    #for $s in $interface.signals
+    /*
+     * Intentionally empty implementation of the signal. Since this is only used
+     * as an emitter it will never be called.
+     */
+    public void $common.make_camel_case($s.name, None)($s.output_arg_info.arg_declaration) throws BusException {
+    }
+
+    #end for
+    /* Helper function to send a message to the UI thread. */
+    private void sendUiMessage(String message) {
+        mHandler.sendMessage(mHandler.obtainMessage(mMessageId, message));
+    }
+}

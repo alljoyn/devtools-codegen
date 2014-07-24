@@ -1,4 +1,4 @@
-# Copyright (c) 2013 AllSeen Alliance. All rights reserved.
+# Copyright (c) 2013-2014 AllSeen Alliance. All rights reserved.
 #
 # Permission to use, copy, modify, and/or distribute this software for any
 # purpose with or without fee is hereby granted, provided that the above
@@ -46,9 +46,11 @@ def alljoyn_data(service, target):
 
     if target == "tl":
         __thin_library_service(service)
+    elif target == 'android':
+        __andriod_service(service)
     else:
         # TODO: Validation for other target types.
-        assert(target == "tl")
+        assert(target == "tl" or target == "android")
 
     return
 
@@ -555,5 +557,8 @@ def __thin_library_service(service):
                                       num)
             raise ValidateException(mess)
 
+    return
 
+def __andriod_service(service):
+    """TODO: Validate Android Java limits. """
     return

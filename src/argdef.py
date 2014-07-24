@@ -1,4 +1,4 @@
-# Copyright (c) 2013, 2014 AllSeen Alliance. All rights reserved.
+# Copyright (c) 2013-2014 AllSeen Alliance. All rights reserved.
 #
 # Permission to use, copy, modify, and/or distribute this software for any
 # purpose with or without fee is hereby granted, provided that the above
@@ -181,12 +181,12 @@ Examples:
 
 def get_indirection_level(signature, index = 0):
     """Get the number of dimensions in the array or 0 if not an array."""
-    sig = signature[index:len(signature)]
+    sig = signature[index:]
     return len(sig) - len(sig.lstrip('a'))
 
 def get_base_signature(signature, index = 0):
     """Return the base signature i.e. 'i', 'ai', and 'aai' all return 'i'."""
-    return signature[index:len(signature)].lstrip('a')
+    return signature[index:].lstrip('a')
 
 def is_array(signature):
     """Return True if this argument is an array."""
@@ -207,7 +207,7 @@ def get_container(signature, index = 0):
     return_value = None
 
     if signature[index] == '{' or signature[index] == '(':
-        sig = signature[index:len(signature)]
+        sig = signature[index:]
         end_index = find_end_of_type(sig)
         return_value = sig[0:end_index]
 

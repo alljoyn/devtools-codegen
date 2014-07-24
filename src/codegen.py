@@ -22,6 +22,7 @@ import CheetahCompileExcept as cce
 try:
     # All modules that contain Cheetah templates must be placed within this try.
     import tl.GenTL
+    import android.GenAndroid
 except cce.CheetahCompilationException:
     print("Unable to import compiled template modules.")
     print("Run ajcodegen-compile.py and try again.")
@@ -47,17 +48,19 @@ def main():
         if configuration.command_line.xml:
             print(service)
 
-        if target == "tl":
-            tl.GenTL.generate_code(configuration.command_line, service)
-        elif target == 'c':
+        if target == "android":
+            android.GenAndroid.generate_code(configuration.command_line, service)
+        elif target == "c":
             # Also must enable this option in config.__validate()
             pass # The 'C' generator has not been implemented.
-        elif target == 'cpp':
+        elif target == "cpp":
             # Also must enable this option in config.__validate()
             pass # The 'C++' generator has not been implemented.
-        elif target == 'o':
+        elif target == "o":
             # Also must enable this option in config.__validate()
             pass # The Objective C generator has not been implemented.
+        elif target == "tl":
+            tl.GenTL.generate_code(configuration.command_line, service)
         else:
             print("Unexpected target language option. No code generated.")
 

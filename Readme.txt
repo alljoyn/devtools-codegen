@@ -1,4 +1,4 @@
-# Copyright (c) 2013, 2014 AllSeen Alliance. All rights reserved.
+# Copyright (c) 2013-2014 AllSeen Alliance. All rights reserved.
 #
 # Permission to use, copy, modify, and/or distribute this software for any
 # purpose with or without fee is hereby granted, provided that the above
@@ -25,11 +25,15 @@ the installers. To do this follow the instructions below:
    To build the Python files from the Cheetah .TMPL files run the following
    command from the src directory:
 
-        cheetah.py compile tc/*.tmpl
+        cheetah.py compile tl/*.tmpl Android/*.tmpl
 
 2) To build the Windows installer:
 
         python setup.py bdist_wininst
+OR
+
+        python setup.py bdist_msi
+
 OR
 
 2) To build the Linux installer:

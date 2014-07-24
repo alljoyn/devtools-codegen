@@ -1,4 +1,4 @@
-# Copyright (c) 2013, 2014 AllSeen Alliance. All rights reserved.
+# Copyright (c) 2013-2014 AllSeen Alliance. All rights reserved.
 #
 # Permission to use, copy, modify, and/or distribute this software for any
 # purpose with or without fee is hereby granted, provided that the above
@@ -87,13 +87,14 @@ class Config:
         parser.add_argument("-R", "--runnable", help=help_text,
                             action="store_true")
 
-        help_text = """The target language. 'c' is for the AllJoyn 'C' binding
+        help_text = """The target language. 'android' is for Java code on
+            the Android platform. 'c' is for the AllJoyn 'C' binding
             to AllJoyn Standard Client (not implemented). 'cpp' is C++ code
             for AllJoyn Standard Client (not implemented). 'o' is for
             Objective C for Apple Targets (not implemented). 'tl' is C code
             for AllJoyn Thin Library."""
         parser.add_argument("-t", "--target-language", required=True,
-                            choices=['c', 'cpp', 'o', 'tl'],
+                            choices=['android', 'c', 'cpp', 'o', 'tl'],
                             help=help_text)
 
         ver_text = "Version {0}.".format(ver)
@@ -113,9 +114,11 @@ class Config:
 
     def __validate(self):
         """Validates various command line arguments beyond simple syntax."""
-        if self.command_line.target_language != 'tl':
-            e1 = "The only target language supported at this time is 'tl'."
-            e2 = "Use the option '-ttl'."
+
+        target = self.command_line.target_language
+        if target != 'tl' and target != 'android':
+            e1 = "The only target languages supported at this time are 'tl' and 'android'."
+            e2 = "Use the option '-ttl' or '-tandroid'."
 
             raise ConfigException("{0} {1}".format(e1, e2))
 

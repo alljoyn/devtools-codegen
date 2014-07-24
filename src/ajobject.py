@@ -1,4 +1,4 @@
-# Copyright (c) 2013, 2014 AllSeen Alliance. All rights reserved.
+# Copyright (c) 2013-2014 AllSeen Alliance. All rights reserved.
 #
 # Permission to use, copy, modify, and/or distribute this software for any
 # purpose with or without fee is hereby granted, provided that the above
@@ -16,6 +16,7 @@ from xml.etree import ElementTree
 import validate
 import interface
 import common
+import string
 
 class AllJoynObject:
     """This class contains the information in a <node ... > found an AllJoyn
@@ -37,8 +38,6 @@ class AllJoynObject:
         self.interfaces = []      # The interface instances at this node.
         self.alljoyn_objects = {} # The child objects.
         self.indent = 0
-
-        self.__has_properties = None
 
         # The index in the service collection of objects.
         # This is set to the proper value in service::get_objects()
@@ -149,25 +148,20 @@ class AllJoynObject:
 
     def has_properties(self):
         """Return true if any of the interfaces contain a property."""
-        return_value = False
+        return any([i.properties for i in self.interfaces])
 
-        if self.__has_properties is None:
-            for i in self.interfaces:
-                if len(i.properties) > 0:
-                    return_value = True
-                    break
+    def get_full_coded_name(self, make_camel_cased = False):
+        """Return the full interface name for use as an indentifier in the target code.
 
-            self.__has_properties = return_value
+Example: "/com/example/Demo" is returned as "_com_example_Demo" if make_camel_cased is False.
+Example: "/com/example/Demo" is returned as "comExampleDemo" if make_camel_cased is True."""
+
+        if make_camel_cased:
+            return_value = common.make_camel_case(self.get_full_name())
         else:
-            return_value = self.__has_properties
+            return_value = str.replace(self.get_full_name(), "/", "_")
 
         return return_value
-
-    def get_full_coded_name(self):
-        """Return the full interface name for use as an indentifier in c/c++ code.
-
-        Example: "/com/example/Demo" is returned as "com_example_Demo". """
-        return str.replace(self.get_full_name(), "/", "_")
 
     def __validate_name(self, xml):
         """Check for a valid name and throw an exception if not valid."""
@@ -177,7 +171,7 @@ class AllJoynObject:
             error = validate.get_xml_error(xml, error)
             raise validate.ValidateException(error)
 
-        # If we have a node with a full path make it has no parent.
+        # If we have a node with a full path make sure it has no parent.
         if self.name[0] == '/' and self.parent is not None:
             error = "Nested nodes cannot specify object paths."
             error = validate.get_xml_error(xml, error)
@@ -200,7 +194,7 @@ class AllJoynObject:
                                                   indent_str,
                                                   i.interface_full_name)
 
-        if len(self.alljoyn_objects) > 0:
+        if self.alljoyn_objects:
             return_value = "{0}\n{1}Child objects:\n".format(return_value, indent_str)
 
             for key in sorted(self.alljoyn_objects):

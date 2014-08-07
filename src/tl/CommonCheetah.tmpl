@@ -62,7 +62,7 @@ ${indent}if (AJ_OK != status) {
     ${indent}$GenTL.comment_handle_error
     #end if
     #for $f in $free_list
-    ${indent}free((void*)$f);
+    ${indent}AJ_Free((void*)$f);
     #end for
 
     ${indent}return status;
@@ -372,7 +372,7 @@ $CommonCheetah.handle_error($runnable, "AJ_UnmarshalArgs", $indent_count, $free_
 ${indent}index$depth = 0;
 
 ${indent}while (TRUE) {
-${indent}    ${name} = realloc((void*)${name}, ++${name}Elements * sizeof(${name}[0]));
+${indent}    ${name} = AJ_Realloc((void*)${name}, ++${name}Elements * sizeof(${name}[0]));
 $free_list.append($name)#slurp
     #set $struct_name = "{0}[index{1}]".format($name, $depth)
 ${indent}    status = AJ_UnmarshalArgs(msg, "$sig", &${name}[index$depth]);
@@ -385,7 +385,7 @@ $CommonCheetah.handle_error($runnable, "AJ_UnmarshalArgs", $indent_count + 4, $f
 ${indent}    index$depth++;
 ${indent}}
 
-${indent}${name} = realloc((void*)${name}, --${name}Elements * sizeof(${name}[0]));
+${indent}${name} = AJ_Realloc((void*)${name}, --${name}Elements * sizeof(${name}[0]));
 #end def
 #####################
 ## Unmarshal an array of structures.
@@ -396,14 +396,14 @@ ${indent}${name} = realloc((void*)${name}, --${name}Elements * sizeof(${name}[0]
 ${indent}index$depth = 0;
 
 ${indent}while (TRUE) {
-${indent}    ${name} = realloc((void*)${name}, ++${name}Elements * sizeof(${name}[0]));
+${indent}    ${name} = AJ_Realloc((void*)${name}, ++${name}Elements * sizeof(${name}[0]));
 $free_list.append($name)#slurp
     #set $struct_name = "{0}[index{1}]".format($name, $depth)
 $CommonCheetah.unmarshal_container($runnable, $struct_name, $sig, $msg_ptr, $depth, $indent_count + 4, True, $free_list)
 ${indent}    index$depth++;
 ${indent}}
 
-${indent}${name} = realloc((void*)${name}, --${name}Elements * sizeof(${name}[0]));
+${indent}${name} = AJ_Realloc((void*)${name}, --${name}Elements * sizeof(${name}[0]));
 #end def
 #####################
 ## Unmarshal a container and its contents.
@@ -846,7 +846,7 @@ $CommonCheetah.increment_object($indent, $arg.name, $element0, $sig, $complete_n
     #end while
 #end def
 #####################
-## Call free() on any arrays in this arg info that need to be freed and set the
+## Call AJ_Free() on any arrays in this arg info that need to be freed and set the
 ## pointer to NULL.
 #####################
 #@staticmethod
@@ -859,7 +859,7 @@ $CommonCheetah.increment_object($indent, $arg.name, $element0, $sig, $complete_n
                 #if not ($t != 'a' and $t != 's' and $t != 'o' and $t != 'g' and $t != '(' and $t != '{')
                     #while $a.arg_type[$index] == 'a'
 ## TODO: This should be freeing different arrays in the multi-dimension case.
-    free((void*)$a.name);
+    AJ_Free((void*)$a.name);
     $a.name = NULL;
                         #set $index += 1
                     #end while

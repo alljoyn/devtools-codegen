@@ -140,8 +140,8 @@ $message_handler($o, $c)#slurp
     #set $complete_name = $GenTL.get_complete_name($o, $interface, $c)
     #if $c.output_arg_info is not None and len($c.output_arg_info.args) > 0
     AJ_Status status;
-$cc.CommonCheetah.define_arrays_and_structures($c, False)
-$cc.CommonCheetah.define_arguments($c.output_arg_info.args, 4)
+$cc.CommonCheetah.define_arrays_and_structures($c, False)#slurp
+$cc.CommonCheetah.define_arguments($c.output_arg_info.args, 4, None)
 $cc.CommonCheetah.unmarshal_arguments($c.comp_type, $runnable, $c.output_arg_info, 4, True)
     /* Output value(s) have been received. Now use them. */
         #if $runnable
@@ -152,7 +152,7 @@ $cc.CommonCheetah.unmarshal_arguments($c.comp_type, $runnable, $c.output_arg_inf
             #else
     AJ_InfoPrintf(("'$complete_name' replied.\n"));
             #end if
-$cc.CommonCheetah.print_args($c.output_arg_info.args, 4)
+$cc.CommonCheetah.print_args($c.output_arg_info.args, 4)#slurp
     $GenTL.comment_end_runnable
         #else
     /* TODO: Put user code here to handle the reply. */
@@ -171,7 +171,7 @@ $cc.CommonCheetah.print_args($c.output_arg_info.args, 4)
         #end if
     #end if
 
-$cc.CommonCheetah.free_and_null_arrays($c.output_arg_info)
+$cc.CommonCheetah.free_and_null_arrays($c.output_arg_info)#slurp
     return status;
 }
 #end def

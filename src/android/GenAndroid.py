@@ -196,6 +196,22 @@ comment_end_runnable = """\
 # deal with a error condition.
 comment_handle_error = "/* TODO: Handle the error condition. */"
 
+# This converts an AllJoyn data type into the Android Java printf format string .
+printf_dictionary = {'b': "%b",
+                     'd': "%g",
+                     'g': "%s",
+                     'i': "%d",
+                     'n': "%d",
+                     'o': "%s",
+                     'q': "%d",
+                     's': "%s",
+                     't': "%d",
+                     'u': "%d",
+                     'v': "/* TODO: Figure out variant types. */",
+                     'x': "%d",
+                     'y': "%d",
+                    }
+
 # This converts an AllJoyn data type into the Android Java data type.
 type_dictionary = {'b': "boolean",
                    'd': "double",
@@ -264,26 +280,35 @@ def get_complete_name(object_name, interface_name, component):
     return_value = "{0}/{1}::{2}()".format(object_name, interface_name, component.name)
     return return_value
 
-def service_has_persistent_args(service, direction = "in"):
-    """Return True if any components have arguments that are persistent for this direction."""
+def has_persistent_args(service, is_client):
+    """Return True if any components have arguments that need to be persistent."""
     for key in sorted(service.interfaces):
         i = service.interfaces[key]
 
-        if interface_needs_persistent_data(i, direction):
+        if interface_needs_persistent_data(i, is_client):
             return True
 
     return False
 
-def interface_needs_persistent_data(interface, direction = "in"):
+def interface_needs_persistent_data(interface, is_client):
     """Returns True if this Interface needs persisent data for Runnable code.
 
-    The test is whether any method has arguments or it has a writable property.
-    Or if direction is "out" then if there are any signals with arguments."""
+    The test returns true if any method has arguments which match the direction
+    or it has a writable property. Or if direction is "out" then if there are 
+    any signals with arguments."""
 
-    if direction == "out":
+    # The server must have persistent data for signal arguments.
+    if not is_client:
         for s in interface.signals:
             if s.args:
                 return True
+
+    # In the more general case the client needs persistent data for inputs.
+    # The server needs persistent data for outputs.
+    if is_client:
+        direction = "in"
+    else:
+        direction = "out"
 
     for m in interface.methods:
         for a in m.args:
@@ -291,19 +316,8 @@ def interface_needs_persistent_data(interface, direction = "in"):
                 return True
 
     for p in interface.properties:
-        if p.is_writeable():
-            return True
-
-    return False
-
-def object_needs_persistent_data(aj_object, direction = "in"):
-    """Returns True if this AllJoynObject needs persisent data for Runnable code.
-
-    The test is whether any interface has a method with arguments or a writable property.
-    Or if direction is "out" then if there are any signals with arguments."""
-
-    for i in aj_object.interfaces:
-        if interface_needs_persistent_data(i, direction):
+        if (p.is_writeable() and direction == "in") or (
+            p.is_readable() and direction == "out"):
             return True
 
     return False

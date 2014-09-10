@@ -209,7 +209,7 @@ public class ClientMain extends Activity {
     class BusHandler extends Handler {
         /*
          * Name used as the well-known name and the advertised name of the service this client is
-         * interested in.  This name must be a unique name both to the bus and to the network as a
+         * interested in. This name must be a unique name both to the bus and to the network as a
          * whole.
          *
          * The name uses reverse URL style of naming, and matches the name used by the service.
@@ -282,7 +282,7 @@ public class ClientMain extends Activity {
                 public void foundAdvertisedName(String name, short transport, String namePrefix) {
                     /*
                      * This client will only join the first service that it sees advertising
-                     * the indicated well-known name.  If the program is already a member of
+                     * the indicated well-known name. If the program is already a member of
                      * a session (i.e. connected to a service) we will not attempt to join
                      * another session.
                      */
@@ -505,13 +505,13 @@ $cc.CommonCheetah.define_persistent_client_args($service, 8)#slurp
     #for $o in $object_list
         #set $obj_name = $o.get_full_coded_name(True)
         #for $i in $o.interfaces
-            #set $iname = "m{0}_{1}".format($obj_name, $i.interface_name)
+            #set $iname = $ClientMain.make_instance_interface_name($o, $interface)
             if ($iname != null) {
-$ClientMain.call_methods($i, $iname, $o, 16)#slurp
+$ClientMain.call_methods($o, $i, 16)#slurp
             #if $i.properties
 
             #end if
-$ClientMain.get_set_properties($i, $iname, $o, 16)#slurp
+$ClientMain.get_set_properties($o, $i, 16)#slurp
             } else {
                 logMessage("Interface ${iname} is null!");
             }
@@ -556,8 +556,8 @@ $ClientMain.get_set_properties($i, $iname, $o, 16)#slurp
     }
 
     /*
-     * print the status or result to the Android log. If the result is the expected
-     * result only print it to the log.  Otherwise print it to the error log and
+     * Output the status or result to the Android log. If the result is the expected
+     * result only output it to the log. Otherwise output it to the error log and
      * Sent a Toast to the users screen.
      */
     private void logStatus(String msg, Status status) {
@@ -572,6 +572,9 @@ $ClientMain.get_set_properties($i, $iname, $o, 16)#slurp
         }
     }
 
+    /*
+     * Send the exception message to the Android log and send a Toast to the users screen.
+     */
     private void logException(String msg, BusException ex) {
         String log = String.format("%s: %s", msg, ex);
         Message toastMsg = mHandler.obtainMessage(UiHandlerMessageIds.MESSAGE_POST_TOAST.ordinal(), log);
@@ -580,7 +583,7 @@ $ClientMain.get_set_properties($i, $iname, $o, 16)#slurp
     }
 
     /*
-     * Print a string message but no status to the Android log.
+     * Output a string message but no status to the Android log.
      */
     private void logMessage(String msg) {
             Log.i(TAG, msg);
@@ -590,51 +593,60 @@ $ClientMain.get_set_properties($i, $iname, $o, 16)#slurp
 ## Call the methods in this interface.
 #####################
 #@staticmethod
-#def call_methods($interface, $iname, $object, $indent_count)
+#def call_methods($object, $interface, $indent_count)
     #set $indent = $indent_count * " "
     #set $add_newline = False
     #set $obj_name = $object.get_full_coded_name(True)
     #if len($interface.methods) > 0
         #for $m in $interface.methods
-            #set $cc_name = $common.make_camel_case($m.name, None)
-            #set $complete_name = $GenAndroid.get_complete_name($obj_name, $interface.interface_name, $m)
             #if $add_newline
 
             #end if
             #set $return_type = $GenAndroid.get_java_return_type($m)
-            #if len($m.args) > 0
-$cc.CommonCheetah.increment_args($object, $interface, $m, $m.input_arg_info.args, $indent_count)
+            #set $return_arg = $GenAndroid.get_return_arg($m)
+$cc.CommonCheetah.increment_args($object, $interface, $m, $m.input_arg_info.args, $indent_count)#slurp
 ${indent}try {
-                #set $instance_name = $cc.CommonCheetah.make_persistent_instance_name($object, $interface, $m)
-                #if $return_type != "void"
-${indent}    int what = UiHandlerMessageIds.MESSAGE_${obj_name}_${interface.interface_name}.ordinal();
-${indent}    $return_type returnValue = $iname.${cc_name}($cc.CommonCheetah.add_args($m.args, $instance_name));
-                #else
-${indent}    $iname.${cc_name}($cc.CommonCheetah.add_args($m.args, $instance_name));
-                #end if
-                #if $return_type == "String"
-
-${indent}    sendUiMessage(what, returnValue);
-                #end if
+$ClientMain.call_method($object, $interface, $m, $indent_count + 4)#slurp
 ${indent}} catch (BusException be) {
+            #set $cc_name = $common.make_camel_case($m.name, None)
+            #set $iname = $ClientMain.make_instance_interface_name($object, $interface)
 ${indent}    status = doExceptionReport("${iname}.${cc_name}", be);
 ${indent}}
-            #else
-${indent}try {
-${indent}    $iname.${cc_name}();
-${indent}} catch (BusException be) {
-${indent}    status = doExceptionReport("${iname}.${cc_name}", be);
-${indent}}
-            #end if
             #set $add_newline = True
         #end for
+    #end if
+#end def
+#####################
+## Call the method, format the return value, if any, into a string and send the string to the user.
+#####################
+#@staticmethod
+#def call_method($object, $interface, $method, $indent_count)
+    #set $indent = $indent_count * " "
+    #set $cc_name = $common.make_camel_case($method.name, None)
+    #set $iname = $ClientMain.make_instance_interface_name($object, $interface)
+    #set $method_instance = "{0}.{1}".format($iname, $cc_name)
+    #set $obj_name = $object.get_full_coded_name(True)
+    #set $return_type = $GenAndroid.get_java_return_type($method)
+    #set $instance_name = $cc.CommonCheetah.make_persistent_instance_name($object, $interface, $method)
+    #set $return_arg = $GenAndroid.get_return_arg($method)
+${indent}int what = UiHandlerMessageIds.MESSAGE_${obj_name}_${interface.interface_name}.ordinal();
+    #if $return_arg
+${indent}$return_type returnValue = ${method_instance}($cc.CommonCheetah.add_args($object, $interface, $method));
+        #set $f = $GenAndroid.printf_dictionary[$return_arg.arg_type]
+${indent}String message = String.format("${method_instance}() returned '$f'.", returnValue);
+
+${indent}sendUiMessage(what, message);
+    #else
+${indent}${method_instance}($cc.CommonCheetah.add_args($object, $interface, $method));
+${indent}sendUiMessage(what, "Successfully called ${method_instance}()");
     #end if
 #end def
 #####################
 ## Get and set the properties in this interface.
 #####################
 #@staticmethod
-#def get_set_properties($interface, $iname, $object, $indent_count)
+#def get_set_properties($object, $interface, $indent_count)
+    #set $iname = $ClientMain.make_instance_interface_name($object, $interface)
     #set $indent = $indent_count * " "
     #set $add_newline = False
     #set $obj_name = $object.get_full_coded_name(True)
@@ -654,7 +666,7 @@ ${indent}    String message = "Calling ${iname}.set${p.name}().";
 
 ${indent}    sendUiMessage(what, message);
                 #set $instance_name = $cc.CommonCheetah.make_persistent_instance_name($object, $interface, $p)
-${indent}    ${iname}.set${p.name}($cc.CommonCheetah.add_args($p.input_arg_info.args, $instance_name));
+${indent}    ${iname}.set${p.name}($cc.CommonCheetah.add_args($object, $interface, $p));
 ${indent}} catch (BusException be) {
 ${indent}    status = doExceptionReport("${iname}.set${p.name}", be);
 ${indent}}
@@ -666,20 +678,13 @@ ${indent}}
                 #set $add_newline = True
 ## This is the get property code.
 ${indent}try {
-${indent}    int what = UiHandlerMessageIds.MESSAGE_${obj_name}_${interface.interface_name}.ordinal();
-
                 #set $instance_name = $cc.CommonCheetah.make_persistent_instance_name($object, $interface, $p)
                 #set $return_type = $GenAndroid.get_java_return_type($p)
-                #set $arg_name = $p.output_arg_info.args[0].name
-${indent}    $instance_name.$arg_name = ${iname}.get${p.name}();
-
-                #if $return_type == "String"
-${indent}    String message = String.format("${iname}.get${p.name}() returned '%s'.", $instance_name.$arg_name);
-                #elif $return_type == 'boolean'
-${indent}    String message = String.format("${iname}.get${p.name}() returned '%b'.", $instance_name.$arg_name);
-                #else
-${indent}    String message = String.format("${iname}.get${p.name}() returned '%s.'", ${instance_name.$arg_name}.toString());
-                #end if
+                #set $a = $p.output_arg_info.args[0]
+                #set $f = $GenAndroid.printf_dictionary[$a.arg_type]
+${indent}    int what = UiHandlerMessageIds.MESSAGE_${obj_name}_${interface.interface_name}.ordinal();
+${indent}    $return_type $a.name = ${iname}.get${p.name}();
+${indent}    String message = String.format("${iname}.get${p.name}() returned '$f'.", $a.name);
 
 ${indent}    sendUiMessage(what, message);
 ${indent}} catch (BusException be) {
@@ -688,4 +693,11 @@ ${indent}}
             #end if
         #end for
     #end if
+#end def
+#####################
+## Make the name of the interface instance variable.
+#####################
+#@staticmethod
+#def make_instance_interface_name($object, $interface)
+    #return "m{0}_{1}".format($object.get_full_coded_name(True), $interface.interface_name)
 #end def

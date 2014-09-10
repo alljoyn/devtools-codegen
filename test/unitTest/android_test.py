@@ -38,22 +38,23 @@ class Android(unittest.TestCase):
 
     def test_needs_persistent_data(self):
         """Tests the method GenAndroid.needs_persistent_data()."""
-        obj = ajobject.AllJoynObject("/TestObject")
-        self.assertFalse(ga.object_needs_persistent_data(obj))
-
         i = interface.Interface()
         i.set_name("My.Interface1")
-        obj.interfaces.append(i)
-        self.assertFalse(ga.object_needs_persistent_data(obj))
+        self.assertFalse(ga.interface_needs_persistent_data(i, True))
+        self.assertFalse(ga.interface_needs_persistent_data(i, False))
 
         s = sig.SignalDef()
         s.name = "MySignal"
         i.signals.append(s)
-        self.assertFalse(ga.object_needs_persistent_data(obj))
+        self.assertFalse(ga.interface_needs_persistent_data(i, True))
+        self.assertFalse(ga.interface_needs_persistent_data(i, False))
 
         a = arg.ArgDef(None, "myArg", "i", "out")
-        s.args.append(s)
-        self.assertFalse(ga.object_needs_persistent_data(obj))
+        s.args.append(a)
+        self.assertFalse(ga.interface_needs_persistent_data(i, True))
+        self.assertTrue(ga.interface_needs_persistent_data(i, False))
+
+        s.args.remove(a)
 
         m = met.MethodDef()
         m.name = "MyMethod"
@@ -61,14 +62,17 @@ class Android(unittest.TestCase):
 
         aOut = arg.ArgDef(None, "myOutputArg", "i", "out")
         m.args.append(aOut)
-        self.assertFalse(ga.object_needs_persistent_data(obj))
+        self.assertFalse(ga.interface_needs_persistent_data(i, True))
+        self.assertTrue(ga.interface_needs_persistent_data(i, False))
+
+        m.args.remove(aOut)
 
         aIn = arg.ArgDef(None, "myInputArg", "i", "in")
         m.args.append(aIn)
-        self.assertTrue(ga.object_needs_persistent_data(obj))
+        self.assertTrue(ga.interface_needs_persistent_data(i, True))
+        self.assertFalse(ga.interface_needs_persistent_data(i, False))
 
         m.args.remove(aIn)
-        self.assertFalse(ga.object_needs_persistent_data(obj))
 
         p = prop.PropertyDef()
         p.name = "MyProperty"
@@ -76,16 +80,19 @@ class Android(unittest.TestCase):
         aOut = arg.ArgDef(None, "myOutputArg", "i", "out")
         p.args.append(aOut)
         i.properties.append(p)
-        self.assertFalse(ga.object_needs_persistent_data(obj))
+        self.assertFalse(ga.interface_needs_persistent_data(i, True))
+        self.assertTrue(ga.interface_needs_persistent_data(i, False))
 
         aIn = arg.ArgDef(None, "myInputArg", "i", "in")
         p.args.append(aIn)
         p.access = "readwrite"
-        self.assertTrue(ga.object_needs_persistent_data(obj))
+        self.assertTrue(ga.interface_needs_persistent_data(i, True))
+        self.assertTrue(ga.interface_needs_persistent_data(i, False))
 
         p.access = "write"
         p.args.remove(aOut)
-        self.assertTrue(ga.object_needs_persistent_data(obj))
+        self.assertTrue(ga.interface_needs_persistent_data(i, True))
+        self.assertFalse(ga.interface_needs_persistent_data(i, False))
 
     def test_classes_and_instances(self):
         """Tests files in classes_and_instances directory."""

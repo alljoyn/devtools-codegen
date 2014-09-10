@@ -21,7 +21,9 @@
 package $interface.get_path();
 
 import org.alljoyn.bus.BusObject;
+#if $interface.signals
 import org.alljoyn.bus.BusException;
+#end if
 
 import android.os.Handler;
 
@@ -29,12 +31,12 @@ import android.os.Handler;
 public class ${interface.interface_name}Impl implements $interface.interface_name, BusObject {
     private Handler mHandler;   /* Means by which to send message to the user interface. */
     private int mMessageId;     /* Identifier to be used for this interface instance in UI messages. */
-#if $GenAndroid.interface_needs_persistent_data($interface, "out")
+#if $GenAndroid.interface_needs_persistent_data($interface, False)
     #if $command_line.runnable
 
     $GenAndroid.comment_start_runnable
-$cc.CommonCheetah.define_interface_persistent_classes($interface, "out", 4)#slurp
-$cc.CommonCheetah.declare_interface_persistent_data(None, $interface, "out", 4)#slurp
+$cc.CommonCheetah.define_interface_persistent_classes($interface, False, 4)#slurp
+$cc.CommonCheetah.declare_interface_persistent_data(None, $interface, False, 4)#slurp
     $GenAndroid.comment_end_runnable
     #end if
 #end if
@@ -55,41 +57,42 @@ $cc.CommonCheetah.declare_interface_persistent_data(None, $interface, "out", 4)#
     #for $m in $interface.methods
         #set $return_type = $GenAndroid.get_java_return_type(m)
     public $return_type $common.make_camel_case($m.name, None)($m.input_arg_info.arg_declaration) {
-        #if $return_type != "void"
-            #set $arg = $GenAndroid.get_return_arg($m)
-        $return_type returnValue$GenAndroid.get_initialization($arg, 12);
-
-            #if $return_type == "String"
-        returnValue = "${m.name}() successfully called.";
-            #end if
-        #end if
-
+        #if $command_line.runnable
+        $GenAndroid.comment_start_runnable
         sendUiMessage("${m.name}() successfully called.");
+$cc.CommonCheetah.print_args($m.input_arg_info.args, 8)#slurp
+            #if $return_type != "void"
 
+$cc.CommonCheetah.increment_args(None, $interface, $m, $m.output_arg_info.args, 8)
+                #set $instance_name = $cc.CommonCheetah.make_persistent_instance_name(None, $interface, $m)
+        return $instance_name.$m.output_arg_info.args[0].name;
+            #end if
+        $GenAndroid.comment_end_runnable
+        #else
         /* TODO: Implement the method. */
-
-        #if $return_type != "void"
+            #if $return_type != "void"
+                #set $arg = $GenAndroid.get_return_arg($m)
+        $return_type returnValue$GenAndroid.get_initialization($arg, 12);
         return returnValue;
+            #end if
         #end if
     }
 
     #end for
 ## Implement all of the properties in this interface.
     #for $p in $interface.properties
+        #set $instance_name = $cc.CommonCheetah.make_persistent_instance_name(None, $interface, $p)
         #if $p.is_writeable()
     public void set${p.name}($p.input_arg_info.arg_declaration) {
-            #set $arg = $p.input_arg_info.args[0]
             #if $command_line.runnable
         $GenAndroid.comment_start_runnable
-                #if $arg.arg_type == 's'
-        String message = String.format("set${p.name}('%s') called.", $arg.name);
-                #elif $arg.arg_type == 'b'
-        String message = String.format("set${p.name}('%b') called.", $arg.name);
-                #else
-        String message = String.format("set${p.name}(%s) called.", ${arg.name}.toString());
+        sendUiMessage("Property set${p.name}() called.");
+                #if $p.is_readable()
+                    #set $out_name = $p.output_arg_info.args[0].name
+                    #set $in_name = $p.input_arg_info.args[0].name
+        $instance_name.$out_name = $in_name;
                 #end if
-
-        sendUiMessage(message);
+$cc.CommonCheetah.print_args($p.input_arg_info.args, 8)#slurp
         $GenAndroid.comment_end_runnable
             #else
         /* TODO: Do something with the request to change the property value. */
@@ -104,7 +107,6 @@ $cc.CommonCheetah.declare_interface_persistent_data(None, $interface, "out", 4)#
             #if $command_line.runnable
         $GenAndroid.comment_start_runnable
 $cc.CommonCheetah.increment_args(None, $interface, $p, $p.output_arg_info.args, 8)
-            #set $instance_name = $cc.CommonCheetah.make_persistent_instance_name(None, $interface, $p)
             #set $arg_name = $p.output_arg_info.args[0].name
         return $instance_name.$arg_name;
         $GenAndroid.comment_end_runnable

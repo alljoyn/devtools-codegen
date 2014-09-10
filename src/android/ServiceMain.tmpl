@@ -21,18 +21,16 @@
 
 package $command_line.well_known_name;
 
-/* Java imports. */
 #if $service.has_signals()
+/* Java imports. */
 import java.util.concurrent.ConcurrentSkipListSet;
-#end if
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
-#if $service.has_signals()
 import java.util.Comparator;
 import java.util.Iterator;
-#end if
 
+#end if
 /* Android imports. */
 import android.app.Activity;
 import android.os.Bundle;
@@ -50,8 +48,8 @@ import android.widget.Toast;
 
 /* AllJoyn imports. */
 import org.alljoyn.bus.BusAttachment;
-import org.alljoyn.bus.BusException;
 #if $service.has_signals()
+import org.alljoyn.bus.BusException;
 import org.alljoyn.bus.BusObject;
 import org.alljoyn.bus.SessionListener;
 import org.alljoyn.bus.SignalEmitter;
@@ -66,7 +64,9 @@ import org.alljoyn.bus.Status;
 #for $key in $sorted($service.interfaces)
     #set $interface = $service.interfaces[$key]
 import ${interface.interface_full_name}Impl;
+#if $interface.signals
 import ${interface.interface_full_name};
+#end if
 #end for
 
 /*
@@ -610,11 +610,11 @@ MessageIds.MESSAGE_${obj_name}_${i.interface_name}.ordinal());
             Log.e(TAG, log);
         }
     }
+#if $command_line.runnable and $service.has_signals()
+    $GenAndroid.comment_start_runnable
 
     /*
-     * print the status or result to the Android log. If the result is the expected
-     * result only print it to the log. Otherwise print it to the error log and
-     * send a Toast to the users screen.
+     * Send the exception message to the Android log and send a Toast to the users screen.
      */
     private void logException(String msg, Exception ex) {
         String log = String.format("%s: %s", msg, ex);
@@ -623,15 +623,7 @@ MessageIds.MESSAGE_${obj_name}_${i.interface_name}.ordinal());
         Log.e(TAG, log, ex);
     }
 
-#if $command_line.runnable and $service.has_signals()
-    $GenAndroid.comment_start_runnable
-    #for $i in $o.interfaces
-        #if $i.signals
-            #for $s in $interface.signals
-$cc.CommonCheetah.define_persistent_component_args($s, 4, "out")
-            #end for
-        #end if
-    #end for
+$cc.CommonCheetah.define_persistent_servicemain_signal_args($service, 4)#slurp
     /*
      * This is just example code to demonstrating sending signals.
      */
@@ -684,7 +676,8 @@ $cc.CommonCheetah.increment_args($object, $interface, $signal, $args, $indent_co
 ${indent}
 ${indent}    try {
 ${indent}        $interface_name i = emitter.getInterface(${interface_name}.class);
-${indent}        i.$common.make_camel_case($signal.name, None)($cc.CommonCheetah.add_args($args, $signal.name, "m", "out"));
+
+${indent}        i.$common.make_camel_case($signal.name, None)($cc.CommonCheetah.add_args($object, $interface, $signal, "out"));
 ${indent}    } catch (BusException ex) {
 ${indent}        logException("Exception while sending signal ${interface_name}.${signal.name}()", ex);
 ${indent}    }

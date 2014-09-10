@@ -90,8 +90,8 @@ public class ${interface.interface_name}Impl implements $interface.interface_nam
      */
     @BusSignalHandler(iface = "$interface.interface_full_name", signal = "$s.name")
     public void $common.make_camel_case($s.name, None)($s.output_arg_info.arg_declaration) {
-        // TODO: Implement the signal receiver.
         sendUiMessage("Signal $interface.interface_full_name::${s.name}() received.");
+$cc.CommonCheetah.print_args($s.args, 8)#slurp
     }
 
     #end for

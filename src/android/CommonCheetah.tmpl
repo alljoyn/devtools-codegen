@@ -15,37 +15,7 @@
 ###############################################################################
 #import GenAndroid
 #from .. import argdef
-#####################
-## Define persistent version of the argument(s) for a particular component.
-## See ServiceImplementation.tmpl for more context.
-#####################
-#@staticmethod
-#def define_persistent_component_args($comp, $indent_count, $direction = "in")
-    #if $direction == "in"
-        #set $args = $comp.input_arg_info.args
-    #else
-        #assert($direction == "out")
-        #set $args = $comp.output_arg_info.args
-    #end if
-    #set $indent = $indent_count * " "
-    #if len($args) > 0
-${indent}/* Define the private persistent version of the arg(s) for $comp.name. */
-    #end if
-    #for $a in $args
-        #if $a.is_array()
-            #set $array_brackets = "[]"
-        #else
-            #set $array_brackets = ""
-        #end if
-        #set $t = $GenAndroid.get_base_java_type($a.interface, $a.arg_type)
-        #set $init = $GenAndroid.get_initialization($a, indent_count + 4)
-## A persistent string needs a private int, mXXXXHelloNumber_$a.name, to initialize it.
-        #if $t == "String"
-${indent}private int m${comp.name}HelloNumber_$a.name = 0;
-        #end if
-${indent}private $t$array_brackets $CommonCheetah.make_persistent_arg_name($a, $comp) $init;
-    #end for
-#end def
+#from .. import signaldef
 #####################
 ## Define persistent version of the argument(s) for client runnable code. If $object is None
 ## do not use the interface and object names as prefixes. This is used by ClientMain,
@@ -53,101 +23,118 @@ ${indent}private $t$array_brackets $CommonCheetah.make_persistent_arg_name($a, $
 #####################
 #@staticmethod
 #def define_persistent_client_args($service, $indent_count)
-    #if $GenAndroid.service_has_persistent_args($service)
-    #set $indent = $indent_count * " "
+    #if $GenAndroid.has_persistent_args($service, True)
+        #set $indent = $indent_count * " "
 $indent$GenAndroid.comment_start_runnable
-$CommonCheetah.define_persistent_classes($service, "both", $indent_count)#slurp
-    #for $o in $service.get_objects()
-        #for $i in $o.interfaces
-            #for $m in $i.methods
-$CommonCheetah.declare_instance_of_persistent_class($o, $i, $m, "in", $indent_count)
-            #end for
-            #for $p in $i.properties
-## Properties are special and need persisent data in both directions.
-$CommonCheetah.declare_instance_of_persistent_class($o, $i, $p, "both", $indent_count)
-            #end for
-## There is no persistent data needed for signals on the client side.
+        #for $key in sorted($service.interfaces):
+$CommonCheetah.define_interface_persistent_classes($service.interfaces[$key], True, $indent_count)#slurp
         #end for
-    #end for
+        #for $o in $service.get_objects()
+            #for $i in $o.interfaces
+                #for $m in $i.methods
+$CommonCheetah.declare_instance_of_persistent_class($o, $i, $m, True, $indent_count)
+                #end for
+                #for $p in $i.properties
+$CommonCheetah.declare_instance_of_persistent_class($o, $i, $p, True, $indent_count)
+                #end for
+## There is no persistent data needed for signals on the client side.
+            #end for
+        #end for
 $indent$GenAndroid.comment_end_runnable
     #end if
 #end def
 #####################
-## Declare the instances of data needed for the persisent version of the
-## argument(s) for runnable code.
+## Define persistent version of the argument(s) for the signals. This is only
+## called from ServiceMain when generating runnable code.
 #####################
 #@staticmethod
-#def declare_persistent_data($service, $direction, $indent_count)
+#def define_persistent_servicemain_signal_args($service, $indent_count)
+    #set $indent = $indent_count * " "
+    #for $key in sorted($service.interfaces):
+        #set $interface = $service.interfaces[$key]
+        #for $s in $interface.signals
+            #if $s.args
+$CommonCheetah.define_persistent_class($interface, $s, False, $indent_count)
+            #end if
+        #end for
+    #end for
     #for $o in $service.get_objects()
-        #if $GenAndroid.object_needs_persistent_data($o, $direction)
-            #for $i in $o.interfaces
-$CommonCheetah.declare_interface_persistent_data($o, $i, $direction, $indent_count)#slurp
+        #for $i in $o.interfaces
+            #for $s in $i.signals
+$CommonCheetah.declare_instance_of_persistent_class($o, $i, $s, False, $indent_count)#slurp
             #end for
-        #end if
+        #end for
     #end for
 #end def
 #####################
 ## Declare a specific instance of a class for one interface.
 ## This is a container for the argument(s) for runnable code.
+## $object is the AllJoynObject which may need the persistent data.
+## $interface is the Interface implemented in this AllJoynObject.
+## $is_client is True if the declaration for the client side and False if for the server side.
+## $indent_count is the number of spaces to indent the code.
 #####################
 #@staticmethod
-#def declare_interface_persistent_data($object, $interface, $direction, $indent_count)
+#def declare_interface_persistent_data($object, $interface, $is_client, $indent_count)
     #for $m in $interface.methods
-$CommonCheetah.declare_instance_of_persistent_class($object, $interface, $m, $direction, $indent_count)#slurp
+$CommonCheetah.declare_instance_of_persistent_class($object, $interface, $m, $is_client, $indent_count)#slurp
     #end for
     #for $p in $interface.properties
-$CommonCheetah.declare_instance_of_persistent_class($object, $interface, $p, $direction, $indent_count)#slurp
+$CommonCheetah.declare_instance_of_persistent_class($object, $interface, $p, $is_client, $indent_count)#slurp
     #end for
     #for $s in $interface.signals
-$CommonCheetah.declare_instance_of_persistent_class($object, $interface, $s, $direction, $indent_count)#slurp
+$CommonCheetah.declare_instance_of_persistent_class($object, $interface, $s, $is_client, $indent_count)#slurp
     #end for
 #end def
 #####################
 ## Declare a specific instance of a class for one component object.
 ## This is a container for the argument(s) for runnable code.
+## $object is the AllJoynObject which may need the persistent data.
+## $interface is the Interface implemented in this AllJoynObject.
+## $is_client is True if the declaration for the client side and False if for the server side.
+## $indent_count is the number of spaces to indent the code.
 #####################
 #@staticmethod
-#def declare_instance_of_persistent_class($object, $interface, $comp, $direction, $indent_count)
+#def declare_instance_of_persistent_class($object, $interface, $comp, $is_client, $indent_count)
+## Signal classes need to be accessible from ServiceMain.
+    #if not $is_client and isinstance($comp, signaldef.SignalDef)
+        #set $visibility = "public"
+    #else
+        #set $visibility = "private"
+    #end if
     #set $has_inputs = $comp.input_arg_info and len($comp.input_arg_info.args) > 0
     #set $has_outputs = $comp.output_arg_info and len($comp.output_arg_info.args) > 0
-    #if $direction == "both" or ($direction == "in" and $has_inputs) or ($direction == "out" and $has_outputs)
+    #if ($is_client and $has_inputs) or (not $is_client and $has_outputs)
         #set $indent = $indent_count * " "
         #set $comment_name = $CommonCheetah.make_component_comment_name($object, $interface, $comp)
 $indent/* Instance data for '$comment_name'. */
         #set $class_name = $CommonCheetah.make_persistent_class_name($interface, $comp)
         #set $instance_name = $CommonCheetah.make_persistent_instance_name($object, $interface, $comp)
-${indent}private $class_name $instance_name;
+${indent}$visibility $class_name $instance_name =
+${indent}        new ${class_name}();
     #end if
-#end def
-#####################
-## Define the classes needed for the persisent version of the argument(s) for
-## runnable code. This is used by ClientMain, ServiceMain, and ServiceImplementation.
-## See those files for more context.
-#####################
-#@staticmethod
-#def define_persistent_classes($service, $direction, $indent_count)
-    #for $key in sorted($service.interfaces):
-$CommonCheetah.define_interface_persistent_classes($service.interfaces[$key], $direction, $indent_count)#slurp
-    #end for
 #end def
 #####################
 ## Declare a specific instance of a class for one interface.
 ## This is a container for the argument(s) for runnable code.
+## $interface is the Interface being implemented.
+## $is_client is True if the declaration for the client side and False if for the server side.
+## $indent_count is the number of spaces to indent the code.
 #####################
 #@staticmethod
-#def define_interface_persistent_classes($interface, $direction, $indent_count)
+#def define_interface_persistent_classes($interface, $is_client, $indent_count)
     #set $indent = $indent_count * " "
-    #if $GenAndroid.interface_needs_persistent_data($interface, $direction)
+    #if $GenAndroid.interface_needs_persistent_data($interface, $is_client)
 $indent/* Persistent data class definitions for $interface.interface_full_name. */
         #for $m in $interface.methods
-$CommonCheetah.define_persistent_class($interface, $m, $direction, $indent_count)
+$CommonCheetah.define_persistent_class($interface, $m, $is_client, $indent_count)
         #end for
         #for $p in $interface.properties
-$CommonCheetah.define_persistent_class($interface, $p, "both", $indent_count)
+$CommonCheetah.define_persistent_class($interface, $p, $is_client, $indent_count)
         #end for
-        #if $direction == "out"
+        #if not $is_client
             #for $s in $interface.signals
-$CommonCheetah.define_persistent_class($interface, $s, $direction, $indent_count)
+$CommonCheetah.define_persistent_class($interface, $s, $is_client, $indent_count)
             #end for
         #end if
     #end if
@@ -155,21 +142,28 @@ $CommonCheetah.define_persistent_class($interface, $s, $direction, $indent_count
 #####################
 ## Define a class to contain the arguments for this component. Direction can be
 ##  'in' or 'out'. 'comp' can be a method, signal, or property.
+## $interface is the Interface being implemented.
+## $comp is the AllJoyn component such as a method, property, or signal.
+## $is_client is True if the declaration for the client side and False if for the server side.
+## $indent_count is the number of spaces to indent the code.
 #####################
 #@staticmethod
-#def define_persistent_class($interface, $comp, $direction, $indent_count)
+#def define_persistent_class($interface, $comp, $is_client, $indent_count)
     #set $indent = $indent_count * " "
-    #if $direction == "in"
+    #if $is_client
         #set $args = $comp.input_arg_info.args
-    #elif $direction == "out"
-        #set $args = $comp.output_arg_info.args
     #else
-        #assert($direction == "both")
-        #set $args = $comp.input_arg_info.args + $comp.output_arg_info.args
+        #set $args = $comp.output_arg_info.args
     #end if
     #if $args
+## Signal classes need to be accessible from ServiceMain.
+        #if isinstance($comp, signaldef.SignalDef)
+            #set $visibility = "public"
+        #else
+            #set $visibility = "private"
+        #end if
         #set $class_name = $CommonCheetah.make_persistent_class_name($interface, $comp)
-${indent}private class $class_name {
+${indent}$visibility class $class_name {
         #for $a in $args
             #if $a.is_array()
                 #set $array_brackets = "[]"
@@ -180,9 +174,9 @@ ${indent}private class $class_name {
             #set $init = $GenAndroid.get_initialization($a, indent_count + 4)
 ## A persistent string needs a private int, HelloNumber_$a.name, to initialize it.
             #if $t == "String"
-${indent}    int HelloNumber_$a.name = 0;
+${indent}    $visibility int HelloNumber_$a.name = 0;
             #end if
-${indent}    $t$array_brackets $a.name$init;
+${indent}    $visibility $t$array_brackets $a.name$init;
         #end for
 ${indent}}
     #end if
@@ -249,11 +243,13 @@ ${indent}$arg_name$element0 = !${arg_name}$element0;
     #elif $sig in ('s', 'o', 'g') and not $arg.is_array
         #set $comment_name = $CommonCheetah.make_component_comment_name($object, $interface, $comp)
         #if $sig == 'o'
-${indent}$arg_name = String.format("%s %d", '$comment_name', ++${instance_name}HelloNumber_$arg.name);
+${indent}$arg_name = String.format("%s %d", '$comment_name', ++${instance_name}.HelloNumber_$arg.name);
         #elif $sig == 'g'
-${indent}$arg_name = String.format("(sig%c)", 's' + (++${instance_name}HelloNumber_$arg.name % 3));
+${indent}$arg_name = String.format("(sig%c)", 's' + (++${instance_name}.HelloNumber_$arg.name % 3));
         #else
-${indent}$arg_name = String.format("Hello # %d from '$comment_name'.\n", ++${instance_name}HelloNumber_$arg.name);
+${indent}$arg_name =
+${indent}        String.format("Hello # %d from '$comment_name'.",
+${indent}                ++${instance_name}.HelloNumber_$arg.name);
         #end if
     #else
         #if $arg.is_array
@@ -269,11 +265,13 @@ ${indent}${arg_name}$element0++;
 ## Add the arguments, without types, to a method call, signal, or property.
 #####################
 #@staticmethod
-#def add_args($args, $name, $prefix = "", $direction = "in")
+#def add_args($object, $interface, $comp, $direction = "in")
     #set $comma_space = ""
-    #for $a in $args
+    #set $instance_name = $CommonCheetah.make_persistent_instance_name($object, $interface, $comp)
+    #for $a in $comp.args
         #if $a.direction == $direction
-${comma_space}$prefix${name}.$a.name#slurp
+            #set $arg_name = "{0}.{1}".format($instance_name, $a.name)
+${comma_space}$arg_name#slurp
             #set $comma_space = ", "
         #end if
     #end for
@@ -297,5 +295,22 @@ ${comma_space}$prefix${name}.$a.name#slurp
         #return "{0}/{1}::{2}()".format($object.get_full_name(), $interface.interface_full_name, $component.name)
     #else
         #return "{0}::{1}()".format($interface.interface_full_name, $component.name)
+    #end if
+#end def
+#####################
+## Print the values received from the various arguments.
+#####################
+#@staticmethod
+#def print_args($args, $indent_count)
+    #set $indent = $indent_count * " "
+    #if $args
+
+${indent}String msg;
+        #for $a in $args
+            #set $f = $GenAndroid.printf_dictionary[$a.arg_type]
+
+${indent}msg = String.format("$a.name = '$f'", $a.name);
+${indent}sendUiMessage(msg);
+        #end for
     #end if
 #end def

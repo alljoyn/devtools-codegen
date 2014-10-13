@@ -17,6 +17,8 @@ from xml.etree import ElementTree
 
 import validate
 
+target_language = None
+
 def get_annotations(xml, aj_object):
     """Get the annotation value for the AllJoyn object from this xml."""
     annotations = xml.iterfind("annotation")
@@ -58,6 +60,16 @@ def make_camel_case(object_name, separator = "/"):
 
     first_char_string = temp[0:1]
     return_value = first_char_string.lower() + temp[1:]
+
+    return return_value
+
+def get_arg_signature(component, direction):
+    """Get the signature used to marshal the arguments when making a call."""
+    return_value = ""
+
+    for a in component.args:
+        if a.direction == direction:
+            return_value = "".join([return_value, a.arg_type])
 
     return return_value
 

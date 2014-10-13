@@ -19,6 +19,8 @@ import common
 import validate
 import container
 
+return_suffix = "_return_value"
+
 class Interface:
     """Contains the description of a complete AllJoyn interface."""
 
@@ -239,13 +241,16 @@ This includes the dictionaries which are just a special case of a structure."""
 
     def __add_structs_dictionaries_arrays(self):
         for m in self.methods:
-            self.__find_add_structs_dictionaries_arrays(m.args)
+            self.__find_add_structs_dictionaries_arrays(m.args, m.name)
 
-        for m in self.signals:
-            self.__find_add_structs_dictionaries_arrays(m.args)
+        for s in self.signals:
+            self.__find_add_structs_dictionaries_arrays(s.args, None)
 
-        for m in self.properties:
-            self.__find_add_structs_dictionaries_arrays(m.args)
+        for p in self.properties:
+            if p.is_readable:
+                self.__find_add_structs_dictionaries_arrays(p.args, p.name)
+            else:
+                self.__find_add_structs_dictionaries_arrays(p.args, None)
 
         return
 
@@ -275,7 +280,18 @@ This includes the dictionaries which are just a special case of a structure."""
         self.__name_and_extract_to_list(arg, self.dictionaries)
         return
 
-    def __find_add_structs_dictionaries_arrays(self, args):
+    def __find_add_structs_dictionaries_arrays(self, args, multiple_return_name):
+        """This is called for each method, signal, and property. With Android as
+        the target readable properties and methods that have multiple return values
+        a structure must be created that contains all of the return values. Hence
+        if multiple_return_name is not None and the target is Android then find
+        such arguments and if necessary create the structure and add it to the
+        list of structures with that name."""
+
+        out_args = []
+
+        target_is_android = common.target_language == "android"
+
         if args is not None:
             for a in args:
                 a.interface = self
@@ -286,6 +302,20 @@ This includes the dictionaries which are just a special case of a structure."""
                     self.__name_and_extract_struct(a)
                 elif a.is_dictionary():
                     self.__name_and_extract_dictionary(a)
+                elif target_is_android and multiple_return_name and a.direction == "out":
+                    out_args.append(a)
+
+        if len(out_args) > 1:
+            signature = "("
+
+            for a in out_args:
+                signature += a.arg_type
+
+            signature += ")"
+
+            return_structure_name = multiple_return_name + return_suffix
+            c = container.Container(signature, return_structure_name)
+            self.structures[return_structure_name] = c
 
         return
 

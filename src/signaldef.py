@@ -77,15 +77,6 @@ class SignalDef:
 
         return return_value
 
-    def get_arg_signature(self):
-        """Get the signature to marshal/unmarshal the arguments."""
-        return_value = ""
-
-        for a in self.args:
-            return_value = "".join([return_value, a.arg_type])
-
-        return return_value
-
     def __add_arg(self, xml, new_arg):
         for a in self.args:
             if a.name == new_arg.name:

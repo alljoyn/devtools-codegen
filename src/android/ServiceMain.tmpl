@@ -444,13 +444,15 @@ MessageIds.MESSAGE_${obj_name}_${i.interface_name}.ordinal());
 #for $o in $object_list
     #set $obj_name = $o.get_full_coded_name(True)
     #for $i in $o.interfaces
-             status = mBus.registerBusObject(m${obj_name}_$i.interface_name, "$o.name");
-             logStatus("BusAttachment.registerBusObject(m${obj_name}_$i.interface_name)", status);
+            status = mBus.registerBusObject(m${obj_name}_$i.interface_name, "$o.name");
+            logStatus("BusAttachment.registerBusObject(m${obj_name}_$i.interface_name)", status);
 
-             if (status != Status.OK) {
+        #if len($o.interfaces) > 1
+            if (status != Status.OK) {
                 return status;
-             }
+            }
 
+        #end if
     #end for
 #end for
             return status;

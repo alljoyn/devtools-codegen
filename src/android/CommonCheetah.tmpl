@@ -16,10 +16,9 @@
 #import GenAndroid
 #from .. import argdef
 #from .. import signaldef
+#from .. import interface as iface
 #####################
-## Define persistent version of the argument(s) for client runnable code. If $object is None
-## do not use the interface and object names as prefixes. This is used by ClientMain,
-## ServiceMain, and ServiceImplementation. See those files for more context.
+## Define persistent version of the argument(s) for client runnable code. This is used by ClientMain.
 #####################
 #@staticmethod
 #def define_persistent_client_args($service, $indent_count)
@@ -27,7 +26,8 @@
         #set $indent = $indent_count * " "
 $indent$GenAndroid.comment_start_runnable
         #for $key in sorted($service.interfaces):
-$CommonCheetah.define_interface_persistent_classes($service.interfaces[$key], True, $indent_count)#slurp
+            #set $interface = $service.interfaces[$key]
+$CommonCheetah.define_interface_persistent_classes($interface, True, $indent_count)#slurp
         #end for
         #for $o in $service.get_objects()
             #for $i in $o.interfaces
@@ -170,8 +170,8 @@ ${indent}$visibility class $class_name {
             #else
                 #set $array_brackets = ""
             #end if
-            #set $t = $GenAndroid.get_base_java_type($a.interface, $a.arg_type)
-            #set $init = $GenAndroid.get_initialization($a, indent_count + 4)
+            #set $t = $GenAndroid.get_base_java_type($a.interface, $a.arg_type, $comp)
+            #set $init = $GenAndroid.get_initialization($a, $comp)
 ## A persistent string needs a private int, HelloNumber_$a.name, to initialize it.
             #if $t == "String"
 ${indent}    $visibility int HelloNumber_$a.name = 0;
@@ -222,7 +222,15 @@ $CommonCheetah.increment_arg($object, $interface, $comp, $a, $indent_count)#slur
     #else
         #set $element0 = ""
     #end if
+    #set $sig = $arg.get_base_signature()
+    #if $arg.is_structure() or $arg.is_dictionary()
+        #set $indent = $indent_count * ' '
+        #set $instance_name = $CommonCheetah.make_persistent_instance_name($object, $interface, $comp)
+        #set $arg_name = "{0}.{1}".format($instance_name, $arg.name)
+${indent}${instance_name}.${arg.name}.Increment();
+    #else
 $CommonCheetah.increment_object($element0, $object, $interface, $comp, $arg, $indent_count)#slurp
+    #end if
 #end def
 #####################
 ## "Increment" this one "incrementable" argument object.
@@ -307,10 +315,79 @@ ${comma_space}$arg_name#slurp
 
 ${indent}String msg;
         #for $a in $args
-            #set $f = $GenAndroid.printf_dictionary[$a.arg_type]
 
+            #if $a.is_structure or $a.is_dictionary
+${indent}msg = String.format("$a.name = '%s'", ${a.name}.toString());
+            #else
+                #set $f = $GenAndroid.printf_dictionary[$a.arg_type]
 ${indent}msg = String.format("$a.name = '$f'", $a.name);
+            #end if
 ${indent}sendUiMessage(msg);
         #end for
     #end if
+#end def
+#####################
+## Define the containers (structures and dictionaries) in this interface.
+#####################
+#@staticmethod
+#def define_containers($interface, $is_runnable, $indent_count)
+    #set $indent = $indent_count * ' '
+    #set $structures = $interface.get_structs_in_struct_order()
+    #for $s in $structures
+        #if $s.signature[0] == '('
+${indent}public class $s.name {
+        #else
+${indent}public class $s.name /*dictionary*/ {
+        #end if
+        #set $members = $GenAndroid.make_members_from_signature($interface, $s.signature)
+        #set $position = 0
+        #for $m in $members
+            #if $m[0] == "String"
+                #set $init = ' = ""'
+            #else
+                #set $init = ''
+            #end if
+${indent}    @Position($position) public $m[0] $m[1]$init;
+            #set $position += 1
+        #end for
+        #if $is_runnable
+
+${indent}    $GenAndroid.comment_start_runnable
+${indent}    /*
+${indent}     * These methods are only used to show changes in the data being communicated.
+${indent}     * They are not required for production code.
+${indent}     */
+${indent}    public void Increment()
+${indent}    {
+            #set $found_one = False
+            #set $incrementable = ["int", "short", "long", "byte", "double"]
+            #for $m in $members
+                #if $m[0] in $incrementable
+                    #set $found_one = True
+${indent}        $m[1]++;
+                #elif $m[0] == "boolean"
+                    #set $found_one = True
+${indent}        $m[1] = !$m[1];
+                #end if
+            #end for
+            #if not $found_one
+${indent}        /*
+${indent}         * TODO: Make a change in '$s.name'.
+${indent}         * Structures without any easily incremented members are not fully
+${indent}         * supported in "Runnable" mode by the code generator at this time.
+${indent}         */
+            #end if
+${indent}    }
+
+${indent}    /*
+${indent}     * Just a simple implementation to show the type.
+${indent}     */
+${indent}    public String toString()
+${indent}    {
+${indent}        return "Instance of '$s.name'.";
+${indent}    }
+${indent}    $GenAndroid.comment_end_runnable
+        #end if
+${indent}}
+    #end for
 #end def

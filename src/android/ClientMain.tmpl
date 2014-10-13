@@ -604,7 +604,10 @@ $ClientMain.get_set_properties($o, $i, 16)#slurp
             #end if
             #set $return_type = $GenAndroid.get_java_return_type($m)
             #set $return_arg = $GenAndroid.get_return_arg($m)
-$cc.CommonCheetah.increment_args($object, $interface, $m, $m.input_arg_info.args, $indent_count)#slurp
+            ## This #if is only for whitespace control. increment_args() could always be called without functional issues.
+            #if $m.input_arg_info.args
+$cc.CommonCheetah.increment_args($object, $interface, $m, $m.input_arg_info.args, $indent_count)
+            #end if
 ${indent}try {
 $ClientMain.call_method($object, $interface, $m, $indent_count + 4)#slurp
 ${indent}} catch (BusException be) {
@@ -632,10 +635,15 @@ ${indent}}
 ${indent}int what = UiHandlerMessageIds.MESSAGE_${obj_name}_${interface.interface_name}.ordinal();
     #if $return_arg
 ${indent}$return_type returnValue = ${method_instance}($cc.CommonCheetah.add_args($object, $interface, $method));
-        #set $f = $GenAndroid.printf_dictionary[$return_arg.arg_type]
+        #if $return_arg.is_structure or $return_arg.is_dictionary
+
+${indent}sendUiMessage(what, returnValue.toString());
+        #else
+            #set $f = $GenAndroid.printf_dictionary[$return_arg.arg_type]
 ${indent}String message = String.format("${method_instance}() returned '$f'.", returnValue);
 
 ${indent}sendUiMessage(what, message);
+        #end if
     #else
 ${indent}${method_instance}($cc.CommonCheetah.add_args($object, $interface, $method));
 ${indent}sendUiMessage(what, "Successfully called ${method_instance}()");
@@ -681,12 +689,17 @@ ${indent}try {
                 #set $instance_name = $cc.CommonCheetah.make_persistent_instance_name($object, $interface, $p)
                 #set $return_type = $GenAndroid.get_java_return_type($p)
                 #set $a = $p.output_arg_info.args[0]
-                #set $f = $GenAndroid.printf_dictionary[$a.arg_type]
 ${indent}    int what = UiHandlerMessageIds.MESSAGE_${obj_name}_${interface.interface_name}.ordinal();
 ${indent}    $return_type $a.name = ${iname}.get${p.name}();
-${indent}    String message = String.format("${iname}.get${p.name}() returned '$f'.", $a.name);
+                #if $a.is_structure or $a.is_dictionary
+
+${indent}    sendUiMessage(what, returnValue.toString());
+                #else
+                    #set $f = $GenAndroid.printf_dictionary[$a.arg_type]
+${indent}    String message = String.format("${instance_name}() returned '$f'.", out_value);
 
 ${indent}    sendUiMessage(what, message);
+                #end if
 ${indent}} catch (BusException be) {
 ${indent}    status = doExceptionReport("${iname}.get${p.name}", be);
 ${indent}}

@@ -72,7 +72,7 @@ $cc.CommonCheetah.increment_args(None, $interface, $m, $m.output_arg_info.args, 
         /* TODO: Implement the method. */
             #if $return_type != "void"
                 #set $arg = $GenAndroid.get_return_arg($m)
-        $return_type returnValue$GenAndroid.get_initialization($arg, 12);
+        $return_type returnValue$GenAndroid.get_initialization($arg, $m);
         return returnValue;
             #end if
         #end if

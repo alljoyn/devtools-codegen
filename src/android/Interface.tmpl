@@ -22,14 +22,17 @@ package $interface.get_path();
 
 import org.alljoyn.bus.BusException;
 import org.alljoyn.bus.annotation.BusInterface;
-#if len($interface.methods) > 0
+#if $interface.methods
 import org.alljoyn.bus.annotation.BusMethod;
 #end if
-#if len($interface.properties) > 0
+#if $interface.properties
 import org.alljoyn.bus.annotation.BusProperty;
 #end if
-#if len($interface.signals) > 0
+#if $interface.signals
 import org.alljoyn.bus.annotation.BusSignal;
+#end if
+#if $interface.structures or $interface.dictionaries
+import org.alljoyn.bus.annotation.Position;
 #end if
 
 /*
@@ -42,11 +45,12 @@ import org.alljoyn.bus.annotation.BusSignal;
  */
 @BusInterface(name = "$interface.interface_full_name")
 public interface $interface.interface_name {
-    #if len($interface.methods) > 0
+$cc.CommonCheetah.define_containers($interface, $command_line.runnable, 4)#slurp
+    #if $interface.methods
 
     /*
      * The BusMethod annotation signifies that this function should be used as part of the AllJoyn
-     * interface.  The runtime is smart enough to figure out what the input and output of the
+     * interface. The runtime is smart enough to figure out what the input and output of the
      * method is based on the input/output arguments of the method.
      *
      * All methods that use the BusMethod annotation can throw a BusException and should indicate
@@ -54,11 +58,12 @@ public interface $interface.interface_name {
      */
         #for $m in $interface.methods
             #set $arg_info = $m.input_arg_info
-    @BusMethod (name = "$m.name")
-    $GenAndroid.get_java_return_type(m) $common.make_camel_case($m.name, None)($arg_info.arg_declaration) throws BusException;
+            #set $annotation = $Interface.make_bus_annotation("BusMethod", $m)
+    $annotation
+    $GenAndroid.get_java_return_type($m) $common.make_camel_case($m.name, None)($arg_info.arg_declaration) throws BusException;
         #end for
     #end if
-    #if len($interface.properties) > 0
+    #if $interface.properties
 
     /*
      * The BusProperty annotation signifies that this property should be used as part of the
@@ -71,16 +76,18 @@ public interface $interface.interface_name {
         #for $p in $interface.properties
             #set $arg_info = $p.input_arg_info
             #if $p.is_writeable()
-    @BusProperty
+
+                #set $annotation = $Interface.make_bus_annotation("BusProperty", $p)
+    $annotation
     void set${p.name}($arg_info.arg_declaration) throws BusException;
             #end if
             #if $p.is_readable()
-    @BusProperty
-    $GenAndroid.get_java_return_type(p) get${p.name}() throws BusException;
+    $annotation
+    $GenAndroid.get_java_return_type($p) get${p.name}() throws BusException;
             #end if
         #end for
     #end if
-    #if len($interface.signals) > 0
+    #if $interface.signals
 
     /*
      * The BusSignal annotation signifies that this signal should be used as part of the
@@ -91,8 +98,28 @@ public interface $interface.interface_name {
      */
         #for s in $interface.signals
             #set $arg_info = $s.output_arg_info
-    @BusSignal (name = "$s.name")
+            #set $annotation = $Interface.make_bus_annotation("BusSignal", $s)
+    $annotation
     void $common.make_camel_case($s.name, None)($arg_info.arg_declaration) throws BusException;
         #end for
     #end if
 }
+## Make the annotation string for 'BusSignal', 'BusProperty', or 'BusMethod'.
+#@staticmethod
+#def make_bus_annotation($annotation_name, $comp)
+    #set $arg_sig = $common.get_arg_signature($comp, "in")
+    #if len($arg_sig) > 0
+        #set $signature = ', signature = "{0}"'.format($arg_sig)
+    #else
+        #set $signature = ""
+    #end if
+    #set $reply_signature = ""
+## Properties do not have a reply signature annotation.
+    #if $annotation_name != "BusProperty"
+        #set $reply_sig = $common.get_arg_signature($comp, "out")
+        #if len($reply_sig) > 0
+            #set $reply_signature = ', replySignature = "{0}"'.format($reply_sig)
+        #end if
+    #end if
+    #return '@{0} (name = "{1}"{2}{3})'.format($annotation_name, $comp.name, $signature, $reply_signature)
+#end def

@@ -20,6 +20,7 @@ import glob
 from .. import CheetahCompileExcept as cce
 
 try:
+    # These are all Android specific files built from templates (.tmpl).
     from AndroidLayoutMain import AndroidLayoutMain
     from AndroidManifest import AndroidManifest
     from AndroidStrings import AndroidStrings
@@ -39,9 +40,11 @@ except ImportError:
     # The exception message must be nothing but the file name.
     raise cce.CheetahCompilationException(__file__)
 
+# These are native Python files
 from .. import config
 from .. import service
 from .. import argdef
+from .. import interface as iface
 
 def generate_code(command_line, codegen_service):
     """Generate the AllJoyn Android Java code from the previously parsed XML."""
@@ -61,9 +64,9 @@ def generate_code(command_line, codegen_service):
 class ArgInfo:
     """This is a container class for argument data."""
 
-    def __init__(self, args, direction):
+    def __init__(self, args, direction, interface = None, name = None):
         """Initialize a new instance of an ArgInfo class."""
-        self.args = []
+        arg_list = []
 
         self.arg_declaration = self.__get_arg_declarations(args, direction)
 
@@ -71,7 +74,19 @@ class ArgInfo:
             if a.direction != direction:
                 continue
 
-            self.args.append(a)
+            arg_list.append(a)
+
+        if direction == "out" and name and len(arg_list) > 1:
+            name += iface.return_suffix
+            assert(name in interface.structures)
+            struct = interface.structures[name]
+            for key in sorted(interface.structures):
+                s = interface.structures[key]
+            output_arg = argdef.ArgDef(None, name, struct.signature, "out")
+            output_arg.interface = interface
+            self.args = [output_arg]
+        else:
+            self.args = arg_list
 
         return
 
@@ -160,12 +175,11 @@ class ArgInfo:
         return return_value
 
 def get_return_arg(member):
-    """Get the return argument/structure for this member. TODO: Implement multiple outputs."""
+    """Get the return argument/structure for this member."""
     outputs = member.output_arg_info.args
-
-    # TODO: Support multiple outputs.
+    # This should be true even if there are multiple outputs.
+    # The outputs are all combined into a single struture.
     assert(len(outputs) <= 1)
-
     arg = None
 
     if len(outputs) > 0:
@@ -174,15 +188,29 @@ def get_return_arg(member):
     return arg
 
 def get_java_return_type(member):
-    """Get the return type for this member. TODO: Implement multiple outputs."""
+    """Get the return type for this member."""
     arg = get_return_arg(member)
 
     if arg is None:
-        return_value = "void"
-    else:
-        return_value = type_dictionary[arg.arg_type]
+        return "void"
 
-    return return_value
+    signature = arg.arg_type
+    interface = arg.interface
+
+    return_struct_key = member.name + iface.return_suffix
+    t = None
+
+    if signature in type_dictionary:
+        t = type_dictionary[signature]
+    elif return_struct_key in interface.structures:
+        s = interface.structures[return_struct_key]
+        t = __make_structure_type_name(interface, s)
+    elif signature in interface.dictionaries:
+        assert(0) # TODO: Dictionaries need to be implemented. Probably similar to below.
+        # d = interface.dictionaries[signature]
+        # t = d.name
+
+    return t
 
 # This is a comment string used at the start of all "runnable" code.
 comment_start_runnable ="""\
@@ -228,28 +256,34 @@ type_dictionary = {'b': "boolean",
                    'y': "byte",
                   }
 
-def get_base_java_type(interface, signature):
+def get_base_java_type(interface, signature, member = None):
     """Get the non-array type of this signature"""
-    return get_java_type(interface, signature.lstrip('a'))
+    return get_java_type(interface, signature.lstrip('a'), member)
 
-def get_java_type(interface, signature):
-    """Get the Java type corresponding to this signature or None if not found."""
+def get_java_type(interface, signature, member = None):
+    """Get the Java type corresponding to this AllJoyn signature. Or if not found from the signature
+    see if it is a return structure which has a signature based upon the member name."""
     t = None
 
     if signature in type_dictionary:
         t = type_dictionary[signature]
     elif signature in interface.structures:
-        s = interface.structures[signature]
-        t = "class {0}".format(s.name)
+        t = __make_structure_type_name(interface, interface.structures[signature])
     elif signature in interface.dictionaries:
-        d = interface.dictionaries[signature]
-        t = "struct {0}".format(d.name)
+        assert(0) # TODO: Implement this. It might look like the following:
+        # t = __make_structure_type_name(interface, interface.dictionaries[signature])
+    elif member:
+        signature = member.name + iface.return_suffix
+        assert(signature in interface.structures)
+        t = __make_structure_type_name(interface, interface.structures[signature])
+
+    assert(t)
 
     return t
 
-def get_initialization(arg, indent_count):
+def get_initialization(arg, member = None):
     """Get the initialization string to use for this argument."""
-    t = get_base_java_type(arg.interface, arg.arg_type)
+    t = get_base_java_type(arg.interface, arg.arg_type, member)
 
     if arg.is_array():
         if t == "String":
@@ -269,8 +303,8 @@ def get_initialization(arg, indent_count):
             init = " = 0.0"
         elif t == "String":
             init = ' = ""'
-        elif arg.is_structure():
-            assert(0) # TODO: Implement this.
+        elif arg.is_structure() or arg.is_dictionary():
+            init = " = new {0}()".format(t)
         else:
             init = " = 0"
 
@@ -294,7 +328,7 @@ def interface_needs_persistent_data(interface, is_client):
     """Returns True if this Interface needs persisent data for Runnable code.
 
     The test returns true if any method has arguments which match the direction
-    or it has a writable property. Or if direction is "out" then if there are 
+    or it has a writable property. Or if direction is "out" then if there are
     any signals with arguments."""
 
     # The server must have persistent data for signal arguments.
@@ -325,6 +359,41 @@ def interface_needs_persistent_data(interface, is_client):
 def get_well_known_name_path():
     configuration = config.Config()
     return __get_well_known_name_path(configuration.command_line)
+
+def make_members_from_signature(interface, signature):
+    """Return the member types and names from the structure signature."""
+    return_value = []
+
+    member_num = 0
+    assert(signature[0] == '(' or signature[0] == '{')
+    index = 1
+
+    while index < len(signature) - 1:
+        indirections = argdef.get_indirection_level(signature, index)
+        pointers = "*" * indirections
+
+        index += indirections
+
+        end_index = argdef.find_end_of_type(signature, index)
+        sig_type = signature[index:end_index]
+        java_type = get_java_type(interface, sig_type)
+
+        index = end_index
+
+        if len(pointers) > 0:
+            if sig_type == 'b':
+                java_type = "boolean"
+            java_type = get_java_type(interface, 'a')
+
+        m = [java_type, "member{0}".format(member_num)]
+
+        return_value.append(m)
+        member_num += 1
+
+    return return_value
+
+def __make_structure_type_name(interface, structure):
+    return "{0}.{1}".format(interface.interface_name, structure.name)
 
 def __get_well_known_name_path(command_line):
     """Get the subdirectory the Android user inteface should reside in."""
@@ -436,9 +505,10 @@ def __copy_subdirectory(dest_path):
     """Copy a directory, in a sub dir from this file, to the dest_path directory."""
 
     # copytree() requires a non-existent destination.
-    # So remove the 'name' directory if it exists.
+    # If the path exists assume the contents are correct.
     if os.path.exists(dest_path):
-        shutil.rmtree(dest_path, True)
+        print("Path '{0}' exists and will not be updated.".format(dest_path))
+        return
 
     # The source subdirectory is a subdirectory of this file.
     source_subdir = os.path.basename(dest_path)
@@ -569,7 +639,7 @@ def __make_interface_arg_info(interface):
     if interface.has_arg_info == False:
         for m in interface.methods:
             m.input_arg_info = ArgInfo(m.args, "in")
-            m.output_arg_info = ArgInfo(m.args, "out")
+            m.output_arg_info = ArgInfo(m.args, "out", interface, m.name)
 
         for s in interface.signals:
             s.input_arg_info = None
@@ -577,7 +647,7 @@ def __make_interface_arg_info(interface):
 
         for p in interface.properties:
             p.input_arg_info = ArgInfo(p.args, "in")
-            p.output_arg_info = ArgInfo(p.args, "out")
+            p.output_arg_info = ArgInfo(p.args, "out", interface, p.name)
 
         interface.has_arg_info = True
 

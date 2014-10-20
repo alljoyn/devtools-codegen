@@ -17,11 +17,13 @@ import parseajxml
 import config
 import validate
 import service
+import common
 import CheetahCompileExcept as cce
 
 try:
     # All modules that contain Cheetah templates must be placed within this try.
     import tl.GenTL
+    import android.GenAndroid
     import ddcpp.GenCPP
 except cce.CheetahCompilationException:
     print("Unable to import compiled template modules.")
@@ -38,8 +40,10 @@ def main():
     try:
         configuration = config.Config()
         configuration.register_target('tl', tl.GenTL.hooks())
+        configuration.register_target('android', android.GenAndroid.hooks())
         configuration.register_target('ddcpp', ddcpp.GenCPP.hooks())
         configuration.parse()
+        common.target_language = configuration.command_line.target_language
         report_config(configuration)
         parser = parseajxml.ParseAjXml(configuration.command_line.xml_input_file)
         service = parser.parse(configuration.command_line)

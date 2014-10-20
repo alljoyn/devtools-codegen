@@ -22,8 +22,8 @@
  * Generated consumer code for AllSeen DataDriven API.
  */
 
-\#ifndef ${interface.get_full_coded_namespace_name.upper()}_${interface.cons_class.upper()}_H_
-\#define ${interface.get_full_coded_namespace_name.upper()}_${interface.cons_class.upper()}_H_
+\#ifndef ${interface.get_full_coded_path.upper()}_${interface.cons_class.upper()}_H_
+\#define ${interface.get_full_coded_path.upper()}_${interface.cons_class.upper()}_H_
 
 \#include <memory>
 \#include <qcc/String.h>
@@ -32,7 +32,7 @@
 
 \#include "${interface.intf_class}.h"
 
-namespace gen { namespace ${interface.get_full_coded_namespace_name} {
+namespace gen { namespace ${interface.get_full_coded_path} {
 
 /**
  * Proxy interface class for the ${interface.interface_full_name} interface.
@@ -48,7 +48,7 @@ public:
     /**
      * Type definition for the associated type description.
      */
-    typedef ::gen::${interface.get_full_coded_namespace_name}::${interface.intf_class} Type;
+    typedef ::gen::${interface.get_full_coded_path}::${interface.intf_class} Type;
 
     // Properties
 
@@ -167,4 +167,4 @@ private:
 
 }}
 
-\#endif // ${interface.get_full_coded_namespace_name.upper()}_${interface.cons_class.upper()}_H_
+\#endif // ${interface.get_full_coded_path.upper()}_${interface.cons_class.upper()}_H_

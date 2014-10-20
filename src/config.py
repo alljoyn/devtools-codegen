@@ -1,4 +1,4 @@
-# Copyright (c) 2013, 2014 AllSeen Alliance. All rights reserved.
+# Copyright (c) 2013-2014 AllSeen Alliance. All rights reserved.
 #
 # Permission to use, copy, modify, and/or distribute this software for any
 # purpose with or without fee is hereby granted, provided that the above
@@ -101,7 +101,8 @@ class Config:
         parser.add_argument("-R", "--runnable", help=help_text,
                             action="store_true")
 
-        help_text = """The target language. 'c' is for the AllJoyn 'C' binding
+        help_text = """The target language. 'android' is for Java code on
+            the Android platform. 'c' is for the AllJoyn 'C' binding
             to AllJoyn Standard Client (not implemented). 'cpp' is C++ code
             for AllJoyn Standard Client (not implemented). 'o' is for
             Objective C for Apple Targets (not implemented). 'tl' is C code

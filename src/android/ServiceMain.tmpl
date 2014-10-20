@@ -1,0 +1,688 @@
+###############################################################################
+## Copyright (c) 2014 AllSeen Alliance. All rights reserved.
+##
+## Permission to use, copy, modify, and/or distribute this software for any
+## purpose with or without fee is hereby granted, provided that the above
+## copyright notice and this permission notice appear in all copies.
+##
+## THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES
+## WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
+## MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR
+## ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
+## WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
+## ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
+## OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
+###############################################################################
+#import GenAndroid
+#import CommonCheetah as cc
+#from .. import common
+
+/* Source: "$command_line.xml_input_file" */
+
+package $command_line.well_known_name;
+
+#if $service.has_signals()
+/* Java imports. */
+import java.util.concurrent.ConcurrentSkipListSet;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
+import java.util.Comparator;
+import java.util.Iterator;
+
+#end if
+/* Android imports. */
+import android.app.Activity;
+import android.os.Bundle;
+import android.os.Handler;
+import android.os.HandlerThread;
+import android.os.Looper;
+import android.os.Message;
+import android.util.Log;
+import android.view.Menu;
+import android.view.MenuInflater;
+import android.view.MenuItem;
+import android.widget.ArrayAdapter;
+import android.widget.ListView;
+import android.widget.Toast;
+
+/* AllJoyn imports. */
+import org.alljoyn.bus.BusAttachment;
+#if $service.has_signals()
+import org.alljoyn.bus.BusException;
+import org.alljoyn.bus.BusObject;
+import org.alljoyn.bus.SessionListener;
+import org.alljoyn.bus.SignalEmitter;
+#end if
+import org.alljoyn.bus.BusListener;
+import org.alljoyn.bus.Mutable;
+import org.alljoyn.bus.SessionOpts;
+import org.alljoyn.bus.SessionPortListener;
+import org.alljoyn.bus.Status;
+
+/* Service imports. */
+#for $key in $sorted($service.interfaces)
+    #set $interface = $service.interfaces[$key]
+import ${interface.interface_full_name}Impl;
+#if $interface.signals
+import ${interface.interface_full_name};
+#end if
+#end for
+
+/*
+ * The ServiceMain class is the basis of the application.
+ * The subclass BusHandler deals with the AllJoyn interactions and communicates back
+ * to ServiceMain and the UI via ServiceMain::mMessageHandler.
+ */
+public class ServiceMain extends Activity {
+    /* Load the native alljoyn_java library. */
+    static {
+        System.loadLibrary("alljoyn_java");
+    }
+
+    /* These are the messages sent to the BusHandler from the UI. */
+    public enum BusStateIds {
+        CONNECT,
+        DISCONNECT,
+    }
+
+    /* These are the messages sent to the UI from the BusHandler. */
+    private enum MessageIds {
+        MESSAGE_POST_TOAST,
+#set $object_list = $service.get_objects()
+#for $o in $object_list
+    #set $obj_name = $o.get_full_coded_name(True)
+    #for $i in $o.interfaces
+        MESSAGE_${obj_name}_$i.interface_name,
+    #end for
+#end for
+    }
+
+#if $command_line.runnable and $service.has_signals()
+    private class SessionEmitter {
+        private int mSessionId = 0;
+        private SignalEmitter mEmitter = null;
+
+        private void setEmitter(SignalEmitter emitter) {
+            mEmitter = emitter;
+        }
+
+        private void setSessionId(int sessionId) {
+            mSessionId = sessionId;
+        }
+
+        SessionEmitter(int sessionId, BusObject busObject) {
+            SignalEmitter emitter = new SignalEmitter(busObject, sessionId, SignalEmitter.GlobalBroadcast.On);
+
+            setEmitter(emitter);
+            setSessionId(sessionId);
+        }
+
+        public int getSessionId() {
+            return mSessionId;
+        }
+
+        public SignalEmitter getEmitter() {
+            return mEmitter;
+        }
+
+    }
+
+    private class SessionEmitterComparator implements Comparator<Object> {
+        @Override
+        public int compare(Object aObj, Object bObj) {
+            int returnValue = 0;
+            SessionEmitter a = (SessionEmitter)aObj;
+            SessionEmitter b = (SessionEmitter)bObj;
+            int aInt = a.getSessionId();
+            int bInt = b.getSessionId();
+
+            if (aInt == bInt) {
+                aInt = a.getEmitter().hashCode();
+                bInt = b.getEmitter().hashCode();
+            }
+
+            if (aInt > bInt) {
+                returnValue = 1;
+            } else if (aInt < bInt) {
+                returnValue = -1;
+            }
+
+            return returnValue;
+        }
+    }
+
+    private ConcurrentSkipListSet<SessionEmitter> mSessionList =
+                new ConcurrentSkipListSet<SessionEmitter>(new SessionEmitterComparator());
+
+#end if
+#set $object_list = $service.get_objects()
+#for $o in $object_list
+    #set $obj_name = $o.get_full_coded_name(True)
+    #for $i in $o.interfaces
+    private ${i.interface_name}Impl m${obj_name}_$i.interface_name = null;
+    #end for
+#end for
+
+    private static final String TAG = "ServiceMain";
+
+    private ArrayAdapter<String> mListViewArrayAdapter;
+    private ListView mListView;
+
+    /* The handler is very simple. It just sends the string to the user. */
+    private Handler mMessageHandler = new Handler() {
+            @Override
+            public void handleMessage(Message msg) {
+                String msgIn = (String) msg.obj;
+
+                if (msg.what == MessageIds.MESSAGE_POST_TOAST.ordinal()) {
+                    Toast.makeText(getApplicationContext(), msgIn, Toast.LENGTH_LONG).show();
+                } else {
+                    String sendMsg = MessageIds.values()[msg.what].name() + ": " + msgIn;
+
+                    mListViewArrayAdapter.add(sendMsg);
+                }
+            }
+        };
+
+    /* Handler used to make calls to AllJoyn methods. See onCreate(). */
+    private BusHandler mBusHandler;
+
+    /*
+     * (non-Javadoc)
+     * @see android.app.Activity#onCreate(android.os.Bundle)
+     * Upon the creation of the application we set up the following:
+     *      1) A simple UI.
+     *      2) A separate thread for AllJoyn interaction.
+     *      3) An instance of the interfaces in the AllJoyn objects (node in .XML terms).
+     *      4) An instance, mBusHandler, of the BusHandler for AllJoyn.
+     *
+     * Then we send a message to mBusHandler, in the other thread, to do the connect and start the
+     * state machine.
+     */
+    @Override
+    public void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        setContentView(R.layout.main);
+
+        mListViewArrayAdapter = new ArrayAdapter<String>(this, R.layout.message);
+        mListView = (ListView) findViewById(R.id.ListView);
+        mListView.setAdapter(mListViewArrayAdapter);
+
+        /* Make all AllJoyn calls through a separate handler thread to prevent blocking the UI. */
+        HandlerThread busThread = new HandlerThread("BusHandler");
+        busThread.start();
+        mBusHandler = new BusHandler(busThread.getLooper());
+
+        /* Start our services. */
+#set $object_list = $service.get_objects()
+#for $o in $object_list
+    #set $obj_name = $o.get_full_coded_name(True)
+    #for $i in $o.interfaces
+        m${obj_name}_$i.interface_name = new ${i.interface_name}Impl(mMessageHandler, #slurp
+MessageIds.MESSAGE_${obj_name}_${i.interface_name}.ordinal());
+    #end for
+#end for
+
+        mBusHandler.sendEmptyMessage(BusStateIds.CONNECT.ordinal());
+    }
+
+    @Override
+    public void onResume() {
+        super.onResume();
+    }
+
+    @Override
+    public boolean onCreateOptionsMenu(Menu menu) {
+        MenuInflater inflater = getMenuInflater();
+        inflater.inflate(R.menu.mainmenu, menu);
+
+        return true;
+    }
+
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+        // Handle item selection
+        switch (item.getItemId()) {
+        case R.id.quit:
+            finish();
+            return true;
+        default:
+            return super.onOptionsItemSelected(item);
+        }
+    }
+
+    @Override
+    protected void onStop() {
+        super.onStop();
+
+        /* While the auto-accept handler can automatically de-register
+         * when the app goes in to the background or stops, it's a
+         * good idea to explicitly de-register here so the handler is
+         * in a known state if the application restarts.
+         */
+    }
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+
+        /* Disconnect to prevent any resource leaks. */
+        mBusHandler.sendEmptyMessage(BusStateIds.DISCONNECT.ordinal());
+    }
+
+    /*
+     * This class will handle all AllJoyn calls. It has two modes depending on how it is called.
+     * It is called with messages sent to the member method handleMessage().
+     * See onCreate(), which creates an instance of this class and starts the connect process.
+     * And see onDestroy(), which unregisters the bus objects and disconnects.
+     * The states are:
+     *      1) CONNECT--Connect to the bus and start the services.
+     *      2) DISCONNECT--Disconnect from the bus.
+     */
+    class BusHandler extends Handler {
+        /*
+         * Name used as the well-known name and the advertised name. This name must be a unique name
+         * both to the bus and to the network as a whole. The name uses reverse URL style of naming.
+         */
+        private static final String WELL_KNOWN_NAME = "$command_line.well_known_name";
+        private static final short CONTACT_PORT = 24;
+        private BusAttachment mBus = null;
+#if $command_line.runnable and $service.has_signals()
+        $GenAndroid.comment_start_runnable
+        private ScheduledExecutorService mSendSignalsTask = null;
+    #if $service.number_of_signals > 1
+        private int signalTurn = 0;
+    #end if
+        $GenAndroid.comment_end_runnable
+#end if
+
+        public BusHandler(Looper looper) {
+            super(looper);
+        }
+
+        @Override
+        public void handleMessage(Message msg) {
+            if (msg.what == BusStateIds.CONNECT.ordinal()) {
+                doConnect();
+            } else if (msg.what == BusStateIds.DISCONNECT.ordinal()) {
+                doDisconnect();
+            }
+        }
+
+        private void doConnect() {
+            initializeBus();
+
+            Status status;
+
+            status = registerBusObjects();
+
+            if (status != Status.OK) {
+                logStatus(String.format("registerBusObjects() failed."), status);
+                finish();
+                return;
+            }
+
+            status = bindSessionPortRequestWellKnownName();
+
+            if (status != Status.OK) {
+                logStatus(String.format("bindSessionPortRequestWellKnownName() failed."), status);
+                finish();
+                return;
+            }
+
+#if $command_line.runnable and $service.has_signals()
+            $GenAndroid.comment_start_runnable
+            startSignalsTask();
+            $GenAndroid.comment_end_runnable
+#end if
+        }
+
+#if $command_line.runnable and $service.has_signals()
+        $GenAndroid.comment_start_runnable
+        /*
+         * This schedules the task that sends the AllJoyn signal(s) every few
+         * seconds. In a real application the signals would probably would be
+         * driven by a data change event.
+         */
+        private void startSignalsTask() {
+            final TimeUnit units = TimeUnit.SECONDS;
+            final int startTime = 5;
+            final int periodTime = 5;
+
+            mSendSignalsTask = Executors.newScheduledThreadPool(1);
+
+            /* This schedules the task to run every 'periodTime' seconds starting after
+             * startTime seconds. */
+            mSendSignalsTask.scheduleAtFixedRate(new Runnable() {
+                public void run() {
+    #if $service.number_of_signals > 1
+                    final int numberOfSignals = $service.number_of_signals;
+
+                    try {
+                        for (SessionEmitter se : mSessionList) {
+                            sendSignals(se.getEmitter(), signalTurn);
+                        }
+                    } catch(Exception ex) {
+                        logException(String.format("sendSignals(%d) threw: ", signalTurn), ex);
+                    }
+
+                    if (++signalTurn >= numberOfSignals) {
+                        signalTurn = 0;
+                    }
+    #else
+                    try {
+                        for (SessionEmitter se : mSessionList) {
+                            sendSignal(se.getEmitter());
+                        }
+                    } catch(Exception ex) {
+                        logException("sendSignal() threw: ", ex);
+                    }
+    #end if
+                } // end of run()
+            }, startTime, periodTime, units);
+        }
+
+        /*
+         * This stops the task used to send AllJoyn signal(s).
+         */
+        private void stopSignalsTask() {
+            if (null != mSendSignalsTask) {
+                mSendSignalsTask.shutdown(); // Disable new tasks from being submitted.
+
+                try {
+                    // Wait a while for existing tasks to terminate
+                    boolean result = mSendSignalsTask.awaitTermination(2, TimeUnit.SECONDS);
+
+                    if (!result) {
+                        mSendSignalsTask.shutdownNow();
+                    }
+                } catch (InterruptedException ex) {
+                    logException("Exception when stopping signals task: ", ex);
+
+                    // (Re-)Cancel if current thread also interrupted.
+                    mSendSignalsTask.shutdownNow();
+
+                    // Preserve interrupt status.
+                    Thread.currentThread().interrupt();
+                }
+
+                mSendSignalsTask = null;
+            }
+        }
+        $GenAndroid.comment_end_runnable
+#end if
+
+        private void initializeBus() {
+            org.alljoyn.bus.alljoyn.DaemonInit.PrepareDaemon(getApplicationContext());
+            /*
+             * All communication through AllJoyn begins with a BusAttachment.
+             *
+             * A BusAttachment needs a name. The actual name is unimportant except for internal
+             * security. As a default we use the class name as the name.
+             *
+             * By default AllJoyn does not allow communication between devices (i.e. bus to bus
+             * communication).  The second argument must be set to Receive to allow
+             * communication between devices.
+             */
+            mBus = new BusAttachment(getPackageName(), BusAttachment.RemoteMessage.Receive);
+
+            /*
+             * Create a bus listener class
+             */
+            mBus.registerBusListener(new BusListener());
+        }
+
+        /*
+         * To make a service available to other AllJoyn peers, first register the BusObjects
+         * with the BusAttachment at a specific path.
+         */
+        private Status registerBusObjects() {
+            Status status = Status.OK;
+
+#set $object_list = $service.get_objects()
+#for $o in $object_list
+    #set $obj_name = $o.get_full_coded_name(True)
+    #for $i in $o.interfaces
+            status = mBus.registerBusObject(m${obj_name}_$i.interface_name, "$o.name");
+            logStatus("BusAttachment.registerBusObject(m${obj_name}_$i.interface_name)", status);
+
+        #if len($o.interfaces) > 1
+            if (status != Status.OK) {
+                return status;
+            }
+
+        #end if
+    #end for
+#end for
+            return status;
+        }
+
+        /*
+         * The next step in making a service available to other AllJoyn peers is to connect the
+         * BusAttachment to the bus with a well-known name.
+         */
+        private Status bindSessionPortRequestWellKnownName() {
+            Status status = mBus.connect();
+
+            logStatus("BusAttachment.connect()", status);
+
+            /* Create a new session listening on the contact port. */
+            Mutable.ShortValue contactPort = new Mutable.ShortValue(CONTACT_PORT);
+
+            SessionOpts sessionOpts = new SessionOpts();
+            sessionOpts.traffic = SessionOpts.TRAFFIC_MESSAGES;
+            sessionOpts.isMultipoint = false;
+            sessionOpts.proximity = SessionOpts.PROXIMITY_ANY;
+
+            /*
+             * If the Wi-Fi Direct transport is required explicitly include it in the
+             * advertisements like the following.
+             *
+             *     sessionOpts.transports = SessionOpts.TRANSPORT_ANY + SessionOpts.TRANSPORT_WFD;
+             *
+             * It may seem odd that ANY actually excludes Wi-Fi Direct, but there are topological
+             * and advertisement/discovery problems with WFD that make it problematic to always enable.
+             */
+            sessionOpts.transports = SessionOpts.TRANSPORT_ANY;
+
+            status = mBus.bindSessionPort(contactPort, sessionOpts, new SessionPortListener() {
+                @Override
+                public boolean acceptSessionJoiner(short sessionPort, String joiner, SessionOpts sessionOpts) {
+                    logStatus("Request to join session: " + joiner, Status.OK);
+
+                    if (sessionPort == CONTACT_PORT) {
+                        logStatus("Joined session: " + joiner, Status.OK);
+                        return true;
+                    } else {
+                        return false;
+                    }
+                }
+#if $command_line.runnable and $service.has_signals()
+
+                $GenAndroid.comment_start_runnable
+                @Override
+                public void sessionJoined(short sessionPort, int sessionId, String joiner) {
+                    // Add this session ID to our list so we can send them signals.
+                    $GenAndroid.comment_start_runnable
+                    SessionEmitter se;
+
+    #set $object_list = $service.get_objects()
+    #for $o in $object_list
+        #set $obj_name = $o.get_full_coded_name(True)
+        #for $i in $o.interfaces
+            #if $i.signals
+                    se = new SessionEmitter(sessionId, m${obj_name}_$i.interface_name);
+                    mSessionList.add(se);
+
+            #end if
+        #end for
+    #end for
+                    mBus.setSessionListener(sessionId, new SessionListener() {
+                        public void sessionLost(final int sessionId, int reason) {
+                            logStatus("BusListener.sessionLost(sessionId=" + sessionId + ",reason=" + reason + ")", Status.OK);
+
+                            // Remove this session ID so we won't attempt to send it signals.
+                            for (Iterator<SessionEmitter> it = mSessionList.iterator(); it.hasNext(); ) {
+                                if (it.next().getSessionId() == sessionId) {
+                                    it.remove();
+                                }
+                            }
+                        }
+                    });
+                }
+                $GenAndroid.comment_end_runnable
+#end if
+            });
+
+            logStatus(String.format("BusAttachment.bindSessionPort(%d, %s)",
+                      contactPort.value, sessionOpts.toString()), status);
+
+            if (status == Status.OK) {
+                status = requestWellKnownName(sessionOpts);
+            }
+
+            return status;
+        }
+
+        /*
+         * Request the well-known name from the bus.
+         */
+        private Status requestWellKnownName(SessionOpts sessionOpts) {
+            int flag = BusAttachment.ALLJOYN_REQUESTNAME_FLAG_REPLACE_EXISTING |
+                       BusAttachment.ALLJOYN_REQUESTNAME_FLAG_DO_NOT_QUEUE;
+            Status status = mBus.requestName(WELL_KNOWN_NAME, flag);
+
+            logStatus(String.format("BusAttachment.requestName(%s, 0x%08x)", WELL_KNOWN_NAME, flag), status);
+
+            if (status == Status.OK) {
+                /* If we successfully obtain a well-known name from the bus advertise the same
+                 * well-known name.
+                 */
+                status = mBus.advertiseName(WELL_KNOWN_NAME, sessionOpts.transports);
+                logStatus(String.format("BusAttachment.advertiseName(%s)", WELL_KNOWN_NAME), status);
+
+                if (status != Status.OK) {
+                    /* If we are unable to advertise the name, release the well-known name from the
+                     * local bus.
+                     */
+                    status = mBus.releaseName(WELL_KNOWN_NAME);
+                    logStatus(String.format("BusAttachment.releaseName(%s)", WELL_KNOWN_NAME), status);
+                }
+            }
+
+            return status;
+        }
+
+        /*
+         * It is important to unregister the BusObject before disconnecting from the bus.
+         * Failing to do so could result in a resource leak.
+         */
+        private void doDisconnect() {
+#if $command_line.runnable and $service.has_signals()
+            $GenAndroid.comment_start_runnable
+            stopSignalsTask();
+            $GenAndroid.comment_end_runnable
+#end if
+#set $object_list = $service.get_objects()
+#for $o in $object_list
+    #set $obj_name = $o.get_full_coded_name(True)
+    #for $i in $o.interfaces
+            mBus.unregisterBusObject(m${obj_name}_$i.interface_name);
+    #end for
+#end for
+
+            mBus.disconnect();
+            mBusHandler.getLooper().quit();
+        }
+    }
+
+    /*
+     * print the status or result to the Android log. If the result is the expected
+     * result only print it to the log. Otherwise print it to the error log and
+     * send a Toast to the users screen.
+     */
+    private void logStatus(String msg, Status status) {
+        String log = String.format("%s: %s", msg, status);
+        if (status == Status.OK) {
+            Log.i(TAG, log);
+        } else {
+            Message toastMsg = mMessageHandler.obtainMessage(MessageIds.MESSAGE_POST_TOAST.ordinal(), log);
+            mMessageHandler.sendMessage(toastMsg);
+            Log.e(TAG, log);
+        }
+    }
+#if $command_line.runnable and $service.has_signals()
+    $GenAndroid.comment_start_runnable
+
+    /*
+     * Send the exception message to the Android log and send a Toast to the users screen.
+     */
+    private void logException(String msg, Exception ex) {
+        String log = String.format("%s: %s", msg, ex);
+        Message toastMsg = mMessageHandler.obtainMessage(MessageIds.MESSAGE_POST_TOAST.ordinal(), log);
+        mMessageHandler.sendMessage(toastMsg);
+        Log.e(TAG, log, ex);
+    }
+
+$cc.CommonCheetah.define_persistent_servicemain_signal_args($service, 4)#slurp
+    /*
+     * This is just example code to demonstrating sending signals.
+     */
+    #if $service.number_of_signals > 1
+    private void sendSignals(SignalEmitter emitter, int signalTurn) {
+        #set $signalNumber = 0
+        #set $indent_count = 12
+        switch(signalTurn) {
+        #set $object_list = $service.get_objects()
+        #for $o in $object_list
+            #for $i in $o.interfaces
+                #for $s in $interface.signals
+                    #if $service.number_of_signals > 1
+        case $signalNumber:
+                        #set $signalNumber += 1
+                    #end if
+$ServiceMain.send_signal($o, $i, $s, $indent_count)#slurp
+            break;
+                #end for
+            #end for
+        #end for
+        }
+    }
+    #else
+    private void sendSignal(SignalEmitter emitter) {
+        #set $indent_count = 8
+        #set $object_list = $service.get_objects()
+        #for $o in $object_list
+            #for $i in $o.interfaces
+                #for $s in $interface.signals
+$ServiceMain.send_signal($o, $i, $s, $indent_count)#slurp
+                #end for
+            #end for
+        #end for
+    }
+    #end if
+    $GenAndroid.comment_end_runnable
+#end if
+}
+#####################
+## Call the function that sends this signal.
+#####################
+#@staticmethod
+#def send_signal($object, $interface, $signal, $indent_count)
+    #set $indent = $indent_count * " "
+    #set $interface_name = $interface.interface_name
+    #set $args = $signal.output_arg_info.args
+${indent}if (emitter != null) {
+$cc.CommonCheetah.increment_args($object, $interface, $signal, $args, $indent_count + 4)#slurp
+${indent}
+${indent}    try {
+${indent}        $interface_name i = emitter.getInterface(${interface_name}.class);
+
+${indent}        i.$common.make_camel_case($signal.name, None)($cc.CommonCheetah.add_args($object, $interface, $signal, "out"));
+${indent}    } catch (BusException ex) {
+${indent}        logException("Exception while sending signal ${interface_name}.${signal.name}()", ex);
+${indent}    }
+${indent}}
+#end def
+

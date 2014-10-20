@@ -1,4 +1,4 @@
-# Copyright (c) 2013 AllSeen Alliance. All rights reserved.
+# Copyright (c) 2013-2014 AllSeen Alliance. All rights reserved.
 #
 # Permission to use, copy, modify, and/or distribute this software for any
 # purpose with or without fee is hereby granted, provided that the above
@@ -24,6 +24,8 @@ import common
 import validate
 import container
 
+return_suffix = "_return_value"
+
 class Interface:
     """Contains the description of a complete AllJoyn interface."""
 
@@ -39,7 +41,8 @@ class Interface:
         self.parents = []
         self.structures = {}
         self.dictionaries = {}
-
+        self.has_arrays = False
+        self.has_arg_info = False
         self.declared_names = []
         self.declared_structs = {}
         self.declared_dicts = {}
@@ -127,17 +130,37 @@ class Interface:
         self.interface_name = s[-1]
         return
 
-    def get_full_coded_name(self):
+    def get_full_coded_name(self, make_camel_cased = False):
         """Return the full interface name for use as an indentifier in c/c++ code.
 
-        Example: "com.example.Demo" is returned as "com_example_Demo". """
+Example: "/com/example/Demo" is returned as "_com_example_Demo" if make_camel_cased is False.
+Example: "/com/example/Demo" is returned as "comExampleDemo" if make_camel_cased is True."""
+
+        if make_camel_cased:
+            return common.make_camel_case(self.interface_full_name, '.')
+
         return str.replace(self.interface_full_name, ".", "_")
 
-    def get_full_coded_namespace_name(self):
-        """Return the full namespace name of the interface name for use as an indentifier in c/c++ code.
+    def get_name_components(self):
+        """Return the interface full name as a list of components.
+
+        Example: "com.example.Demo" is returned as ["com", "example", "Demo"]."""
+
+        s = self.interface_full_name.split(".")
+        return s
+
+    def get_path(self, separator = "."):
+        """Return portion of the interface full name prior to the interface_name.
+
+        Example: "com.example.Demo" is returned as "com.example". """
+
+        return separator.join(self.get_name_components()[0:-1])
+
+    def get_full_coded_path(self):
+        """Return portion of the interface full name prior to the interface_name for use as an identifier in c/c++ code.
 
         Example: "com.example.Demo" is returned as "com_example". """
-        return '_'.join(self.interface_full_name.split('.')[:-1])
+        return self.get_path("_")
 
     def add_parent(self, aj_parent):
         """Add a new parent to this interface.
@@ -151,12 +174,11 @@ class Interface:
         """Return True if there is at least one property with read access."""
         return_value = False
 
-        if len(self.properties) > 0:
-            for p in self.properties:
-                if p.no_reply:
-                    continue
-                return_value = True
-                break
+        for p in self.properties:
+            if p.no_reply:
+                continue
+            return_value = True
+            break
 
         return return_value
 
@@ -270,13 +292,16 @@ class Interface:
 
     def __add_structs_dictionaries_arrays(self):
         for m in self.methods:
-            self.__find_add_structs_dictionaries(m.args)
+            self.__find_add_structs_dictionaries_arrays(m.args, m.name)
 
-        for m in self.signals:
-            self.__find_add_structs_dictionaries(m.args)
+        for s in self.signals:
+            self.__find_add_structs_dictionaries_arrays(s.args, None)
 
-        for m in self.properties:
-            self.__find_add_structs_dictionaries(m.args)
+        for p in self.properties:
+            if p.is_readable:
+                self.__find_add_structs_dictionaries_arrays(p.args, p.name)
+            else:
+                self.__find_add_structs_dictionaries_arrays(p.args, None)
 
         return
 
@@ -306,7 +331,18 @@ class Interface:
         self.__name_and_extract_to_list(arg, self.dictionaries)
         return
 
-    def __find_add_structs_dictionaries(self, args):
+    def __find_add_structs_dictionaries_arrays(self, args, multiple_return_name):
+        """This is called for each method, signal, and property. With Android as
+        the target readable properties and methods that have multiple return values
+        a structure must be created that contains all of the return values. Hence
+        if multiple_return_name is not None and the target is Android then find
+        such arguments and if necessary create the structure and add it to the
+        list of structures with that name."""
+
+        out_args = []
+
+        target_is_android = common.target_language == "android"
+
         if args is not None:
             for a in args:
                 a.interface = self
@@ -316,6 +352,20 @@ class Interface:
                     self.__name_and_extract_struct(a)
                 elif a.is_dictionary():
                     self.__name_and_extract_dictionary(a)
+                elif target_is_android and multiple_return_name and a.direction == "out":
+                    out_args.append(a)
+
+        if len(out_args) > 1:
+            signature = "("
+
+            for a in out_args:
+                signature += a.arg_type
+
+            signature += ")"
+
+            return_structure_name = multiple_return_name + return_suffix
+            c = container.Container(signature, return_structure_name)
+            self.structures[return_structure_name] = c
 
         return
 
@@ -446,17 +496,17 @@ class Interface:
         f = "Name: {0}\nFull: {1}"
         return_value = f.format(self.interface_name, self.interface_full_name)
 
-        if len(self.properties) > 0:
+        if self.properties:
             return_value = "{0}\nProperties:".format(return_value)
             for p in self.properties :
                 return_value = "{0}\n{1}".format(return_value, p)
 
-        if len(self.methods) > 0:
+        if self.methods:
             return_value = "{0}\nMethods:".format(return_value)
             for m in self.methods :
                 return_value = "{0}\n{1}".format(return_value, m)
 
-        if len(self.signals) > 0:
+        if self.signals:
             return_value = "{0}\nSignals:".format(return_value)
             for s in self.signals :
                 return_value = "{0}\n{1}".format(return_value, s)

@@ -23,8 +23,8 @@
  * Generated type description and marshalling code for AllSeen DataDriven API.
  */
 
-\#ifndef ${interface.get_full_coded_namespace_name.upper()}_${interface.intf_class.upper()}_H_
-\#define ${interface.get_full_coded_namespace_name.upper()}_${interface.intf_class.upper()}_H_
+\#ifndef ${interface.get_full_coded_path.upper()}_${interface.intf_class.upper()}_H_
+\#define ${interface.get_full_coded_path.upper()}_${interface.intf_class.upper()}_H_
 
 ## TODO make some includes optional depending on data model
 \#include <map>
@@ -36,7 +36,7 @@
 \#include <alljoyn/InterfaceDescription.h>
 \#include <datadriven/datadriven.h>
 
-namespace gen { namespace ${interface.get_full_coded_namespace_name} {
+namespace gen { namespace ${interface.get_full_coded_path} {
 
 /**
  * Type description singleton class for the ${interface.interface_full_name} interface.
@@ -112,15 +112,15 @@ namespace datadriven {
 /**
  * \internal Marshaler for ${container.name} structure.
  */
-QStatus Marshal(ajn::MsgArg& msgarg, const ::gen::${interface.get_full_coded_namespace_name}::${interface.intf_class}::${container.name}& data);
+QStatus Marshal(ajn::MsgArg& msgarg, const ::gen::${interface.get_full_coded_path}::${interface.intf_class}::${container.name}& data);
 
 /**
  * \internal Unmarshaler for ${container.name} structure.
  */
-QStatus Unmarshal(::gen::${interface.get_full_coded_namespace_name}::${interface.intf_class}::${container.name}& data, const ajn::MsgArg& msgarg);
+QStatus Unmarshal(::gen::${interface.get_full_coded_path}::${interface.intf_class}::${container.name}& data, const ajn::MsgArg& msgarg);
     #end if
 #end for
 
 }
 
-\#endif // ${interface.get_full_coded_namespace_name.upper()}_${interface.intf_class.upper()}_H_
+\#endif // ${interface.get_full_coded_path.upper()}_${interface.intf_class.upper()}_H_

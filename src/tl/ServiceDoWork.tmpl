@@ -83,6 +83,7 @@ void ServiceAppDoWork(void* context)
                 #end if
                 #set $complete_name = $GenTL.get_complete_name($o, $interface, $c)
     if ($component == s_turn) {
+                #set $free_list = []
                 #if $c.output_arg_info is not None
                     #set $output_args = $c.output_arg_info.args
                 #else
@@ -93,7 +94,7 @@ $cc.CommonCheetah.define_static_args($output_args, 8)#slurp
 
         /* Define the output args. */
                 #end if
-$cc.CommonCheetah.define_arguments($output_args, 8)
+$cc.CommonCheetah.define_arguments($output_args, 8, $free_list)
         AJ_Status status;
         size_t sessionIndex;
                 #set $number_of_arrays = $c.max_input_output_arrays()
@@ -134,6 +135,13 @@ $cc.CommonCheetah.initialize_args($output_args, $complete_name, 8)#slurp
                 }
             }
         }
+                #if len(free_list) > 0
+
+                    #for $f in $free_list
+        AJ_Free((void*)$f);
+        $f = NULL;
+                    #end for
+                #end if
     }
                 #set $component += 1
 

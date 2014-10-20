@@ -58,17 +58,17 @@
     #set $indent = $indent_count * " "
 ${indent}if (AJ_OK != status) {
     #if $runable
-    ${indent}$GenTL.comment_start_runnable
-    ${indent}AJ_InfoPrintf(("${func_name}() returned status 0x%x (%s).\n", status, AJ_StatusText(status)));
-    ${indent}$GenTL.comment_end_runnable
+${indent}    $GenTL.comment_start_runnable
+${indent}    AJ_InfoPrintf(("${func_name}() returned status 0x%x (%s).\n", status, AJ_StatusText(status)));
+${indent}    $GenTL.comment_end_runnable
     #else
-    ${indent}$GenTL.comment_handle_error
+${indent}    $GenTL.comment_handle_error
     #end if
     #for $f in $free_list
-    ${indent}free((void*)$f);
+    ${indent}AJ_Free((void*)$f);
     #end for
 
-    ${indent}return status;
+${indent}    return status;
 ${indent}}
 #end def
 #####################
@@ -178,8 +178,6 @@ $CommonCheetah.define_static_structure_variants($args, $indent_count)#slurp
         #set $t = $GenTL.get_base_c_type($a)
         #set $ptrs = $a.get_indirection_level() * "*"
         #if $t == "char*"
-${indent}char stringBuffer${a.name}[128];
-${indent}const size_t sizeof${a.name} = ArraySize(stringBuffer$a.name);
 ${indent}static int32_t s_helloNumber$a.name = 0;
         #end if
         #if $a.arg_type == 'v'
@@ -211,7 +209,7 @@ ${indent}static $t s_$a.name$init;
 ## Define a collection of arguments.
 ######################
 #@staticmethod
-#def define_arguments($args, $indent_count)
+#def define_arguments($args, $indent_count, $free_list)
     #set $indent = $indent_count * " "
     #if $args is not None
         #for $a in $args
@@ -227,6 +225,11 @@ ${indent}static $t s_$a.name$init;
 ${indent}int ${a.name}Elements = 0;
             #elif $a.is_structure() or $t == "AJ_Arg"
                 #set $init_val = "{ 0 }"
+            #elif $free_list != None and $t == "char*"
+${indent}const size_t sizeof${a.name} = 128;
+                #set $buffer_name = "stringBuffer{0}".format($a.name)
+${indent}char* $buffer_name = (char*)AJ_Malloc(sizeof${a.name});
+$free_list.append($buffer_name)#slurp
             #end if
 $indent$const$t$ptrs $a.name = $init_val;
         #end for
@@ -374,7 +377,7 @@ $CommonCheetah.handle_error($runnable, "AJ_UnmarshalArgs", $indent_count, $free_
 ${indent}index$depth = 0;
 
 ${indent}while (TRUE) {
-${indent}    ${name} = realloc((void*)${name}, ++${name}Elements * sizeof(${name}[0]));
+${indent}    ${name} = AJ_Realloc((void*)${name}, ++${name}Elements * sizeof(${name}[0]));
 $free_list.append($name)#slurp
     #set $struct_name = "{0}[index{1}]".format($name, $depth)
 ${indent}    status = AJ_UnmarshalArgs(msg, "$sig", &${name}[index$depth]);
@@ -387,7 +390,7 @@ $CommonCheetah.handle_error($runnable, "AJ_UnmarshalArgs", $indent_count + 4, $f
 ${indent}    index$depth++;
 ${indent}}
 
-${indent}${name} = realloc((void*)${name}, --${name}Elements * sizeof(${name}[0]));
+${indent}${name} = AJ_Realloc((void*)${name}, --${name}Elements * sizeof(${name}[0]));
 #end def
 #####################
 ## Unmarshal an array of structures.
@@ -398,14 +401,14 @@ ${indent}${name} = realloc((void*)${name}, --${name}Elements * sizeof(${name}[0]
 ${indent}index$depth = 0;
 
 ${indent}while (TRUE) {
-${indent}    ${name} = realloc((void*)${name}, ++${name}Elements * sizeof(${name}[0]));
+${indent}    ${name} = AJ_Realloc((void*)${name}, ++${name}Elements * sizeof(${name}[0]));
 $free_list.append($name)#slurp
     #set $struct_name = "{0}[index{1}]".format($name, $depth)
 $CommonCheetah.unmarshal_container($runnable, $struct_name, $containerdef, $msg_ptr, $depth, $indent_count + 4, True, $free_list)
 ${indent}    index$depth++;
 ${indent}}
 
-${indent}${name} = realloc((void*)${name}, --${name}Elements * sizeof(${name}[0]));
+${indent}${name} = AJ_Realloc((void*)${name}, --${name}Elements * sizeof(${name}[0]));
 #end def
 #####################
 ## Unmarshal a container and its contents.
@@ -651,8 +654,8 @@ $CommonCheetah.print_one_arg($a, $indent_count)
         #set $is_multi_dimensional = (len($base_sig) - len($arg.arg_type)) > 1
         #if $is_multi_dimensional
 ${indent}/*******
-${indent} Multi-dimension arrays are not fully supported in "Runnable" mode
-${indent} by the code generator at this time.
+${indent} * Multi-dimension arrays are not fully supported in "Runnable" mode
+${indent} * by the code generator at this time.
 ${indent} */
         #elif $arg.is_structure() or $arg.is_dictionary()
             #set $member = $GenTL.get_scaler_member($arg)
@@ -662,8 +665,9 @@ ${indent} */
 ${indent}AJ_InfoPrintf(("\tReceived '${arg.name}[%d].$m_name' = $t.\n", index0, ${arg.name}[index0].$m_name));
             #else
 ${indent}/*******
-${indent} * Some nested structures are not fully supported in "Runnable" mode
-${indent} * by the code generator at this time.
+${indent} * TODO: Make a change in '$arg.name'.
+${indent} * Some nested structures and structures without scalar members are not
+${indent} * fully supported in "Runnable" mode by the code generator at this time.
 ${indent} */
             #end if
         #else
@@ -687,8 +691,9 @@ ${indent}AJ_InfoPrintf(("\tReceived '${arg.name}.$m_name' = $t.\n", ${arg.name}.
             #end if
         #else
 ${indent}/*******
-${indent} * Some nested structures are not fully supported in "Runnable" mode
-${indent} * by the code generator at this time.
+${indent} * TODO: Make a change in '$arg.name'.
+${indent} * Some nested structures and structures without scalar members are not
+${indent} * fully supported in "Runnable" mode by the code generator at this time.
 ${indent} */
         #end if
     #else
@@ -796,7 +801,11 @@ ${indent}$arg.name = s_$arg.name;
             #end if
             #set $scaler_member = $GenTL.get_scaler_member($arg)
             #if $scaler_member is None
-${indent}/* TODO: Make a change in $arg.name */
+${indent}/*******
+${indent} * TODO: Make a change in '$arg.name'.
+${indent} * Some nested structures and structures without scalar members are not
+${indent} * fully supported in "Runnable" mode by the code generator at this time.
+${indent} */
             #else
                 #set $scaler_name = $scaler_member[0]
                 #set $scaler_type = $scaler_member[1]
@@ -852,7 +861,7 @@ $CommonCheetah.increment_object($indent, $arg.name, $element0, $sig, $complete_n
     #end while
 #end def
 #####################
-## Call free() on any arrays in this arg info that need to be freed and set the
+## Call AJ_Free() on any arrays in this arg info that need to be freed and set the
 ## pointer to NULL.
 #####################
 #@staticmethod
@@ -866,10 +875,11 @@ $CommonCheetah.increment_object($indent, $arg.name, $element0, $sig, $complete_n
                 #if not ($t != 'a' and $t != 's' and $t != 'o' and $t != 'g' and $t != '(' and $t != '{')
                     #while $flatsig[$index] == 'a'
 ## TODO: This should be freeing different arrays in the multi-dimension case.
-    free((void*)$a.name);
+    AJ_Free((void*)$a.name);
     $a.name = NULL;
                         #set $index += 1
                     #end while
+
                 #end if
             #end if
         #end for

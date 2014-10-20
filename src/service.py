@@ -1,4 +1,4 @@
-# Copyright (c) 2013 AllSeen Alliance. All rights reserved.
+# Copyright (c) 2013-2014 AllSeen Alliance. All rights reserved.
 #
 # Permission to use, copy, modify, and/or distribute this software for any
 # purpose with or without fee is hereby granted, provided that the above
@@ -36,6 +36,7 @@ class Service:
         self.alljoyn_object = ajobject.AllJoynObject(service_name)
         self.delete_object_cache()
         self.__has_properties = None
+        self.__number_of_signals = None
         return
 
     def parse(self, xml, lax_naming):
@@ -56,6 +57,8 @@ class Service:
         if i is None:
             self.interfaces[interface.interface_full_name] = interface
             i = interface
+            self.__has_properties = None
+            self.__number_of_signals = None
         elif i != interface:
             error1_format = "Interface '{0}' has multiple definitions"
             error1 = error1_format.format(interface.interface_full_name)
@@ -76,12 +79,12 @@ class Service:
     def get_objects(self):
         """Return a complete list of all objects."""
 
-        if len(self.objects) == 0 and self.alljoyn_object is not None:
+        if not self.objects and self.alljoyn_object is not None:
             self.alljoyn_object.append_objects(self.objects)
             index = 0
             for o in self.objects:
                 # Only give index numbers to objects that have interfaces.
-                if len(o.interfaces) > 0:
+                if o.interfaces:
                     o.index = index
                     index += 1
 
@@ -99,13 +102,34 @@ class Service:
         if self.__has_properties is None:
             for key in sorted(self.interfaces):
                 i = self.interfaces[key]
-                if len(i.properties) > 0:
+                if i.properties:
                     return_value = True
                     break
 
             self.__has_properties = return_value
         else:
             return_value = self.__has_properties
+
+        return return_value
+
+    def has_signals(self):
+        """Return true if any of the interfaces contain a signal."""
+        return self.number_of_signals() > 0
+
+    def number_of_signals(self):
+        """Returns the number of signals in all instances of all interfaces."""
+        return_value = 0
+
+        if self.__number_of_signals is None:
+            objects = self.get_objects()
+
+            for o in objects:
+                for i in o.interfaces:
+                    return_value += len(i.signals)
+
+            self.__number_of_signals = return_value
+        else:
+            return_value = self.__number_of_signals
 
         return return_value
 

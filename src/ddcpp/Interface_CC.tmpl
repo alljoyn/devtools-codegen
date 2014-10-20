@@ -24,7 +24,7 @@
 ## function declarations.
 \#include <datadriven/Marshal.h>
 
-namespace gen { namespace ${interface.get_full_coded_namespace_name} {
+namespace gen { namespace ${interface.get_full_coded_path} {
 
 const qcc::String ${interface.intf_class}::GetName() const
 {
@@ -93,7 +93,7 @@ namespace datadriven {
     #if $isinstance($container, $sd.StructDef)
         #set $fields=$container.get_field_list()
 
-QStatus Marshal(ajn::MsgArg& _msgarg, const ::gen::${interface.get_full_coded_namespace_name}::${interface.intf_class}::${container.name}& data)
+QStatus Marshal(ajn::MsgArg& _msgarg, const ::gen::${interface.get_full_coded_path}::${interface.intf_class}::${container.name}& data)
 {
     QStatus _status = ER_OK;
     size_t _numMembers = ${len($fields)};
@@ -109,7 +109,7 @@ ${u.Util.argarray_marshal($fields, '_members', '_status', container = 'data.')}#
     return _status;
 }
 
-QStatus Unmarshal(::gen::${interface.get_full_coded_namespace_name}::${interface.intf_class}::${container.name}& data, const ajn::MsgArg& _msgarg)
+QStatus Unmarshal(::gen::${interface.get_full_coded_path}::${interface.intf_class}::${container.name}& data, const ajn::MsgArg& _msgarg)
 {
     QStatus _status = ER_FAIL;
 

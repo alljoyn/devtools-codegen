@@ -21,8 +21,8 @@
  * Generated provider code for AllSeen DataDriven API.
  */
 
-\#ifndef ${interface.get_full_coded_namespace_name.upper()}_${interface.prov_class.upper()}_H_
-\#define ${interface.get_full_coded_namespace_name.upper()}_${interface.prov_class.upper()}_H_
+\#ifndef ${interface.get_full_coded_path.upper()}_${interface.prov_class.upper()}_H_
+\#define ${interface.get_full_coded_path.upper()}_${interface.prov_class.upper()}_H_
 
 #if $interface.properties
 \#include <vector>
@@ -32,7 +32,7 @@
 
 \#include "${interface.intf_class}.h"
 
-namespace gen { namespace ${interface.get_full_coded_namespace_name} {
+namespace gen { namespace ${interface.get_full_coded_path} {
 
 /**
  * Provided interface class for the ${interface.interface_full_name} interface.
@@ -42,7 +42,7 @@ public:
     /**
      * Type definition for the associated type description.
      */
-    typedef ::gen::${interface.get_full_coded_namespace_name}::${interface.intf_class} Type;
+    typedef ::gen::${interface.get_full_coded_path}::${interface.intf_class} Type;
 
     /**
      * Constructor for a provided interface of a provided object.
@@ -124,4 +124,4 @@ private:
 
 }}
 
-\#endif // ${interface.get_full_coded_namespace_name.upper()}_${interface.prov_class.upper()}_H_
+\#endif // ${interface.get_full_coded_path.upper()}_${interface.prov_class.upper()}_H_

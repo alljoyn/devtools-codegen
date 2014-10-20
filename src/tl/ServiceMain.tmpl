@@ -1,5 +1,5 @@
 ###############################################################################
-## Copyright (c) 2013, 2014 AllSeen Alliance. All rights reserved.
+## Copyright (c) 2013-2014 AllSeen Alliance. All rights reserved.
 ##
 ## Permission to use, copy, modify, and/or distribute this software for any
 ## purpose with or without fee is hereby granted, provided that the above
@@ -142,13 +142,14 @@ static uint8_t AcceptSession(AJ_Message* msg)
     #if $command_line.runnable
             if (AJ_OK == CanJoinSession()) {
                 accepted = TRUE;
+                AJ_InfoPrintf(("Accepted session_id=0x%x joiner=%s\n", sessionId, joiner));
             } else {
                 AJ_InfoPrintf(("Rejected session_id=0x%x joiner=%s due to lack of resources.\n", sessionId, joiner));
             }
     #else
             accepted = TRUE;
-    #end if
             AJ_InfoPrintf(("Accepted session_id=0x%x joiner=%s\n", sessionId, joiner));
+    #end if
         } else {
             AJ_InfoPrintf(("Rejected session_id=0x%x joiner=%s\n", sessionId, joiner));
         }

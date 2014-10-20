@@ -1,6 +1,5 @@
 .project
 .classpath
-.settings
 .pydevproject
 .externalToolBuilders/
 ajngen
@@ -12,6 +11,9 @@ bin
 src/tl/*.py
 !src/tl/GenTL.py
 !src/tl/__init__.py
+src/android/*.py
+!src/android/GenAndroid.py
+!src/android/__init__.py
 src/ddcpp/*.py
 !src/ddcpp/GenCPP.py
 !src/ddcpp/__init__.py

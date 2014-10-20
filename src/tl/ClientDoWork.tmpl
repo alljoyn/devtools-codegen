@@ -115,6 +115,7 @@ AJ_Status SessionLost(AJ_Message* msg)
 ## Generate the code for doing a single "turn" of a method.
 #####################
 #def $do_method_turn($complete_name, $c)
+    #set $free_list = []
     #if $c.input_arg_info is not None
         #set $input_args = $c.input_arg_info.args
         #if len($input_args) <= 0
@@ -126,7 +127,7 @@ AJ_Status SessionLost(AJ_Message* msg)
     #if $input_args is not None
 $cc.CommonCheetah.define_static_args($input_args, 8)
         /* Define the input args. */
-$cc.CommonCheetah.define_arguments($input_args, 8)
+$cc.CommonCheetah.define_arguments($input_args, 8, $free_list)
     #end if
         /* Miscellaneous local variables. */
         AJ_Status status;
@@ -137,12 +138,12 @@ $cc.CommonCheetah.define_arguments($input_args, 8)
     #if $input_args is not None
 $cc.CommonCheetah.initialize_args($input_args, $complete_name, 8)
     #end if
-$do_method_call($complete_name, $c, $input_args)#slurp
+$do_method_call($complete_name, $c, $input_args, $free_list)#slurp
 #end def
 #####################
 ## Generate the code for a method call.
 #####################
-#def $do_method_call($complete_name, $c, $input_args)
+#def $do_method_call($complete_name, $c, $input_args, $free_list)
         AJ_InfoPrintf(("Calling '$complete_name'.\n"));
         #if $input_args is not None
         status = ${c.name}_Caller(bus, sessionId#slurp
@@ -156,6 +157,13 @@ $do_method_call($complete_name, $c, $input_args)#slurp
         #else
         status = ${c.name}_Caller(bus, sessionId);
         #end if
+        #if len(free_list) > 0
+
+            #for $f in $free_list
+        AJ_Free((void*)$f);
+        $f = NULL;
+            #end for
+        #end if
 
         if (AJ_OK != status) {
             const char* statusText = AJ_StatusText(status);
@@ -167,6 +175,7 @@ $do_method_call($complete_name, $c, $input_args)#slurp
 ## Generate the code for doing a single "turn" of a property.
 #####################
 #def $do_property_turn($complete_name, $c)
+    #set $free_list = []
     #set $indent_count = 8
     #set $indent = $indent_count * " "
 ${indent}AJ_Status status;
@@ -185,14 +194,14 @@ ${indent}static int s_doGet = FALSE;
 ${indent}s_doGet = !s_doGet;
 
 ${indent}if (s_doGet) {
-$do_property_call($complete_name, $c, True, $indent_count + 4)#slurp
+$do_property_call($complete_name, $c, True, $indent_count + 4, $free_list)#slurp
 ${indent}} else {
             #set $indent_count += 4
             #set $indent = $indent_count * " "
         #end if
 $cc.CommonCheetah.define_static_args($input_args, $indent_count)
 ${indent}/* Define the arguments sent. */
-$cc.CommonCheetah.define_arguments($input_args, $indent_count)
+$cc.CommonCheetah.define_arguments($input_args, $indent_count, $free_list)#slurp
         #if $c.input_arg_info.has_array() 
 ${indent}int index0 = 0;
         #end if
@@ -201,20 +210,20 @@ $cc.CommonCheetah.initialize_args($input_args, $complete_name, $indent_count)#sl
     #end if
     #if $is_get_set
 
-$do_property_call($complete_name, $c, False, $indent_count)#slurp
+$do_property_call($complete_name, $c, False, $indent_count, $free_list)#slurp
         }
     #else
         #if len($output_args) > 0
-$do_property_call($complete_name, $c, True, $indent_count)#slurp
+$do_property_call($complete_name, $c, True, $indent_count, $free_list)#slurp
         #else
-$do_property_call($complete_name, $c, False, $indent_count)#slurp
+$do_property_call($complete_name, $c, False, $indent_count, $free_list)#slurp
         #end if
     #end if
 #end def
 #####################
-## Generate the code for a setting and getting property.
+## Generate the code for a setting and getting a property.
 #####################
-#def $do_property_call($complete_name, $c, $do_get, $indent_count)
+#def $do_property_call($complete_name, $c, $do_get, $indent_count, $free_list)
     #set $indent = $indent_count * " "
     #if $do_get
 ${indent}AJ_InfoPrintf(("Calling '$complete_name'(Get).\n"));
@@ -235,6 +244,13 @@ ${indent}status = ${c.name}_Set(bus, sessionId#slurp
                 #end if
         #end for
 );
+        #if len(free_list) > 0
+
+            #for $f in $free_list
+${indent}AJ_Free((void*)$f);
+${indent}$f = NULL;
+            #end for
+        #end if
 
 ${indent}if (AJ_OK != status) {
 ${indent}    const char* statusText = AJ_StatusText(status);

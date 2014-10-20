@@ -77,7 +77,7 @@ AJ_Status ${c.name}(AJ_Message* msg, uint32_t getOrSet, void* context)
 $cc.CommonCheetah.define_arrays_and_structures($c)
     #if $c.input_arg_info is not None
     if (getOrSet == AJ_PROP_SET) {
-$cc.CommonCheetah.define_arguments($c.input_arg_info.args, 8)
+$cc.CommonCheetah.define_arguments($c.input_arg_info.args, 8, None)
 $cc.CommonCheetah.unmarshal_arguments($c.comp_type, $command_line.runnable, $c.input_arg_info, 8, False)
         #if $command_line.runnable
         $GenTL.comment_start_runnable
@@ -91,8 +91,9 @@ $cc.CommonCheetah.print_args($c.input_arg_info.args, 8)#slurp
     #end if
     #if $c.output_arg_info is not None
     if (getOrSet == AJ_PROP_GET) {
+        #set $free_list = []
         #if $command_line.runnable
-$cc.CommonCheetah.define_arguments($c.output_arg_info.args, 8)
+$cc.CommonCheetah.define_arguments($c.output_arg_info.args, 8, $free_list)
         $GenTL.comment_start_runnable
 $cc.CommonCheetah.define_static_args($c.output_arg_info.args, 8)
 $cc.CommonCheetah.initialize_args($c.output_arg_info.args, $c.name, 8)
@@ -100,8 +101,15 @@ $cc.CommonCheetah.marshal_arguments(True, $c.output_arg_info, "msg", 8)
         $GenTL.comment_end_runnable
         #else
         /* TODO: Replace 'value' with the actual property value of interest. */
-$cc.CommonCheetah.define_arguments($c.output_arg_info.args, 8)
+$cc.CommonCheetah.define_arguments($c.output_arg_info.args, 8, $free_list)
 $cc.CommonCheetah.marshal_arguments(False, $c.output_arg_info, "msg", 8)#slurp
+        #end if
+        #if len(free_list) > 0
+
+            #for $f in $free_list
+        AJ_Free((void*)$f);
+        $f = NULL;
+            #end for
         #end if
     }
 
@@ -115,11 +123,12 @@ $cc.CommonCheetah.marshal_arguments(False, $c.output_arg_info, "msg", 8)#slurp
 #def method_definition($o, $c)
 AJ_Status ${c.name}(AJ_Message* msg, AJ_Message* reply)
 {
+    #set $free_list = []
     #set $has_outputs = len($c.output_arg_info.args) > 0
     #set $has_inputs = len($c.input_arg_info.args) > 0
     #if $has_inputs
     /* Input arguments to this method. */
-$cc.CommonCheetah.define_arguments($c.input_arg_info.args, 4)#slurp
+$cc.CommonCheetah.define_arguments($c.input_arg_info.args, 4, None)#slurp
     /* End of input arguments to this method. */
 
     #end if
@@ -131,7 +140,7 @@ $cc.CommonCheetah.define_static_args($c.output_arg_info.args, 4)#slurp
     #end if
     #if $has_outputs
     /* Output arguments. */
-$cc.CommonCheetah.define_arguments($c.output_arg_info.args, 4)#slurp
+$cc.CommonCheetah.define_arguments($c.output_arg_info.args, 4, $free_list)#slurp
     /* End of output arguments. */
 
     #end if
@@ -158,9 +167,17 @@ $cc.CommonCheetah.initialize_args($c.output_arg_info.args, $complete_name, 4)
     /* TODO: Implement method. */
     #end if
 
-$cc.CommonCheetah.free_and_null_arrays($c.input_arg_info)
+$cc.CommonCheetah.free_and_null_arrays($c.input_arg_info)#slurp
     #if $has_outputs
 $cc.CommonCheetah.marshal_arguments($command_line.runnable, $c.output_arg_info, "reply", 4)#slurp
+    #end if
+    #if len(free_list) > 0
+
+        #for $f in $free_list
+    AJ_Free((void*)$f);
+    $f = NULL;
+        #end for
+
     #end if
     return status;
 }

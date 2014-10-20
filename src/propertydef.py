@@ -1,4 +1,4 @@
-# Copyright (c) 2013 AllSeen Alliance. All rights reserved.
+# Copyright (c) 2013-2014 AllSeen Alliance. All rights reserved.
 #
 # Permission to use, copy, modify, and/or distribute this software for any
 # purpose with or without fee is hereby granted, provided that the above
@@ -55,6 +55,12 @@ class PropertyDef:
 
         common.get_annotations(xml, self)
         return
+
+    def is_readable(self):
+        return self.access == "read" or self.access == "readwrite"
+
+    def is_writeable(self):
+        return self.access == "write" or self.access == "readwrite"
 
     def __eq__(self, other):
         """Compares this property to another and returns true if equal."""

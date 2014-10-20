@@ -12,8 +12,12 @@
 # ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
 # OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 
+import string
 from xml.etree import ElementTree
+
 import validate
+
+target_language = None
 
 def get_annotations(xml, aj_object):
     """Get the annotation value for the AllJoyn object from this xml."""
@@ -41,6 +45,33 @@ def get_annotations(xml, aj_object):
             print(mess)
 
     return
+
+def make_camel_case(object_name, separator = "/"):
+    """Make an object name into a camel case string and delete the separator.
+
+    If the separator is None this method just makes the first character lower
+    case."""
+
+    if separator:
+        caps_value = string.capwords(object_name, separator)
+        temp = caps_value.replace(separator, "")
+    else:
+        temp = object_name
+
+    first_char_string = temp[0:1]
+    return_value = first_char_string.lower() + temp[1:]
+
+    return return_value
+
+def get_arg_signature(component, direction):
+    """Get the signature used to marshal the arguments when making a call."""
+    return_value = ""
+
+    for a in component.args:
+        if a.direction == direction:
+            return_value = "".join([return_value, a.arg_type])
+
+    return return_value
 
 def __get_true_false_value(xml, annotation, name):
     """Get a true or false value from the annotation xml.

@@ -106,6 +106,12 @@ except cce.CheetahCompilationException as e:
     __cheetah_compile(e.message)
 
 try:
+    import AllJoynCodeGen.android.GenAndroid
+except cce.CheetahCompilationException as e:
+    # The message is the complete filename of the module for which the import was attempted.
+    __cheetah_compile(e.message)
+
+try:
     import AllJoynCodeGen.ddcpp.GenCPP
 except cce.CheetahCompilationException as e:
     # The message is the complete filename of the module for which the import was attempted.

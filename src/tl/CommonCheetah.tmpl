@@ -299,7 +299,7 @@ ${indent}status = AJ_UnmarshalArg(msg, &array$depth);
 
 $CommonCheetah.handle_error($runnable, "AJ_UnmarshalArg", $indent_count, $free_list)
 $indent$arg.name = array${depth}.val.$GenTL.val_dictionary[$basesig];
-$indent${arg.name}Elements = array${depth}.len/sizeof(*$arg.name);
+$indent${arg.name}Elements = array${depth}.len / sizeof(*$arg.name);
         #end if
         ## unmarshal the array closers
         #for $index in $reversed($range($openclosecount))

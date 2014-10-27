@@ -40,4 +40,19 @@ OR
 
         python setup.py bdist_rpm
 
-The installer will be in the 'dist' directory.
+    This will produce two .rpm files:
+        AllJoynCodeGeSetup-X.X.X-X.noarch.rpm
+        AllJoynCodeGeSetup-X.X.X-X.src.rpm
+
+    The noarch version will install the code generator runtime.
+
+    Under Ubuntu you will probably need to use alien to convert the .rpm
+    to a .deb package. Details on how to do that are here:
+    http://www.howtogeek.com/howto/ubuntu/install-an-rpm-package-on-ubuntu-linux/
+
+In any case the installer(s) will be in the 'dist' directory.
+
+After installing you must run the script /usr/local/bin/ajcodegen-compile.py
+before invoking the code generator. This only need be done once. Under Linux
+you may be required to run this as superuser. After that you may simply run
+ajcodegen.py.

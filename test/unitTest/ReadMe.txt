@@ -14,7 +14,19 @@ ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
 OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 ==================
 
-Unit tests can only be run after the code generator has been installed!
+Unit tests can only be run after the code generator has been installed using
+the installer or following the following procedure
+
+    From the base directory of the source installation run
+        "python setup.py install --home=dist"
+
+    Set the environment variable:
+        PYTHONPATH=<base_directory>/dist/lib/python
+
+    Running:
+        dist/bin/ajcodegen-compile.py
+
+    Then running the tests as described below.
 
 To run all unit tests on Windows use this command:
 
@@ -53,4 +65,7 @@ Thin Library Unit tests (tl_test.py)
 ==================
 If the enviroment variable ALLJOYN_THINLIBRARY_HOME is set to the root directory
 of your Thin Library source installation then the thin library unit tests will
-compile the code using SCons as well as generate the code.
+compile the code using SCons as well as generate the code. If the whitespace
+checker is not installed modify the tl_test.py file as follows:
+
+    Near the end of the file change "WS=detail" to "WS=off".

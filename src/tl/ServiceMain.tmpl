@@ -45,7 +45,7 @@ static const MessageHandlerEntry MessageHandlers[] = {
 #for $h in $handlers
     { $h },
 #end for
-    { AJ_SIGNAL_SESSION_LOST,                  &SessionLost },
+    { AJ_SIGNAL_SESSION_LOST_WITH_REASON,      &SessionLost },
     { AJ_SIGNAL_SESSION_JOINED,                &SessionJoined },
     { 0, NULL }
 };

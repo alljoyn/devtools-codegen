@@ -155,7 +155,7 @@ int AJ_Main(void)
             }
         } else {
             switch (msg.msgId) {
-            case AJ_SIGNAL_SESSION_LOST:
+            case AJ_SIGNAL_SESSION_LOST_WITH_REASON:
                 status = SessionLost(&msg);
                 break;
 
@@ -186,7 +186,7 @@ int AJ_Main(void)
         /* Messages must be closed to free resources. */
         AJ_CloseMsg(&msg);
 
-        /* This status is most likely due to a AJ_SIGNAL_SESSION_LOST message. */
+        /* This status is most likely due to a AJ_SIGNAL_SESSION_LOST_WITH_REASON message. */
         if (AJ_ERR_READ == status) {
             AJ_Disconnect(&bus);
             connected = FALSE;

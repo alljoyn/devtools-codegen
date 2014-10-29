@@ -67,14 +67,6 @@ class Config:
         parser.add_argument("-l", "--lax-naming", help=help_text,
                             action="store_true")
 
-        help_text = """Overwrite non-developer files if they exist in the
-            output directory. If specified, the codegen tool will overwrite
-            existing files except for files that may contain developer code.
-            The tool will create a copy of those files instead. Copies that
-            already exist will be overwritten."""
-        parser.add_argument("-o", "--overwrite", help=help_text,
-                            action="store_true")
-
         help_text = """The path where the generated C++ files will be placed.
             If not specified, they will be output in the current working
             directory."""
@@ -88,13 +80,9 @@ class Config:
                             action="store_true")
 
         help_text = """The target language. 'android' is for Java code on
-            the Android platform. 'c' is for the AllJoyn 'C' binding
-            to AllJoyn Standard Client (not implemented). 'cpp' is C++ code
-            for AllJoyn Standard Client (not implemented). 'o' is for
-            Objective C for Apple Targets (not implemented). 'tl' is C code
-            for AllJoyn Thin Library."""
+            the Android platform. 'tl' is C code for AllJoyn Thin Library."""
         parser.add_argument("-t", "--target-language", required=True,
-                            choices=['android', 'c', 'cpp', 'o', 'tl'],
+                            choices=['android', 'tl'],
                             help=help_text)
 
         ver_text = "Version {0}.".format(ver)

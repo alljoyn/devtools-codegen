@@ -65,15 +65,6 @@ class TestConfig(unittest.TestCase):
         self.assertTrue(c.command_line.lax_naming)
         return
 
-    def test_overwrite(self):
-        """Test the overwrite (-o) flag."""
-        c = self.__one_arg_test("-b/TestFoo")
-        self.assertFalse(c.command_line.overwrite)
-
-        c = self.__one_arg_test("-o")
-        self.assertTrue(c.command_line.overwrite)
-        return
-
     def test_runnable(self):
         """Test the runnable (-R) flag."""
         c = self.__one_arg_test("-b/TestFoo")
@@ -92,29 +83,9 @@ class TestConfig(unittest.TestCase):
         self.assertTrue(c.command_line.xml_input_file == "file.xml")
         self.assertTrue(c.command_line.target_language == "tl")
 
-        args[1] = "-tcpp"
-
-        try:
-            c = config.Config()
-            self.assertTrue(c.command_line.target_language == "cpp")
-        except config.ConfigException as e:
-            self.assertTrue(str.find(e.message, "Use the option '-ttl'") != -1)
-
-        args[1] = "-to"
-
-        try:
-            c = config.Config()
-            self.assertTrue(c.command_line.target_language == "o")
-        except config.ConfigException as e:
-            self.assertTrue(str.find(e.message, "Use the option '-ttl'") != -1)
-
-        args[1] = "-ttl"
-
-        try:
-            c = config.Config()
-            self.assertTrue(c.command_line.target_language == "tl")
-        except config.ConfigException as e:
-            self.assertTrue(str.find(e.message, "Use the option '-ttl'") != -1)
+        args[1] = "-tandroid"
+        c = config.Config()
+        self.assertTrue(c.command_line.target_language == "android")
 
         args[1] = "-tFoo"
 

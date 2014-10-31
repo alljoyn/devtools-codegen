@@ -33,7 +33,6 @@ class Config:
         object_path (None or string)
         client_only (None or True)
         lax_naming (None or True)
-        overwrite (None or True)
         output_path (string)
         runnable (None or True)
         target_language (string of 'c', 'cpp', 'o', or 'tl')

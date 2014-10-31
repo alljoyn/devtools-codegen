@@ -94,9 +94,6 @@ def report_config(c):
     if c.command_line.lax_naming:
         print("Lax naming enabled.")
 
-    if c.command_line.overwrite:
-        print("Overwrite is enabled.")
-
     if c.command_line.output_path is not None:
         path = c.command_line.output_path
         print("Output path is '{0}'.".format(path))

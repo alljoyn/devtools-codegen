@@ -430,7 +430,7 @@ def __make_interface_files(command_line, codegen_service):
             temp = Interface()
             temp.interface = i
 
-            service_path = os.path.join("service", sub_path0, sub_path1)
+            service_path = os.path.join("Service", sub_path0, sub_path1)
             filename = "{0}.java".format(i.interface_name)
 
             full_filename = os.path.join(service_path, filename)
@@ -439,7 +439,7 @@ def __make_interface_files(command_line, codegen_service):
             temp = ServiceImplementation()
             temp.interface = i
 
-            service_path = os.path.join("service", sub_path0, sub_path1)
+            service_path = os.path.join("Service", sub_path0, sub_path1)
             filename = "{0}Impl.java".format(i.interface_name)
 
             full_filename = os.path.join(service_path, filename)
@@ -448,7 +448,7 @@ def __make_interface_files(command_line, codegen_service):
         temp = Interface()
         temp.interface = i
 
-        client_path = os.path.join("client", sub_path0, sub_path1)
+        client_path = os.path.join("Client", sub_path0, sub_path1)
         filename = "{0}.java".format(i.interface_name)
 
         full_filename = os.path.join(client_path, filename)
@@ -458,7 +458,7 @@ def __make_interface_files(command_line, codegen_service):
             temp = ClientImplementation()
             temp.interface = i
 
-            service_path = os.path.join("client", sub_path0, sub_path1)
+            service_path = os.path.join("Client", sub_path0, sub_path1)
             filename = "{0}Impl.java".format(i.interface_name)
 
             full_filename = os.path.join(client_path, filename)
@@ -626,8 +626,11 @@ def __make_target_file(template, filename, command_line, codegen_service):
     template.service = codegen_service
 
     path = command_line.output_path
-
     out_file = os.path.join(path, filename)
+    subdir = os.path.split(out_file)[0]
+
+    if not os.path.exists(subdir):
+        os.makedirs(subdir)
 
     with open(out_file, 'w') as f:
         f.write("{0}".format(template))

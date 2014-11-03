@@ -33,7 +33,6 @@ class Config:
         object_path (None or string)
         client_only (None or True)
         lax_naming (None or True)
-        overwrite (None or True)
         output_path (string)
         runnable (None or True)
         target_language (string)
@@ -81,14 +80,6 @@ class Config:
         parser.add_argument("-l", "--lax-naming", help=help_text,
                             action="store_true")
 
-        help_text = """Overwrite non-developer files if they exist in the
-            output directory. If specified, the codegen tool will overwrite
-            existing files except for files that may contain developer code.
-            The tool will create a copy of those files instead. Copies that
-            already exist will be overwritten."""
-        parser.add_argument("-o", "--overwrite", help=help_text,
-                            action="store_true")
-
         help_text = """The path where the generated C++ files will be placed.
             If not specified, they will be output in the current working
             directory."""
@@ -102,12 +93,8 @@ class Config:
                             action="store_true")
 
         help_text = """The target language. 'android' is for Java code on
-            the Android platform. 'c' is for the AllJoyn 'C' binding
-            to AllJoyn Standard Client (not implemented). 'cpp' is C++ code
-            for AllJoyn Standard Client (not implemented). 'o' is for
-            Objective C for Apple Targets (not implemented). 'tl' is C code
-            for AllJoyn Thin Library. 'ddcpp' is C++ code for the Data-driven
-            API."""
+            the Android platform. 'tl' is C code for AllJoyn Thin Library.
+            'ddcpp' is C++ code for the Data-driven API."""
         parser.add_argument("-t", "--target-language", required=True,
                             choices=self.targets.keys(),
                             help=help_text)

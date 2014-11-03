@@ -643,8 +643,11 @@ def __make_target_file(template, filename, command_line, codegen_service):
     template.service = codegen_service
 
     path = command_line.output_path
-
     out_file = os.path.join(path, filename)
+    subdir = os.path.split(out_file)[0]
+
+    if not os.path.exists(subdir):
+        os.makedirs(subdir)
 
     with open(out_file, 'w') as f:
         f.write("{0}".format(template))

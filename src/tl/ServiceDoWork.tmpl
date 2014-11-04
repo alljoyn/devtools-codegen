@@ -95,8 +95,8 @@ $cc.CommonCheetah.define_static_args($output_args, 8)#slurp
         /* Define the output args. */
                 #end if
 $cc.CommonCheetah.define_arguments($output_args, 8, $free_list)
-        AJ_Status status;
-        size_t sessionIndex;
+        AJ_Status ajcgStatus;
+        size_t agcgSessionIndex;
                 #set $number_of_arrays = $c.max_input_output_arrays()
                 #set $array_num = 0
                 #while $array_num < $number_of_arrays
@@ -108,12 +108,12 @@ $cc.CommonCheetah.define_arguments($output_args, 8, $free_list)
 $cc.CommonCheetah.initialize_args($output_args, $complete_name, 8)#slurp
                 #end if
 
-        for (sessionIndex = 0; sessionIndex < s_maxSessions; sessionIndex++) {
-            AJ_SessionId sessionId = s_activeSessions[sessionIndex];
+        for (agcgSessionIndex = 0; agcgSessionIndex < s_maxSessions; agcgSessionIndex++) {
+            AJ_SessionId sessionId = s_activeSessions[agcgSessionIndex];
 
             if (0 != sessionId) {
                 #if $output_args is not None
-                status = ${c.name}(bus, sessionId#slurp
+                ajcgStatus = ${c.name}(bus, sessionId#slurp
                     #for $a in $output_args
 , $a.name#slurp
                         #if $a.is_array()
@@ -122,16 +122,16 @@ $cc.CommonCheetah.initialize_args($output_args, $complete_name, 8)#slurp
                     #end for
 );
                 #else
-                status = ${c.name}(bus, sessionId);
+                ajcgStatus = ${c.name}(bus, sessionId);
                 #end if
 
                 AJ_InfoPrintf(("Sending signal '$complete_name' to sessionId 0x%x.\n", sessionId));
 
-                if (AJ_OK != status) {
-                    const char* statusText = AJ_StatusText(status);
+                if (AJ_OK != ajcgStatus) {
+                    const char* statusText = AJ_StatusText(ajcgStatus);
 
                     AJ_InfoPrintf(("Calling '$complete_name' with session ID 0x%x failed with status code 0x%x (%s).\n",
-                                   sessionId, status, statusText));
+                                   sessionId, ajcgStatus, statusText));
                 }
             }
         }
@@ -186,7 +186,7 @@ AJ_Status CanJoinSession()
  */
 AJ_Status SessionJoined(AJ_Message* msg, AJ_Message* reply)
 {
-    AJ_Status status = AJ_OK;
+    AJ_Status ajcgStatus = AJ_OK;
 #if $command_line.runnable
     $GenTL.comment_start_runnable
     size_t index = GetOpenSessionIndex();
@@ -195,7 +195,7 @@ AJ_Status SessionJoined(AJ_Message* msg, AJ_Message* reply)
         s_activeSessions[index] = msg->sessionId;
         AJ_InfoPrintf(("\nSession 0x%x joined. Path = '%s'.\n", msg->sessionId, msg->objPath));
     } else {
-        status = AJ_ERR_RESOURCES;
+        ajcgStatus = AJ_ERR_RESOURCES;
     }
     $GenTL.comment_end_runnable
 #else
@@ -203,7 +203,7 @@ AJ_Status SessionJoined(AJ_Message* msg, AJ_Message* reply)
     AJ_InfoPrintf(("\nSession 0x%x joined. Path = '%s'.\n", msg->sessionId, msg->objPath));
 #end if
 
-    return status;
+    return ajcgStatus;
 }
 
 /*
@@ -211,7 +211,7 @@ AJ_Status SessionJoined(AJ_Message* msg, AJ_Message* reply)
  */
 AJ_Status SessionLost(AJ_Message* msg, AJ_Message* reply)
 {
-    AJ_Status status = AJ_OK;
+    AJ_Status ajcgStatus = AJ_OK;
 #if $command_line.runnable
     $GenTL.comment_start_runnable
     size_t index = 0;
@@ -228,5 +228,5 @@ AJ_Status SessionLost(AJ_Message* msg, AJ_Message* reply)
 
     AJ_InfoPrintf(("\nSession 0x%x lost. Path = '%s'.\n", msg->sessionId, msg->objPath));
 
-    return status;
+    return ajcgStatus;
 }

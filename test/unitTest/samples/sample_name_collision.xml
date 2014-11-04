@@ -1,0 +1,122 @@
+<!--
+ Copyright (c) 2014 AllSeen Alliance. All rights reserved.
+
+ Permission to use, copy, modify, and/or distribute this software for any
+ purpose with or without fee is hereby granted, provided that the above
+ copyright notice and this permission notice appear in all copies.
+
+ THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES
+ WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
+ MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR
+ ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
+ WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
+ ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
+ OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
+-->
+
+<node name="/unit">
+    <interface name="Test.MethodAndSignals">
+        <method name="MethodInInt">
+            <arg name="msg" type="i" direction="in" />
+            <arg name="index" type="i" direction="in" />
+            <arg name="numberOfSignals" type="i" direction="in" />
+            <arg name="reply" type="i" direction="in" />
+            <arg name="sessionIndex" type="i" direction="in" />
+            <arg name="status" type="i" direction="in" />
+        </method>
+        <method name="MethodOutInt">
+            <arg name="msg" type="i" direction="out" />
+            <arg name="index" type="i" direction="out" />
+            <arg name="numberOfSignals" type="i" direction="out" />
+            <arg name="reply" type="i" direction="out" />
+            <arg name="sessionIndex" type="i" direction="out" />
+            <arg name="status" type="i" direction="out" />
+        </method>
+        <method name="MethodInString">
+            <arg name="msg" type="s" direction="in" />
+            <arg name="index" type="s" direction="in" />
+            <arg name="numberOfSignals" type="s" direction="in" />
+            <arg name="reply" type="s" direction="in" />
+            <arg name="sessionIndex" type="s" direction="in" />
+            <arg name="status" type="s" direction="in" />
+        </method>
+        <method name="MethodOutString">
+            <arg name="msg" type="s" direction="out" />
+            <arg name="index" type="s" direction="out" />
+            <arg name="numberOfSignals" type="s" direction="out" />
+            <arg name="reply" type="s" direction="out" />
+            <arg name="sessionIndex" type="s" direction="out" />
+            <arg name="status" type="s" direction="out" />
+        </method>
+        <method name="MethodInStruct">
+            <arg name="msg" type="(ib)" direction="in" />
+            <arg name="index" type="(ib)" direction="in" />
+            <arg name="numberOfSignals" type="(ib)" direction="in" />
+            <arg name="reply" type="(ib)" direction="in" />
+            <arg name="sessionIndex" type="(ib)" direction="in" />
+            <arg name="status" type="(ib)" direction="in" />
+        </method>
+        <method name="MethodOutStruct">
+            <arg name="msg" type="(ib)" direction="out" />
+            <arg name="index" type="(ib)" direction="out" />
+            <arg name="numberOfSignals" type="(ib)" direction="out" />
+            <arg name="reply" type="(ib)" direction="out" />
+            <arg name="sessionIndex" type="(ib)" direction="out" />
+            <arg name="status" type="(ib)" direction="out" />
+        </method>
+        <signal name="SignalInt">
+            <arg name="msg" type="i" />
+            <arg name="index" type="i" />
+            <arg name="reply" type="i" />
+            <arg name="numberOfSignals" type="i" />
+            <arg name="status" type="i" />
+            <arg name="sessionIndex" type="i" />
+            <arg name="statusText" type="i" />
+        </signal>
+        <signal name="SignalString">
+            <arg name="msg" type="s" />
+            <arg name="index" type="s" />
+            <arg name="numberOfSignals" type="s" />
+            <arg name="reply" type="s" />
+            <arg name="status" type="s" />
+            <arg name="sessionIndex" type="s" />
+            <arg name="statusText" type="s" />
+        </signal>
+        <signal name="SignalStruct">
+            <arg name="msg" type="(ib)" />
+            <arg name="index" type="(ib)" />
+            <arg name="numberOfSignals" type="(ib)" />
+            <arg name="reply" type="(ib)" />
+            <arg name="status" type="(ib)" />
+            <arg name="sessionIndex" type="(ib)" />
+            <arg name="statusText" type="(ib)" />
+        </signal>
+    </interface>
+    <interface name="Test.PropInt">
+        <property name="msg" type="b" access="readwrite" />
+        <property name="index" type="b" access="readwrite" />
+        <property name="numberOfSignals" type="b" access="readwrite" />
+        <property name="reply" type="b" access="readwrite" />
+        <property name="status" type="b" access="readwrite" />
+        <property name="sessionIndex" type="b" access="readwrite" />
+        <property name="statusText" type="b" access="readwrite" />
+    </interface>
+    <interface name="Test.PropString">
+        <property name="msg" type="s" access="readwrite" />
+        <property name="index" type="s" access="readwrite" />
+        <property name="numberOfSignals" type="s" access="readwrite" />
+        <property name="reply" type="s" access="readwrite" />
+        <property name="status" type="s" access="readwrite" />
+        <property name="sessionIndex" type="s" access="readwrite" />
+        <property name="statusText" type="s" access="readwrite" />
+    </interface>
+    <interface name="Test.PropStruct">
+        <property name="msg" type="(ib)" access="readwrite" />
+        <property name="index" type="(ib)" access="readwrite" />
+        <property name="numberOfSignals" type="(ib)" access="readwrite" />
+        <property name="reply" type="(ib)" access="readwrite" />
+        <property name="status" type="(ib)" access="readwrite" />
+        <property name="sessionIndex" type="(ib)" access="readwrite" />
+        <property name="statusText" type="(ib)" access="readwrite" />
+    </interface>
+</node>

@@ -56,10 +56,10 @@
 #@staticmethod
 #def handle_error($runable, $func_name, $indent_count, $free_list = [])
     #set $indent = $indent_count * " "
-${indent}if (AJ_OK != status) {
+${indent}if (AJ_OK != ajcgStatus) {
     #if $runable
 ${indent}    $GenTL.comment_start_runnable
-${indent}    AJ_InfoPrintf(("${func_name}() returned status 0x%x (%s).\n", status, AJ_StatusText(status)));
+${indent}    AJ_InfoPrintf(("${func_name}() returned status 0x%x (%s).\n", ajcgStatus, AJ_StatusText(ajcgStatus)));
 ${indent}    $GenTL.comment_end_runnable
     #else
 ${indent}    $GenTL.comment_handle_error
@@ -68,7 +68,7 @@ ${indent}    $GenTL.comment_handle_error
     ${indent}AJ_Free((void*)$f);
     #end for
 
-${indent}    return status;
+${indent}    return ajcgStatus;
 ${indent}}
 #end def
 #####################
@@ -246,12 +246,12 @@ $indent$const$t$ptrs $a.name = $init_val;
 ${indent}const char* sig;
 
 ${indent}/* The signature is not used except with a variant property type but the call must be made. */
-${indent}status = AJ_UnmarshalVariant(msg, &sig);
+${indent}ajcgStatus = AJ_UnmarshalVariant(ajcgMsg, &sig);
 
 $CommonCheetah.handle_error($runnable, "AJ_UnmarshalVariant", $indent_count)
         #end if
         #if $arginfo.is_basic_types()
-${indent}status = AJ_UnmarshalArgs(msg, "$arginfo.signature"#slurp
+${indent}ajcgStatus = AJ_UnmarshalArgs(ajcgMsg, "$arginfo.signature"#slurp
             #for $a in $arginfo.args
 , &$a.name#slurp
             #end for
@@ -281,7 +281,7 @@ $CommonCheetah.unmarshal_one_argument($a, $runnable, $indent_count)#slurp
         #end if
         ## unmarshal the array openers
         #for $index in $range($openclosecount)
-${indent}status = AJ_UnmarshalContainer(msg, &array$index, AJ_ARG_ARRAY);
+${indent}ajcgStatus = AJ_UnmarshalContainer(ajcgMsg, &array$index, AJ_ARG_ARRAY);
 
 $CommonCheetah.handle_error($runnable, "AJ_UnmarshalContainer", $indent_count)
 ${indent}${arg.name}Elements = 0;
@@ -291,11 +291,11 @@ ${indent}${arg.name}Elements = 0;
 $CommonCheetah.unmarshal_string_array($runnable, $arg.name, $basesig, $free_list, $indirection_level - 1, $indent_count)#slurp
         #elif $arg.is_structure() or $arg.is_dictionary()
             #set $containerdef = $arg.get_named_type()
-$CommonCheetah.unmarshal_container_array($runnable, $arg.name, $containerdef, $free_list, "msg", $indirection_level - 1, $indent_count)#slurp
+$CommonCheetah.unmarshal_container_array($runnable, $arg.name, $containerdef, $free_list, "ajcgMsg", $indirection_level - 1, $indent_count)#slurp
         #else
             ##basic scalar arrays are handled here
             #set $depth = $indirection_level - 1
-${indent}status = AJ_UnmarshalArg(msg, &array$depth);
+${indent}ajcgStatus = AJ_UnmarshalArg(ajcgMsg, &array$depth);
 
 $CommonCheetah.handle_error($runnable, "AJ_UnmarshalArg", $indent_count, $free_list)
 $indent$arg.name = array${depth}.val.$GenTL.val_dictionary[$basesig];
@@ -303,7 +303,7 @@ $indent${arg.name}Elements = array${depth}.len / sizeof(*$arg.name);
         #end if
         ## unmarshal the array closers
         #for $index in $reversed($range($openclosecount))
-${indent}status = AJ_UnmarshalCloseContainer(msg, &array$index);
+${indent}ajcgStatus = AJ_UnmarshalCloseContainer(ajcgMsg, &array$index);
 
 $CommonCheetah.handle_error($runnable, "AJ_UnmarshalCloseContainer", $indent_count, $free_list)#slurp
         #end for
@@ -312,9 +312,9 @@ $CommonCheetah.handle_error($runnable, "AJ_UnmarshalCloseContainer", $indent_cou
             ## no need to check for dictionaries here, as they are by definition also arrays
             ## and hence handled above
             #set $containerdef = $arg.get_named_type()
-$CommonCheetah.unmarshal_container($runnable, $arg.name, $containerdef, "msg", 0, $indent_count, False, $free_list)#slurp
+$CommonCheetah.unmarshal_container($runnable, $arg.name, $containerdef, "ajcgMsg", 0, $indent_count, False, $free_list)#slurp
         #elif $arg.arg_type == 'v'
-${indent}status = AJ_UnmarshalVariant(msg, &${arg.name}.sigPtr);
+${indent}ajcgStatus = AJ_UnmarshalVariant(ajcgMsg, &${arg.name}.sigPtr);
 
 $CommonCheetah.handle_error($runnable, "AJ_MarshalVariant", $indent_count)
             #if $runnable
@@ -349,20 +349,20 @@ ${indent}default: /* Unexpected variant type. */
 ${indent}    assert(0);
 ${indent}}
 
-${indent}status = AJ_UnmarshalArgs(msg, ${arg.name}.sigPtr, ${arg.name}.val.v_data);
+${indent}ajcgStatus = AJ_UnmarshalArgs(ajcgMsg, ${arg.name}.sigPtr, ${arg.name}.val.v_data);
 
 $CommonCheetah.handle_error($runnable, "AJ_MarshalArg", $indent_count)#slurp
             #else
 ${indent}/* TODO: Unmarshal your variant value with code something like:
 ${indent}   if (${arg.name}.sigPtr[0] == 's') {
-${indent}      status = AJ_UnmarshalArgs(msg, ${arg.name}.sigPtr, &myStringValue);
+${indent}      ajcgStatus = AJ_UnmarshalArgs(ajcgMsg, ${arg.name}.sigPtr, &myStringValue);
 ${indent}   } else {
-${indent}      status = AJ_UnmarshalArgs(msg, ${arg.name}.sigPtr, &myIntValue);
+${indent}      ajcgStatus = AJ_UnmarshalArgs(ajcgMsg, ${arg.name}.sigPtr, &myIntValue);
 ${indent}   }
 ${indent} */
             #end if
         #else
-${indent}status = AJ_UnmarshalArgs(msg, "$arg.arg_type", &$arg.name);
+${indent}ajcgStatus = AJ_UnmarshalArgs(ajcgMsg, "$arg.arg_type", &$arg.name);
 
 $CommonCheetah.handle_error($runnable, "AJ_UnmarshalArgs", $indent_count, $free_list)#slurp
         #end if
@@ -380,9 +380,9 @@ ${indent}while (TRUE) {
 ${indent}    ${name} = AJ_Realloc((void*)${name}, ++${name}Elements * sizeof(${name}[0]));
 $free_list.append($name)#slurp
     #set $struct_name = "{0}[index{1}]".format($name, $depth)
-${indent}    status = AJ_UnmarshalArgs(msg, "$sig", &${name}[index$depth]);
+${indent}    ajcgStatus = AJ_UnmarshalArgs(ajcgMsg, "$sig", &${name}[index$depth]);
 
-${indent}    if (AJ_ERR_NO_MORE == status) {
+${indent}    if (AJ_ERR_NO_MORE == ajcgStatus) {
 ${indent}        break;
 ${indent}    }
 
@@ -419,13 +419,13 @@ ${indent}${name} = AJ_Realloc((void*)${name}, --${name}Elements * sizeof(${name}
     #assert($isinstance($container, $structdef.StructDef) or $isinstance($container, $dictdef.DictDef)) 
     #set $isstruct = $isinstance($container, $structdef.StructDef)
     #if $isstruct
-${indent}status = AJ_UnmarshalContainer($msg_ptr, &struct$depth, AJ_ARG_STRUCT);
+${indent}ajcgStatus = AJ_UnmarshalContainer($msg_ptr, &struct$depth, AJ_ARG_STRUCT);
     #else
-${indent}status = AJ_UnmarshalContainer($msg_ptr, &dictionary$depth, AJ_ARG_DICT_ENTRY);
+${indent}ajcgStatus = AJ_UnmarshalContainer($msg_ptr, &dictionary$depth, AJ_ARG_DICT_ENTRY);
     #end if
 
     #if $is_array
-${indent}if (AJ_ERR_NO_MORE == status) {
+${indent}if (AJ_ERR_NO_MORE == ajcgStatus) {
 ${indent}    break;
 ${indent}}
 
@@ -443,7 +443,7 @@ $CommonCheetah.handle_error($runnable, "AJ_UnmarshalContainer", $indent_count, $
             #set $basicfields = $fieldlist[$index:$end_basic_type_index]
             #set $marshal_sig = "".join([x.get_flattened_signature() for x in $basicfields])
             #set $marshal_args = ", ".join(["&{0}.{1}".format($name, x.name) for x in $basicfields])
-${indent}status = AJ_UnmarshalArgs($msg_ptr, "$marshal_sig", $marshal_args);
+${indent}ajcgStatus = AJ_UnmarshalArgs($msg_ptr, "$marshal_sig", $marshal_args);
 $CommonCheetah.handle_error($runnable, "AJ_UnmarshalArgs", $indent_count, $free_list)
             #set $index = $end_basic_type_index
         #else
@@ -454,9 +454,9 @@ $CommonCheetah.unmarshal_one_argument($fakemember, $runnable, $indent_count)
         #end if
     #end while
     #if $isstruct
-${indent}status = AJ_UnmarshalCloseContainer($msg_ptr, &struct$depth);
+${indent}ajcgStatus = AJ_UnmarshalCloseContainer($msg_ptr, &struct$depth);
     #else
-${indent}status = AJ_UnmarshalCloseContainer($msg_ptr, &dictionary$depth);
+${indent}ajcgStatus = AJ_UnmarshalCloseContainer($msg_ptr, &dictionary$depth);
     #end if
 
 $CommonCheetah.handle_error($runnable, "AJ_UnmarshalCloseContainer", $indent_count, $free_list)#slurp
@@ -469,7 +469,7 @@ $CommonCheetah.handle_error($runnable, "AJ_UnmarshalCloseContainer", $indent_cou
     #if $arginfo is not None and len($arginfo.args) > 0
         #set $indent = $indent_count * " "
         #if $arginfo.is_basic_types()
-${indent}status = AJ_MarshalArgs($msg_ptr, "$arginfo.signature"#slurp
+${indent}ajcgStatus = AJ_MarshalArgs($msg_ptr, "$arginfo.signature"#slurp
             #for $a in $arginfo.args
 , $a.name#slurp
             #end for
@@ -499,7 +499,7 @@ $CommonCheetah.marshal_one_argument($runnable, $a, $msg_ptr, $indent_count)#slur
         ## marshal the array openers
         #for $index in $range($openclosecount)
 ${indent}/* Marshal array at depth $index. */
-${indent}status = AJ_MarshalContainer($msg_ptr, &array$index, AJ_ARG_ARRAY);
+${indent}ajcgStatus = AJ_MarshalContainer($msg_ptr, &array$index, AJ_ARG_ARRAY);
 
 $CommonCheetah.handle_error($runnable, "AJ_MarshalContainer", $indent_count)
         #end for
@@ -514,7 +514,7 @@ $CommonCheetah.marshal_container_array($runnable, $arg.name, $containerdef, $msg
             #set $depth = $indirection_level - 1
 ${indent}/* Marshal array at depth $depth. */
 ${indent}AJ_InitArg(&array$depth, '$basesig', AJ_ARRAY_FLAG, $arg.name, ${arg.name}Elements * sizeof(*$arg.name));
-${indent}status = AJ_MarshalArg($msg_ptr, &array$depth);
+${indent}ajcgStatus = AJ_MarshalArg($msg_ptr, &array$depth);
 
 $CommonCheetah.handle_error($runnable, "AJ_MarshalArg", $indent_count)
         #end if
@@ -522,7 +522,7 @@ $CommonCheetah.handle_error($runnable, "AJ_MarshalArg", $indent_count)
         ## marshal the array closers
         #for $index in $reversed($range($openclosecount))
 ${indent}/* Close array at depth $index. */
-${indent}status = AJ_MarshalCloseContainer($msg_ptr, &array$index);
+${indent}ajcgStatus = AJ_MarshalCloseContainer($msg_ptr, &array$index);
 
 $CommonCheetah.handle_error($runnable, "AJ_MarshalCloseContainer", $indent_count)#slurp
         #end for
@@ -533,24 +533,24 @@ $CommonCheetah.handle_error($runnable, "AJ_MarshalCloseContainer", $indent_count
             #set $containerdef = $arg.get_named_type()
 $CommonCheetah.marshal_container($runnable, $arg.name, $containerdef, $msg_ptr, 0, $indent_count)#slurp
         #elif $arg.arg_type == 'v'
-${indent}status = AJ_MarshalVariant($msg_ptr, ${arg.name}.sigPtr);
+${indent}ajcgStatus = AJ_MarshalVariant($msg_ptr, ${arg.name}.sigPtr);
 
 $CommonCheetah.handle_error($runnable, "AJ_MarshalVariant", $indent_count)
             #if $runnable
 ${indent}if (${arg.name}.typeId == AJ_ARG_STRING) {
-${indent}    status = AJ_MarshalArgs($msg_ptr, ${arg.name}.sigPtr, ${arg.name}.val.v_string);
+${indent}    ajcgStatus = AJ_MarshalArgs($msg_ptr, ${arg.name}.sigPtr, ${arg.name}.val.v_string);
 ${indent}} else { /* We know that only strings and integers are sent so it must be an int. */
-${indent}    status = AJ_MarshalArgs($msg_ptr, ${arg.name}.sigPtr, *${arg.name}.val.v_int32);
+${indent}    ajcgStatus = AJ_MarshalArgs($msg_ptr, ${arg.name}.sigPtr, *${arg.name}.val.v_int32);
 ${indent}}
 
 $CommonCheetah.handle_error($runnable, "AJ_MarshalArg", $indent_count)#slurp
             #else
 ${indent}/* TODO: Marshal your variant value with code something like:
-${indent}   status = AJ_MarshalArgs($msg_ptr, ${arg.name}.sigPtr, *${arg.name}.val.v_int32);
+${indent}   ajcgStatus = AJ_MarshalArgs($msg_ptr, ${arg.name}.sigPtr, *${arg.name}.val.v_int32);
 ${indent} */
             #end if
         #else
-${indent}status = AJ_MarshalArgs($msg_ptr, "$arg.arg_type", $arg.name);
+${indent}ajcgStatus = AJ_MarshalArgs($msg_ptr, "$arg.arg_type", $arg.name);
 
 $CommonCheetah.handle_error($runnable, "AJ_MarshalArgs", $indent_count)#slurp
         #end if
@@ -563,7 +563,7 @@ $CommonCheetah.handle_error($runnable, "AJ_MarshalArgs", $indent_count)#slurp
 #def marshal_string_array($runnable, $name, $msg_ptr, $t, $depth, $indent_count)
     #set $indent = $indent_count * " "
 ${indent}for (index$depth = 0; index$depth < ${name}Elements; index$depth++) {
-${indent}    status = AJ_MarshalArgs($msg_ptr, "$t", ${name}[index$depth]);
+${indent}    ajcgStatus = AJ_MarshalArgs($msg_ptr, "$t", ${name}[index$depth]);
 
 $CommonCheetah.handle_error($runnable, "AJ_MarshalArgs", $indent_count + 4)#slurp
 ${indent}}
@@ -588,9 +588,9 @@ ${indent}}
     #assert($isinstance($container, $structdef.StructDef) or $isinstance($container, $dictdef.DictDef)) 
     #set $isstruct = $isinstance($container, $structdef.StructDef)
     #if $isstruct
-${indent}status = AJ_MarshalContainer($msg_ptr, &struct$depth, AJ_ARG_STRUCT);
+${indent}ajcgStatus = AJ_MarshalContainer($msg_ptr, &struct$depth, AJ_ARG_STRUCT);
     #else
-${indent}status = AJ_MarshalContainer($msg_ptr, &dictionary$depth, AJ_ARG_DICT_ENTRY);
+${indent}ajcgStatus = AJ_MarshalContainer($msg_ptr, &dictionary$depth, AJ_ARG_DICT_ENTRY);
     #end if
 
 $CommonCheetah.handle_error($runnable, "AJ_MarshalContainer", $indent_count)
@@ -606,7 +606,7 @@ $CommonCheetah.handle_error($runnable, "AJ_MarshalContainer", $indent_count)
             #set $basicfields = $fieldlist[$index:$end_basic_type_index]
             #set $marshal_sig = "".join([x.get_flattened_signature() for x in $basicfields])
             #set $marshal_args = ", ".join(["{0}.{1}".format($name, x.name) for x in $basicfields])
-${indent}status = AJ_MarshalArgs($msg_ptr, "$marshal_sig", $marshal_args);
+${indent}ajcgStatus = AJ_MarshalArgs($msg_ptr, "$marshal_sig", $marshal_args);
 
 $CommonCheetah.handle_error($runnable, "AJ_MarshalArgs", $indent_count)
             #set $index = $end_basic_type_index
@@ -619,9 +619,9 @@ $CommonCheetah.marshal_one_argument($runnable, $fakemember, $msg_ptr, $indent_co
         #end if
     #end while
     #if $isstruct
-${indent}status = AJ_MarshalCloseContainer($msg_ptr, &struct$depth);
+${indent}ajcgStatus = AJ_MarshalCloseContainer($msg_ptr, &struct$depth);
     #else
-${indent}status = AJ_MarshalCloseContainer($msg_ptr, &dictionary$depth);
+${indent}ajcgStatus = AJ_MarshalCloseContainer($msg_ptr, &dictionary$depth);
     #end if
 
 $CommonCheetah.handle_error($runnable, "AJ_MarshalCloseContainer", $indent_count)#slurp

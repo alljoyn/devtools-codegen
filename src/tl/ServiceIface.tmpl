@@ -51,29 +51,29 @@ AJ_Status ${c.name}(AJ_BusAttachment* bus, AJ_SessionId sessionId, $c.output_arg
 AJ_Status ${c.name}(AJ_BusAttachment* bus, AJ_SessionId sessionId)
     #end if
 {
-    AJ_Message msg;
-    AJ_Status status = AJ_OK;
+    AJ_Message ajcgMsg;
+    AJ_Status ajcgStatus = AJ_OK;
     #set $has_outputs = len($c.output_arg_info.args) > 0
 $cc.CommonCheetah.define_arrays_and_structures($c, False)
-    status = AJ_MarshalSignal(bus, &msg, $c.define, NULL, sessionId, AJ_NO_FLAGS, 0);
+    ajcgStatus = AJ_MarshalSignal(bus, &ajcgMsg, $c.define, NULL, sessionId, AJ_NO_FLAGS, 0);
 
 $cc.CommonCheetah.handle_error($command_line.runnable, "AJ_MarshalSignal", 4)
     #if $has_outputs
-$cc.CommonCheetah.marshal_arguments($command_line.runnable, $c.output_arg_info, "&msg", 4)
+$cc.CommonCheetah.marshal_arguments($command_line.runnable, $c.output_arg_info, "&ajcgMsg", 4)
     #end if
-    status = AJ_DeliverMsg(&msg);
+    ajcgStatus = AJ_DeliverMsg(&ajcgMsg);
 
 $cc.CommonCheetah.handle_error($command_line.runnable, "AJ_DeliverMsg", 4)
-    return status;
+    return ajcgStatus;
 }
 #end def
 ######################
 ## Define a property.
 ###################### 
 #def property_definition($c)
-AJ_Status ${c.name}(AJ_Message* msg, uint32_t getOrSet, void* context)
+AJ_Status ${c.name}(AJ_Message* ajcgMsg, uint32_t getOrSet, void* context)
 {
-    AJ_Status status = AJ_OK;
+    AJ_Status ajcgStatus = AJ_OK;
 $cc.CommonCheetah.define_arrays_and_structures($c)
     #if $c.input_arg_info is not None
     if (getOrSet == AJ_PROP_SET) {
@@ -97,12 +97,12 @@ $cc.CommonCheetah.define_arguments($c.output_arg_info.args, 8, $free_list)
         $GenTL.comment_start_runnable
 $cc.CommonCheetah.define_static_args($c.output_arg_info.args, 8)
 $cc.CommonCheetah.initialize_args($c.output_arg_info.args, $c.name, 8)
-$cc.CommonCheetah.marshal_arguments(True, $c.output_arg_info, "msg", 8)
+$cc.CommonCheetah.marshal_arguments(True, $c.output_arg_info, "ajcgMsg", 8)
         $GenTL.comment_end_runnable
         #else
         /* TODO: Replace 'value' with the actual property value of interest. */
 $cc.CommonCheetah.define_arguments($c.output_arg_info.args, 8, $free_list)
-$cc.CommonCheetah.marshal_arguments(False, $c.output_arg_info, "msg", 8)#slurp
+$cc.CommonCheetah.marshal_arguments(False, $c.output_arg_info, "ajcgMsg", 8)#slurp
         #end if
         #if len(free_list) > 0
 
@@ -114,14 +114,14 @@ $cc.CommonCheetah.marshal_arguments(False, $c.output_arg_info, "msg", 8)#slurp
     }
 
     #end if
-    return status;
+    return ajcgStatus;
 }
 #end def
 ######################
 ## Define a method.
 ###################### 
 #def method_definition($o, $c)
-AJ_Status ${c.name}(AJ_Message* msg, AJ_Message* reply)
+AJ_Status ${c.name}(AJ_Message* ajcgMsg, AJ_Message* ajcgReply)
 {
     #set $free_list = []
     #set $has_outputs = len($c.output_arg_info.args) > 0
@@ -145,7 +145,7 @@ $cc.CommonCheetah.define_arguments($c.output_arg_info.args, 4, $free_list)#slurp
 
     #end if
 $cc.CommonCheetah.define_arrays_and_structures($c)#slurp
-    AJ_Status status = AJ_OK;
+    AJ_Status ajcgStatus = AJ_OK;
 
     #if $has_inputs
 $cc.CommonCheetah.unmarshal_arguments($c.comp_type, $command_line.runnable, $c.input_arg_info, 4, False)#slurp
@@ -169,7 +169,7 @@ $cc.CommonCheetah.initialize_args($c.output_arg_info.args, $complete_name, 4)
 
 $cc.CommonCheetah.free_and_null_arrays($c.input_arg_info)#slurp
     #if $has_outputs
-$cc.CommonCheetah.marshal_arguments($command_line.runnable, $c.output_arg_info, "reply", 4)#slurp
+$cc.CommonCheetah.marshal_arguments($command_line.runnable, $c.output_arg_info, "ajcgReply", 4)#slurp
     #end if
     #if len(free_list) > 0
 
@@ -179,7 +179,7 @@ $cc.CommonCheetah.marshal_arguments($command_line.runnable, $c.output_arg_info, 
         #end for
 
     #end if
-    return status;
+    return ajcgStatus;
 }
 #end def
 ######################

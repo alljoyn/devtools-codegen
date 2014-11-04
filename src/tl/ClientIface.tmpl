@@ -56,22 +56,22 @@ AJ_Status ${c.name}_Caller(AJ_BusAttachment* bus, uint32_t sessionId, $input_arg
 AJ_Status ${c.name}_Caller(AJ_BusAttachment* bus, uint32_t sessionId)
     #end if
 {
-    AJ_Message msg;
-    AJ_Status status;
+    AJ_Message ajcgMsg;
+    AJ_Status ajcgStatus;
 $cc.CommonCheetah.define_arrays_and_structures($c, True, False)
-    status = AJ_MarshalMethodCall(bus, &msg, $c.define, g_ServiceName, sessionId, 0, TIMEOUT_METHOD);
+    ajcgStatus = AJ_MarshalMethodCall(bus, &ajcgMsg, $c.define, g_ServiceName, sessionId, 0, TIMEOUT_METHOD);
 
 $cc.CommonCheetah.handle_error($command_line.runnable, "AJ_MarshalMethodCall", 4)
     #if $input_args is not None
-$cc.CommonCheetah.marshal_arguments($command_line.runnable, $c.input_arg_info, "&msg", 4)
+$cc.CommonCheetah.marshal_arguments($command_line.runnable, $c.input_arg_info, "&ajcgMsg", 4)
     #end if
-    status = AJ_DeliverMsg(&msg);
+    ajcgStatus = AJ_DeliverMsg(&ajcgMsg);
 
 $cc.CommonCheetah.handle_error($command_line.runnable, "AJ_DeliverMsg", 4)
-    return status;
+    return ajcgStatus;
 }
     #if not $c.no_reply
-AJ_Status ${c.name}_ReplyHandler(AJ_Message* msg)
+AJ_Status ${c.name}_ReplyHandler(AJ_Message* ajcgMsg)
 $message_handler($o, $c)#slurp
     #end if
 #end def
@@ -82,45 +82,45 @@ $message_handler($o, $c)#slurp
     #if $c.input_arg_info is not None and $c.input_arg_info.arg_declaration is not None
 AJ_Status ${c.name}_Set(AJ_BusAttachment* bus, uint32_t sessionId, $c.input_arg_info.arg_declaration)
 {
-    AJ_Message msg;
-    AJ_Status status;
+    AJ_Message ajcgMsg;
+    AJ_Status ajcgStatus;
 $cc.CommonCheetah.define_arrays_and_structures($c, True, False)
-    status = AJ_MarshalMethodCall(bus, &msg, $c.prop_set_define, g_ServiceName, sessionId, 0, TIMEOUT_METHOD);
+    ajcgStatus = AJ_MarshalMethodCall(bus, &ajcgMsg, $c.prop_set_define, g_ServiceName, sessionId, 0, TIMEOUT_METHOD);
 
 $cc.CommonCheetah.handle_error($command_line.runnable, "AJ_MarshalMethodCall", 4)
-    status = AJ_MarshalPropertyArgs(&msg, $c.define);
+    ajcgStatus = AJ_MarshalPropertyArgs(&ajcgMsg, $c.define);
 
 $cc.CommonCheetah.handle_error($command_line.runnable, "AJ_MarshalPropertyArgs", 4)
-$cc.CommonCheetah.marshal_arguments($command_line.runnable, $c.input_arg_info, "&msg", 4)
-    status = AJ_DeliverMsg(&msg);
+$cc.CommonCheetah.marshal_arguments($command_line.runnable, $c.input_arg_info, "&ajcgMsg", 4)
+    ajcgStatus = AJ_DeliverMsg(&ajcgMsg);
 
 $cc.CommonCheetah.handle_error($command_line.runnable, "AJ_DeliverMsg", 4)
-    return status;
+    return ajcgStatus;
 }
     #end if
     #if not $c.no_reply
 AJ_Status ${c.name}_Get(AJ_BusAttachment* bus, uint32_t sessionId)
 {
-    AJ_Status status;
-    AJ_Message msg;
+    AJ_Status ajcgStatus;
+    AJ_Message ajcgMsg;
 
-    status = AJ_MarshalMethodCall(bus, &msg, $c.prop_get_define, g_ServiceName, sessionId, 0, TIMEOUT_METHOD);
+    ajcgStatus = AJ_MarshalMethodCall(bus, &ajcgMsg, $c.prop_get_define, g_ServiceName, sessionId, 0, TIMEOUT_METHOD);
 
 $cc.CommonCheetah.handle_error($command_line.runnable, "AJ_MarshalMethodCall", 4)
-    status = SetPropHandlerReplySerial(PropHandlers$o.get_full_coded_name(),
-                                       ${c.name}_GetHandler,
-                                       msg.hdr->serialNum);
+    ajcgStatus = SetPropHandlerReplySerial(PropHandlers$o.get_full_coded_name(),
+                                           ${c.name}_GetHandler,
+                                           ajcgMsg.hdr->serialNum);
 
 $cc.CommonCheetah.handle_error($command_line.runnable, "SetPropHandlerReplySerial", 4)
-    status = AJ_MarshalPropertyArgs(&msg, $c.define);
+    ajcgStatus = AJ_MarshalPropertyArgs(&ajcgMsg, $c.define);
 
 $cc.CommonCheetah.handle_error($command_line.runnable, "AJ_MarshalPropertyArgs", 4)
-    status = AJ_DeliverMsg(&msg);
+    ajcgStatus = AJ_DeliverMsg(&ajcgMsg);
 
 $cc.CommonCheetah.handle_error($command_line.runnable, "AJ_DeliverMsg", 4)
-    return status;
+    return ajcgStatus;
 }
-AJ_Status ${c.name}_GetHandler(AJ_Message* msg, void* context)
+AJ_Status ${c.name}_GetHandler(AJ_Message* ajcgMsg, void* context)
 $message_handler($o, $c)#slurp
     #end if
 #end def
@@ -128,7 +128,7 @@ $message_handler($o, $c)#slurp
 ## Define a signal.
 ###################### 
 #def signal_definition($o, $c)
-AJ_Status ${c.name}(AJ_Message* msg)
+AJ_Status ${c.name}(AJ_Message* ajcgMsg)
 $message_handler($o, $c)#slurp
 #end def
 ######################
@@ -139,7 +139,7 @@ $message_handler($o, $c)#slurp
     #set $runnable = $command_line.runnable 
     #set $complete_name = $GenTL.get_complete_name($o, $interface, $c)
     #if $c.output_arg_info is not None and len($c.output_arg_info.args) > 0
-    AJ_Status status;
+    AJ_Status ajcgStatus;
 $cc.CommonCheetah.define_arrays_and_structures($c, False)#slurp
 $cc.CommonCheetah.define_arguments($c.output_arg_info.args, 4, None)
 $cc.CommonCheetah.unmarshal_arguments($c.comp_type, $runnable, $c.output_arg_info, 4, True)
@@ -158,7 +158,7 @@ $cc.CommonCheetah.print_args($c.output_arg_info.args, 4)#slurp
     /* TODO: Put user code here to handle the reply. */
         #end if
     #else
-    AJ_Status status = AJ_OK;
+    AJ_Status ajcgStatus = AJ_OK;
 
         #if $runnable
     $GenTL.comment_start_runnable
@@ -172,7 +172,7 @@ $cc.CommonCheetah.print_args($c.output_arg_info.args, 4)#slurp
     #end if
 
 $cc.CommonCheetah.free_and_null_arrays($c.output_arg_info)#slurp
-    return status;
+    return ajcgStatus;
 }
 #end def
 ######################

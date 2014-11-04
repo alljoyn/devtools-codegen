@@ -103,13 +103,13 @@ $do_property_turn($complete_name, $c)#slurp
  * Handler for AJ_SIGNAL_SESSION_LOST_WITH_REASON. Returns AJ_ERR_READ to indicate a disconnect
  * should be done.
  */
-AJ_Status SessionLost(AJ_Message* msg)
+AJ_Status SessionLost(AJ_Message* ajcgMsg)
 {
-    AJ_Status status = AJ_ERR_READ;
+    AJ_Status ajcgStatus = AJ_ERR_READ;
 
     /* TODO: Resource clean up or other things that need to be done upon session lost. */
 
-    return status;
+    return ajcgStatus;
 }
 #####################
 ## Generate the code for doing a single "turn" of a method.
@@ -130,7 +130,7 @@ $cc.CommonCheetah.define_static_args($input_args, 8)
 $cc.CommonCheetah.define_arguments($input_args, 8, $free_list)
     #end if
         /* Miscellaneous local variables. */
-        AJ_Status status;
+        AJ_Status ajcgStatus;
     #if $c.has_array(True)
         int index0 = 0;
     #end if
@@ -146,7 +146,7 @@ $do_method_call($complete_name, $c, $input_args, $free_list)#slurp
 #def $do_method_call($complete_name, $c, $input_args, $free_list)
         AJ_InfoPrintf(("Calling '$complete_name'.\n"));
         #if $input_args is not None
-        status = ${c.name}_Caller(bus, sessionId#slurp
+        ajcgStatus = ${c.name}_Caller(bus, sessionId#slurp
             #for $a in $input_args
 , $a.name#slurp
                 #if $a.is_array()
@@ -155,7 +155,7 @@ $do_method_call($complete_name, $c, $input_args, $free_list)#slurp
             #end for
 );
         #else
-        status = ${c.name}_Caller(bus, sessionId);
+        ajcgStatus = ${c.name}_Caller(bus, sessionId);
         #end if
         #if len(free_list) > 0
 
@@ -165,10 +165,10 @@ $do_method_call($complete_name, $c, $input_args, $free_list)#slurp
             #end for
         #end if
 
-        if (AJ_OK != status) {
-            const char* statusText = AJ_StatusText(status);
+        if (AJ_OK != ajcgStatus) {
+            const char* statusText = AJ_StatusText(ajcgStatus);
 
-            AJ_InfoPrintf(("Calling '$complete_name' failed with status code 0x%x (%s).\n", status, statusText));
+            AJ_InfoPrintf(("Calling '$complete_name' failed with status code 0x%x (%s).\n", ajcgStatus, statusText));
         }
 #end def
 #####################
@@ -178,7 +178,7 @@ $do_method_call($complete_name, $c, $input_args, $free_list)#slurp
     #set $free_list = []
     #set $indent_count = 8
     #set $indent = $indent_count * " "
-${indent}AJ_Status status;
+${indent}AJ_Status ajcgStatus;
     #set $input_args = $c.input_arg_info.args
     #set $output_args = $c.output_arg_info.args
     #set $is_get_set = False
@@ -227,16 +227,16 @@ $do_property_call($complete_name, $c, False, $indent_count, $free_list)#slurp
     #set $indent = $indent_count * " "
     #if $do_get
 ${indent}AJ_InfoPrintf(("Calling '$complete_name'(Get).\n"));
-${indent}status = ${c.name}_Get(bus, sessionId);
+${indent}ajcgStatus = ${c.name}_Get(bus, sessionId);
 
-${indent}if (AJ_OK != status) {
-${indent}    const char* statusText = AJ_StatusText(status);
+${indent}if (AJ_OK != ajcgStatus) {
+${indent}    const char* statusText = AJ_StatusText(ajcgStatus);
 
-${indent}    AJ_InfoPrintf(("Getting '$complete_name' property failed with status code 0x%x (%s).\n", status, statusText));
+${indent}    AJ_InfoPrintf(("Getting '$complete_name' property failed with status code 0x%x (%s).\n", ajcgStatus, statusText));
 ${indent}}
     #else
 ${indent}AJ_InfoPrintf(("Calling '$complete_name'(Set).\n"));
-${indent}status = ${c.name}_Set(bus, sessionId#slurp
+${indent}ajcgStatus = ${c.name}_Set(bus, sessionId#slurp
         #for $a in $c.input_arg_info.args
 , $a.name#slurp
                 #if $a.is_array()
@@ -252,9 +252,9 @@ ${indent}$f = NULL;
             #end for
         #end if
 
-${indent}if (AJ_OK != status) {
-${indent}    const char* statusText = AJ_StatusText(status);
-${indent}    AJ_InfoPrintf(("Setting '$complete_name' property failed with status code 0x%x (%s).\n", status, statusText));
+${indent}if (AJ_OK != ajcgStatus) {
+${indent}    const char* statusText = AJ_StatusText(ajcgStatus);
+${indent}    AJ_InfoPrintf(("Setting '$complete_name' property failed with status code 0x%x (%s).\n", ajcgStatus, statusText));
 ${indent}}
     #end if
 #end def

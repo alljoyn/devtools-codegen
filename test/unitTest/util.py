@@ -13,6 +13,7 @@
 # OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 
 import AllJoynCodeGen.config as config
+import AllJoynCodeGen.codegen as codegen
 
 def validate_cmdline(cmdline):
     pass # no checks performed
@@ -23,7 +24,6 @@ def validate_cmdline_wkn_required(cmdline):
 
 def get_config():
     c = config.Config()
-    c.register_target('tl', { 'validate_cmdline' : validate_cmdline_wkn_required })
-    c.register_target('ddcpp', { 'validate_cmdline' : validate_cmdline })
+    codegen.register_targets(c)
     c.parse()
     return c

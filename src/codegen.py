@@ -39,9 +39,7 @@ def main():
 
     try:
         configuration = config.Config()
-        configuration.register_target('tl', tl.GenTL.hooks())
-        configuration.register_target('android', android.GenAndroid.hooks())
-        configuration.register_target('ddcpp', ddcpp.GenCPP.hooks())
+        register_targets(configuration)
         configuration.parse()
         common.target_language = configuration.command_line.target_language
         report_config(configuration)
@@ -99,6 +97,12 @@ def report_config(c):
         print("Well known name = '{0}'.".format(name))
 
     return
+
+def register_targets(c):
+    """Register the target languages supported with the configuration 'c'."""
+    c.register_target('tl', tl.GenTL.hooks())
+    c.register_target('android', android.GenAndroid.hooks())
+    c.register_target('ddcpp', ddcpp.GenCPP.hooks())
 
 if __name__=="__main__":
     main()

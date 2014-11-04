@@ -85,8 +85,12 @@ class TestConfig(unittest.TestCase):
         self.assertTrue(c.command_line.target_language == "tl")
 
         args[1] = "-tandroid"
-        c = config.Config()
+        c = util.get_config()
         self.assertTrue(c.command_line.target_language == "android")
+
+        args[1] = "-tddcpp"
+        c = util.get_config()
+        self.assertTrue(c.command_line.target_language == "ddcpp")
 
         args[1] = "-tFoo"
 

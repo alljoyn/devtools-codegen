@@ -45,6 +45,8 @@ from .. import config
 from .. import service
 from .. import argdef
 from .. import interface as iface
+from .. import structdef
+from .. import dictdef
 
 def hooks():
     """Return the hooks for the AllJoyn Android language binding."""
@@ -285,15 +287,11 @@ def get_java_type(interface, signature, member = None):
 
     if signature in type_dictionary:
         t = type_dictionary[signature]
-    elif signature in interface.structures:
-        t = __make_structure_type_name(interface, interface.structures[signature])
-    elif signature in interface.dictionaries:
-        assert(0) # TODO: Implement this. It might look like the following:
-        # t = __make_structure_type_name(interface, interface.dictionaries[signature])
-    elif member:
-        signature = member.name + iface.return_suffix
-        assert(signature in interface.structures)
-        t = __make_structure_type_name(interface, interface.structures[signature])
+    elif signature[0] == '[':
+        named_type = interface.get_named_type(signature[1:-1])
+        if isinstance(named_type, structdef.StructDef) or \
+           isinstance(named_type, dictdef.DictDef):
+            t = __make_structure_type_name(interface, named_type)
 
     assert(t)
 
@@ -377,35 +375,14 @@ def interface_needs_persistent_data(interface, is_client):
 def get_well_known_name_path(configuration):
     return __get_well_known_name_path(configuration.command_line)
 
-def make_members_from_signature(interface, signature):
-    """Return the member types and names from the structure signature."""
+def make_members_from_structure(interface, struct):
+    """Return the member types and names from the structure."""
     return_value = []
 
-    member_num = 0
-    assert(signature[0] == '(' or signature[0] == '{')
-    index = 1
-
-    while index < len(signature) - 1:
-        indirections = argdef.get_indirection_level(signature, index)
-        pointers = "*" * indirections
-
-        index += indirections
-
-        end_index = argdef.find_end_of_type(signature, index)
-        sig_type = signature[index:end_index]
-        java_type = get_java_type(interface, sig_type)
-
-        index = end_index
-
-        if len(pointers) > 0:
-            if sig_type == 'b':
-                java_type = "boolean"
-            java_type = get_java_type(interface, 'a')
-
-        m = [java_type, "member{0}".format(member_num)]
-
+    for f in struct.fields:
+        java_type = get_java_type(interface, f.arg_type)
+        m = [java_type, f.name]
         return_value.append(m)
-        member_num += 1
 
     return return_value
 

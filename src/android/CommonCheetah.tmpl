@@ -334,12 +334,8 @@ ${indent}sendUiMessage(msg);
     #set $indent = $indent_count * ' '
     #set $structures = $interface.get_containers_in_declaration_order()
     #for $s in $structures
-        #if $s.signature[0] == '('
 ${indent}public class $s.name {
-        #else
-${indent}public class $s.name /*dictionary*/ {
-        #end if
-        #set $members = $GenAndroid.make_members_from_signature($interface, $s.signature)
+        #set $members = $GenAndroid.make_members_from_structure($interface, $s)
         #set $position = 0
         #for $m in $members
             #if $m[0] == "String"

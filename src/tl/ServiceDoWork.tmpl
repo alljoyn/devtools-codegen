@@ -125,13 +125,13 @@ $cc.CommonCheetah.initialize_args($output_args, $complete_name, 8)#slurp
                 ajcgStatus = ${c.name}(bus, sessionId);
                 #end if
 
-                AJ_InfoPrintf(("Sending signal '$complete_name' to sessionId 0x%x.\n", sessionId));
+                AJ_AlwaysPrintf(("Sending signal '$complete_name' to sessionId 0x%x.\n", sessionId));
 
                 if (AJ_OK != ajcgStatus) {
                     const char* statusText = AJ_StatusText(ajcgStatus);
 
-                    AJ_InfoPrintf(("Calling '$complete_name' with session ID 0x%x failed with status code 0x%x (%s).\n",
-                                   sessionId, ajcgStatus, statusText));
+                    AJ_AlwaysPrintf(("Calling '$complete_name' with session ID 0x%x failed with status code 0x%x (%s).\n",
+                                     sessionId, ajcgStatus, statusText));
                 }
             }
         }
@@ -154,7 +154,7 @@ $cc.CommonCheetah.initialize_args($output_args, $complete_name, 8)#slurp
 
     $GenTL.comment_end_runnable
 #else
-    AJ_InfoPrintf(("ServiceAppDoWork()\n"));
+    AJ_AlwaysPrintf(("ServiceAppDoWork()\n"));
 #end if
 }
 #if $command_line.runnable
@@ -193,14 +193,14 @@ AJ_Status SessionJoined(AJ_Message* msg, AJ_Message* reply)
 
     if (index != s_maxSessions) {
         s_activeSessions[index] = msg->sessionId;
-        AJ_InfoPrintf(("\nSession 0x%x joined. Path = '%s'.\n", msg->sessionId, msg->objPath));
+        AJ_AlwaysPrintf(("\nSession 0x%x joined. Path = '%s'.\n", msg->sessionId, msg->objPath));
     } else {
         ajcgStatus = AJ_ERR_RESOURCES;
     }
     $GenTL.comment_end_runnable
 #else
 
-    AJ_InfoPrintf(("\nSession 0x%x joined. Path = '%s'.\n", msg->sessionId, msg->objPath));
+    AJ_AlwaysPrintf(("\nSession 0x%x joined. Path = '%s'.\n", msg->sessionId, msg->objPath));
 #end if
 
     return ajcgStatus;
@@ -226,7 +226,7 @@ AJ_Status SessionLost(AJ_Message* msg, AJ_Message* reply)
     $GenTL.comment_end_runnable
 #end if
 
-    AJ_InfoPrintf(("\nSession 0x%x lost. Path = '%s'.\n", msg->sessionId, msg->objPath));
+    AJ_AlwaysPrintf(("\nSession 0x%x lost. Path = '%s'.\n", msg->sessionId, msg->objPath));
 
     return ajcgStatus;
 }

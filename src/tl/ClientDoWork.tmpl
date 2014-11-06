@@ -95,7 +95,7 @@ $do_property_turn($complete_name, $c)#slurp
 #else
     /* TODO: Add stuff for client to do while waiting for a message. */
 
-    AJ_InfoPrintf(("ClientAppDoWork()\n"));
+    AJ_AlwaysPrintf(("ClientAppDoWork()\n"));
 #end if
 }
 
@@ -144,7 +144,7 @@ $do_method_call($complete_name, $c, $input_args, $free_list)#slurp
 ## Generate the code for a method call.
 #####################
 #def $do_method_call($complete_name, $c, $input_args, $free_list)
-        AJ_InfoPrintf(("Calling '$complete_name'.\n"));
+        AJ_AlwaysPrintf(("Calling '$complete_name'.\n"));
         #if $input_args is not None
         ajcgStatus = ${c.name}_Caller(bus, sessionId#slurp
             #for $a in $input_args
@@ -168,7 +168,7 @@ $do_method_call($complete_name, $c, $input_args, $free_list)#slurp
         if (AJ_OK != ajcgStatus) {
             const char* statusText = AJ_StatusText(ajcgStatus);
 
-            AJ_InfoPrintf(("Calling '$complete_name' failed with status code 0x%x (%s).\n", ajcgStatus, statusText));
+            AJ_AlwaysPrintf(("Calling '$complete_name' failed with status code 0x%x (%s).\n", ajcgStatus, statusText));
         }
 #end def
 #####################
@@ -226,16 +226,16 @@ $do_property_call($complete_name, $c, False, $indent_count, $free_list)#slurp
 #def $do_property_call($complete_name, $c, $do_get, $indent_count, $free_list)
     #set $indent = $indent_count * " "
     #if $do_get
-${indent}AJ_InfoPrintf(("Calling '$complete_name'(Get).\n"));
+${indent}AJ_AlwaysPrintf(("Calling '$complete_name'(Get).\n"));
 ${indent}ajcgStatus = ${c.name}_Get(bus, sessionId);
 
 ${indent}if (AJ_OK != ajcgStatus) {
 ${indent}    const char* statusText = AJ_StatusText(ajcgStatus);
 
-${indent}    AJ_InfoPrintf(("Getting '$complete_name' property failed with status code 0x%x (%s).\n", ajcgStatus, statusText));
+${indent}    AJ_AlwaysPrintf(("Getting '$complete_name' property failed with status code 0x%x (%s).\n", ajcgStatus, statusText));
 ${indent}}
     #else
-${indent}AJ_InfoPrintf(("Calling '$complete_name'(Set).\n"));
+${indent}AJ_AlwaysPrintf(("Calling '$complete_name'(Set).\n"));
 ${indent}ajcgStatus = ${c.name}_Set(bus, sessionId#slurp
         #for $a in $c.input_arg_info.args
 , $a.name#slurp
@@ -254,7 +254,7 @@ ${indent}$f = NULL;
 
 ${indent}if (AJ_OK != ajcgStatus) {
 ${indent}    const char* statusText = AJ_StatusText(ajcgStatus);
-${indent}    AJ_InfoPrintf(("Setting '$complete_name' property failed with status code 0x%x (%s).\n", ajcgStatus, statusText));
+${indent}    AJ_AlwaysPrintf(("Setting '$complete_name' property failed with status code 0x%x (%s).\n", ajcgStatus, statusText));
 ${indent}}
     #end if
 #end def

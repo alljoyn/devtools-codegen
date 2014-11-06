@@ -148,9 +148,9 @@ $cc.CommonCheetah.unmarshal_arguments($c.comp_type, $runnable, $c.output_arg_inf
     $GenTL.comment_start_runnable
 
             #if $c.comp_type == "sig"
-    AJ_InfoPrintf(("'$complete_name' signal received.\n"));
+    AJ_AlwaysPrintf(("'$complete_name' signal received.\n"));
             #else
-    AJ_InfoPrintf(("'$complete_name' replied.\n"));
+    AJ_AlwaysPrintf(("'$complete_name' replied.\n"));
             #end if
 $cc.CommonCheetah.print_args($c.output_arg_info.args, 4)#slurp
     $GenTL.comment_end_runnable
@@ -163,7 +163,7 @@ $cc.CommonCheetah.print_args($c.output_arg_info.args, 4)#slurp
         #if $runnable
     $GenTL.comment_start_runnable
 
-    AJ_InfoPrintf(("Received a reply from '$complete_name'\n"));
+    AJ_AlwaysPrintf(("Received a reply from '$complete_name'\n"));
 
     $GenTL.comment_end_runnable
         #else

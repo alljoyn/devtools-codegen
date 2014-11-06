@@ -18,9 +18,6 @@
 
 /* Source: "$command_line.xml_input_file" */
 
-\#ifndef AJ_DEBUG_RESTRICT
-\#define AJ_DEBUG_RESTRICT AJ_DEBUG_INFO
-\#endif
 \#include <alljoyn.h>
 #for $key in sorted($service.interfaces)
     #set $i = $service.interfaces[$key]

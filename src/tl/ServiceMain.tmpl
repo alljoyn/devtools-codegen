@@ -21,7 +21,6 @@
  * prior to first inclusion of aj_debug.h
  */
 \#define AJ_MODULE SERVICEMAIN
-\#define AJ_DEBUG_RESTRICT AJ_DEBUG_INFO
 
 \#include <alljoyn.h>
 
@@ -142,21 +141,21 @@ static uint8_t AcceptSession(AJ_Message* msg)
     #if $command_line.runnable
             if (AJ_OK == CanJoinSession()) {
                 accepted = TRUE;
-                AJ_InfoPrintf(("Accepted session_id=0x%x joiner=%s\n", sessionId, joiner));
+                AJ_AlwaysPrintf(("Accepted session_id=0x%x joiner=%s\n", sessionId, joiner));
             } else {
-                AJ_InfoPrintf(("Rejected session_id=0x%x joiner=%s due to lack of resources.\n", sessionId, joiner));
+                AJ_AlwaysPrintf(("Rejected session_id=0x%x joiner=%s due to lack of resources.\n", sessionId, joiner));
             }
     #else
             accepted = TRUE;
-            AJ_InfoPrintf(("Accepted session_id=0x%x joiner=%s\n", sessionId, joiner));
+            AJ_AlwaysPrintf(("Accepted session_id=0x%x joiner=%s\n", sessionId, joiner));
     #end if
         } else {
-            AJ_InfoPrintf(("Rejected session_id=0x%x joiner=%s\n", sessionId, joiner));
+            AJ_AlwaysPrintf(("Rejected session_id=0x%x joiner=%s\n", sessionId, joiner));
         }
     } else {
         const char* statusText = AJ_StatusText(status);
 
-        AJ_InfoPrintf(("Rejected session due to AJ_UnMarshalArgs() returning status 0x%x (%s).\n", status, statusText));
+        AJ_AlwaysPrintf(("Rejected session due to AJ_UnMarshalArgs() returning status 0x%x (%s).\n", status, statusText));
     }
 
     return accepted;

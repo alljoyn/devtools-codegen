@@ -21,7 +21,6 @@
  * prior to first inclusion of aj_debug.h
  */
 \#define AJ_MODULE CLIENTMAIN
-\#define AJ_DEBUG_RESTRICT AJ_DEBUG_INFO
 
 \#include <alljoyn.h>
 
@@ -133,7 +132,7 @@ int AJ_Main(void)
             } else {
                 const char* statusText = AJ_StatusText(status);
 
-                AJ_InfoPrintf(("StartClient returned 0x%x (%s).\n", status, statusText));
+                AJ_AlwaysPrintf(("StartClient returned 0x%x (%s).\n", status, statusText));
                 break;
             }
         }
@@ -197,7 +196,7 @@ int AJ_Main(void)
         }
     }
 
-    AJ_InfoPrintf(("ClientMain exit status: 0x%x (%s).", status, AJ_StatusText(status)));
+    AJ_AlwaysPrintf(("ClientMain exit status: 0x%x (%s).", status, AJ_StatusText(status)));
 
     return status;
 }

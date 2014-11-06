@@ -59,7 +59,7 @@
 ${indent}if (AJ_OK != ajcgStatus) {
     #if $runable
 ${indent}    $GenTL.comment_start_runnable
-${indent}    AJ_InfoPrintf(("${func_name}() returned status 0x%x (%s).\n", ajcgStatus, AJ_StatusText(ajcgStatus)));
+${indent}    AJ_AlwaysPrintf(("${func_name}() returned status 0x%x (%s).\n", ajcgStatus, AJ_StatusText(ajcgStatus)));
 ${indent}    $GenTL.comment_end_runnable
     #else
 ${indent}    $GenTL.comment_handle_error
@@ -662,7 +662,7 @@ ${indent} */
             #if $member is not None
                 #set $t = $GenTL.printf_dictionary[$member[1]]
                 #set $m_name = $member[0]
-${indent}AJ_InfoPrintf(("\tReceived '${arg.name}[%d].$m_name' = $t.\n", index0, ${arg.name}[index0].$m_name));
+${indent}AJ_AlwaysPrintf(("\tReceived '${arg.name}[%d].$m_name' = $t.\n", index0, ${arg.name}[index0].$m_name));
             #else
 ${indent}/*******
 ${indent} * TODO: Make a change in '$arg.name'.
@@ -672,7 +672,7 @@ ${indent} */
             #end if
         #else
             #set $t = $GenTL.printf_dictionary[$arg.get_flattened_base_signature()]
-${indent}AJ_InfoPrintf(("\tReceived '${arg.name}[%d]' = $t.\n", index0, ${arg.name}[index0]));
+${indent}AJ_AlwaysPrintf(("\tReceived '${arg.name}[%d]' = $t.\n", index0, ${arg.name}[index0]));
         #end if
     #elif $arg.is_structure()
         #set $member = $GenTL.get_scaler_member($arg)
@@ -682,12 +682,12 @@ ${indent}AJ_InfoPrintf(("\tReceived '${arg.name}[%d]' = $t.\n", index0, ${arg.na
             #if $t == 'v'
 
 ${indent}if (${arg.name}.${m_name}.typeId == 's') {
-${indent}AJ_InfoPrintf(("\tReceived variant string '${arg.name}.$m_name' = '%s'.\n", ${arg.name}.${m_name}.val.v_string));
+${indent}AJ_AlwaysPrintf(("\tReceived variant string '${arg.name}.$m_name' = '%s'.\n", ${arg.name}.${m_name}.val.v_string));
 ${indent}} else {
-${indent}AJ_InfoPrintf(("\tReceived variant int '${arg.name}.$m_name' = %d.\n", *${arg.name}.${m_name}.val.v_int32));
+${indent}AJ_AlwaysPrintf(("\tReceived variant int '${arg.name}.$m_name' = %d.\n", *${arg.name}.${m_name}.val.v_int32));
 ${indent}}
             #else
-${indent}AJ_InfoPrintf(("\tReceived '${arg.name}.$m_name' = $t.\n", ${arg.name}.$m_name));
+${indent}AJ_AlwaysPrintf(("\tReceived '${arg.name}.$m_name' = $t.\n", ${arg.name}.$m_name));
             #end if
         #else
 ${indent}/*******
@@ -701,12 +701,12 @@ ${indent} */
         #if $t == 'v'
 
 ${indent}if (${arg.name}.typeId == 's') {
-${indent}    AJ_InfoPrintf(("\tReceived variant string '$arg.name' = '%s'.\n", ${arg.name}.val.v_string));
+${indent}    AJ_AlwaysPrintf(("\tReceived variant string '$arg.name' = '%s'.\n", ${arg.name}.val.v_string));
 ${indent}} else {
-${indent}    AJ_InfoPrintf(("\tReceived variant int '$arg.name' = %d.\n", *${arg.name}.val.v_int32));
+${indent}    AJ_AlwaysPrintf(("\tReceived variant int '$arg.name' = %d.\n", *${arg.name}.val.v_int32));
 ${indent}}
         #else
-${indent}AJ_InfoPrintf(("\tReceived '$arg.name' = $t.\n", $arg.name));
+${indent}AJ_AlwaysPrintf(("\tReceived '$arg.name' = $t.\n", $arg.name));
         #end if
     #end if
 #end def

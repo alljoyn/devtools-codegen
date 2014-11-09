@@ -43,6 +43,8 @@ $function_definition($o, $c)
 #end for
 ######################
 ## Define a method.
+## $o is the object.
+## $c is the component (method/signal/property).
 ###################### 
 #def method_definition($o, $c)
     #if $c.input_arg_info is not None
@@ -58,7 +60,7 @@ AJ_Status ${c.name}_Caller(AJ_BusAttachment* bus, uint32_t sessionId)
 {
     AJ_Message ajcgMsg;
     AJ_Status ajcgStatus;
-$cc.CommonCheetah.define_arrays_and_structures($c, True, False)
+$cc.CommonCheetah.define_arrays_and_structures(False, $c, True, False)
     ajcgStatus = AJ_MarshalMethodCall(bus, &ajcgMsg, $c.define, g_ServiceName, sessionId, 0, TIMEOUT_METHOD);
 
 $cc.CommonCheetah.handle_error($command_line.runnable, "AJ_MarshalMethodCall", 4)
@@ -84,7 +86,7 @@ AJ_Status ${c.name}_Set(AJ_BusAttachment* bus, uint32_t sessionId, $c.input_arg_
 {
     AJ_Message ajcgMsg;
     AJ_Status ajcgStatus;
-$cc.CommonCheetah.define_arrays_and_structures($c, True, False)
+$cc.CommonCheetah.define_arrays_and_structures(False, $c, True, False)
     ajcgStatus = AJ_MarshalMethodCall(bus, &ajcgMsg, $c.prop_set_define, g_ServiceName, sessionId, 0, TIMEOUT_METHOD);
 
 $cc.CommonCheetah.handle_error($command_line.runnable, "AJ_MarshalMethodCall", 4)
@@ -140,8 +142,8 @@ $message_handler($o, $c)#slurp
     #set $complete_name = $GenTL.get_complete_name($o, $interface, $c)
     #if $c.output_arg_info is not None and len($c.output_arg_info.args) > 0
     AJ_Status ajcgStatus;
-$cc.CommonCheetah.define_arrays_and_structures($c, False)#slurp
-$cc.CommonCheetah.define_arguments($c.output_arg_info.args, 4, None)
+$cc.CommonCheetah.define_arrays_and_structures($command_line.runnable, $c, False)#slurp
+$cc.CommonCheetah.define_arguments($c.output_arg_info.args, 4, None)#slurp
 $cc.CommonCheetah.unmarshal_arguments($c.comp_type, $runnable, $c.output_arg_info, 4, True)
     /* Output value(s) have been received. Now use them. */
         #if $runnable

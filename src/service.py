@@ -57,7 +57,8 @@ class Service:
         if i is None:
             self.interfaces[interface.interface_full_name] = interface
             i = interface
-            self.__has_properties = None
+            self.__has_read_properties = None
+            self.__has_write_properties = None
             self.__number_of_signals = None
         elif i != interface:
             error1_format = "Interface '{0}' has multiple definitions"
@@ -95,22 +96,43 @@ class Service:
         self.objects = []
         return
 
-    def has_properties(self):
-        """Return true if any of the interfaces contain a property."""
+    def has_read_properties(self):
+        """Return true if any of the interfaces contain a readable property."""
         return_value = False
 
         if self.__has_properties is None:
             for key in sorted(self.interfaces):
                 i = self.interfaces[key]
-                if i.properties:
+                if i.has_read_properties():
                     return_value = True
                     break
 
-            self.__has_properties = return_value
+            self.__has_read_properties = return_value
         else:
-            return_value = self.__has_properties
+            return_value = self.__has_read_properties
 
         return return_value
+
+    def has_write_properties(self):
+        """Return true if any of the interfaces contain a writeable property."""
+        return_value = False
+
+        if self.__has_properties is None:
+            for key in sorted(self.interfaces):
+                i = self.interfaces[key]
+                if i.has_write_properties():
+                    return_value = True
+                    break
+
+            self.__has_write_properties = return_value
+        else:
+            return_value = self.__has_write_properties
+
+        return return_value
+
+    def has_properties(self):
+        """Return true if any of the interfaces contain a property."""
+        return self.has_read_properties() or self.has_write_properties()
 
     def has_signals(self):
         """Return true if any of the interfaces contain a signal."""

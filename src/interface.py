@@ -170,15 +170,25 @@ Example: "/com/example/Demo" is returned as "comExampleDemo" if make_camel_cased
         self.parents.append(aj_parent)
         return
 
-    def get_has_get_properties(self):
+    def has_read_properties(self):
         """Return True if there is at least one property with read access."""
         return_value = False
 
         for p in self.properties:
-            if p.no_reply:
-                continue
-            return_value = True
-            break
+            if p.is_readable():
+                return_value = True
+                break
+
+        return return_value
+
+    def has_write_properties(self):
+        """Return True if there is at least one property with write access."""
+        return_value = False
+
+        for p in self.properties:
+            if p.is_writeable():
+                return_value = True
+                break
 
         return return_value
 

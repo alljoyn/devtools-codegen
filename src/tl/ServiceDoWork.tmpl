@@ -37,6 +37,24 @@ static AJ_SessionId s_activeSessions[5];
 static const size_t s_maxSessions = ArraySize(s_activeSessions);
 $GenTL.comment_end_runnable
 #end if
+#set $number_of_signals = 0
+#for $key in $sorted($service.interfaces)
+    #set $interface = $service.interfaces[$key]
+    #for $o in $interface.parents
+        #set $iface_index = $o.get_interface_index($interface)
+        #set $comp = $GenTL.get_interface_components($interface, $o, $iface_index, True)
+        #for $c in $comp:
+            #if $c.comp_type == "sig"
+                #set $number_of_signals += 1
+            #end if
+        #end for
+    #end for
+#end for
+#if not $command_line.runnable or $number_of_signals == 0
+\#ifndef AJCG_NO_UNUSED_WARNING
+\#define AJCG_NO_UNUSED_WARNING(v) v = v
+\#endif
+#end if
 
 /*
  * Let the application do some work.
@@ -47,19 +65,6 @@ void ServiceAppDoWork(void* context)
 {
     AJ_BusAttachment* bus = (AJ_BusAttachment*)context;
 
-    #set $number_of_signals = 0
-    #for $key in $sorted($service.interfaces)
-        #set $interface = $service.interfaces[$key]
-        #for $o in $interface.parents
-            #set $iface_index = $o.get_interface_index($interface)
-            #set $comp = $GenTL.get_interface_components($interface, $o, $iface_index, True)
-            #for $c in $comp:
-                #if $c.comp_type == "sig"
-                    #set $number_of_signals += 1
-                #end if
-            #end for
-        #end for
-    #end for
 #if $command_line.runnable and $number_of_signals > 0
     $GenTL.comment_start_runnable
 
@@ -154,6 +159,10 @@ $cc.CommonCheetah.initialize_args($output_args, $complete_name, 8)#slurp
 
     $GenTL.comment_end_runnable
 #else
+    /* TODO: If there are signals then this may be the place to send them.
+     * The bus object will be needed for interacting with the AllJoyn API.
+     */
+    AJCG_NO_UNUSED_WARNING(bus);
     AJ_AlwaysPrintf(("ServiceAppDoWork()\n"));
 #end if
 }

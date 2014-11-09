@@ -76,9 +76,10 @@ AJ_Status SetPropHandlerReplySerial(ClientPropHandlerEntry* table, AJ_ClientProp
     return status;
 }
 
+    #if $service.has_read_properties()
 /******
  * This function converts the context to a ClientPropHandlerEntry* then
- * searches that table to find then table entry which has a replySerial
+ * searches that table to find the table entry which has a replySerial
  * which matches the replySerial in the message. When found it calls the
  * callback function in that table entry.
  *
@@ -102,6 +103,7 @@ static AJ_Status PropGetHandler(AJ_Message* replyMsg, const void* context)
 
     return status;
 }
+    #end if
 #end if ## $service.has_properties()
 
 int AJ_Main(void)

@@ -72,3 +72,8 @@ $method_declaration($c.name)#slurp
 $signal_declaration($c)#slurp
         #end if
 #end def
+#if not $command_line.runnable
+\#ifndef AJCG_NO_UNUSED_WARNING
+\#define AJCG_NO_UNUSED_WARNING(v) v = v
+\#endif
+#end if

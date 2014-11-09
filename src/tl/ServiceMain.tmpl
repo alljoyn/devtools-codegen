@@ -68,7 +68,6 @@ static const PropHandlerEntry PropHandlers$o.get_full_coded_name()[] = {
 };
         #end if
     #end for
-#end if ## $service.has_properties()
 
 /******
  * This function searches the entry table for a msgid that matches the propId
@@ -111,6 +110,7 @@ static AJ_Status PropSetHandler(AJ_Message* replyMsg, uint32_t propId, void* con
 
     return PropGetSetHandler(replyMsg, propId, entry, AJ_PROP_SET);
 }
+#end if ## $service.has_properties()
 
 /******
  * This table sets the property get and set handlers for each instance of an

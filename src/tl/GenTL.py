@@ -300,6 +300,63 @@ class ArgInfo:
 
         return return_value
 
+    def max_number_of_array_indices_needed(self, print_arrays):
+        """Gets the maximum number of array indices needed.
+        This is in part based on the max number of array dimensions in any of the arguments.
+        It is also a function of the type of arrays being marshaled/unmarshalled. Basic
+        types such as int, bools, doubles (but not string types) don't need to be
+        marshaled/unmarshalled one element at a time. But strings, structures, and
+        dictionaries (complex types) do.
+
+        At this time multiple dimensions are not supported. But it is believed that an index
+        will be needed for each dimension for everything except the most basic types which
+        will need one minus the number of dimensions.
+
+        However, when in runnable mode sometimes an index is needed to traverse through
+        an array for display purposes for all data types. So when print_arrays is true
+        there are additional considerations.
+
+        The logic table is as follows:
+
+        print_arrays | complex | dimensions | return value
+        ----------------------------------------------
+           0         0           0           0
+           0         1           0           0
+           1         0           0           0
+           1         1           0           0
+           1         0           1           1
+           0         0           1           0
+           0         0           n         n - 1
+           1         0           n         n - 1
+           1         1           1           1
+           0         1           1           1
+           0         1           n           n
+           1         1           n           n
+        """
+        return_value = 0
+
+        for a in self.args:
+            dim = a.get_max_array_dimension()
+
+            if dim == 0:
+                continue
+
+            base_sig = a.get_base_signature()
+            complex_type = base_sig in ('s', 'o', 'g') or a.is_structure() or a.is_dictionary()
+
+            if complex_type:
+                if dim > return_value:
+                    return_value = dim
+                continue
+
+            if (dim - 1) > return_value:
+                return_value = dim - 1
+
+            if print_arrays and return_value == 0:
+                return_value = 1
+
+        return return_value
+
     def get_max_structure_depth(self):
         """Gets the maximum structure depth in any of the arguments."""
         return_value = 0
@@ -669,7 +726,7 @@ def get_message_defines_names(service):
             # There must only be one define for each object that has
             # readable properties in one or more of it's interfaces. So don't
             # request property defines if we already have one for this object.
-            if i.get_has_get_properties():
+            if i.has_read_properties():
                 need_prop_define = False
 
     return return_value
@@ -924,7 +981,7 @@ element of the array being initialized."""
             variant_init = "{0}{1}_uint8V[{2}]".format(arg.name,
                                                        field.name.capitalize(),
                                                        array_index)
-            value = '{{ AJ_ARG_BYTE, 1, 0, &{0}, "y", 0 }}'.format(variant_init)
+            value = '{{ AJ_ARG_BYTE, 1, 0, {{ &{0} }}, "y", 0 }}'.format(variant_init)
         elif field.is_structure():
             value = __make_structure_init_string(field)
         elif field.is_dictionary():
@@ -994,7 +1051,7 @@ def __get_client_switch_entries(interface, aj_object, iface_index, include_prop)
 
     properties_iface_index = len(aj_object.interfaces)
 
-    if include_prop and interface.get_has_get_properties():
+    if include_prop and interface.has_read_properties():
         define = d_format.format(path_index, properties_iface_index, "AJ_PROP_GET")
         switch = r_format.format(define)
 

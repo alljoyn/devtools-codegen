@@ -54,10 +54,10 @@
  */
 #end def
 #@staticmethod
-#def handle_error($runable, $func_name, $indent_count, $free_list = [])
+#def handle_error($runnable, $func_name, $indent_count, $free_list = [])
     #set $indent = $indent_count * " "
 ${indent}if (AJ_OK != ajcgStatus) {
-    #if $runable
+    #if $runnable
 ${indent}    $GenTL.comment_start_runnable
 ${indent}    AJ_AlwaysPrintf(("${func_name}() returned status 0x%x (%s).\n", ajcgStatus, AJ_StatusText(ajcgStatus)));
 ${indent}    $GenTL.comment_end_runnable
@@ -135,7 +135,12 @@ $CommonCheetah.initialize_structure_variants($args, $indent_count)
         #set $s = $a.get_flattened_base_signature()[0]
         #if $a.is_array()
 ${indent}${a.name}Elements = ArraySize(s_$a.name);
-${indent}$a.name = s_$a.name;
+            #if $a.get_base_signature() in ('s', 'o', 'g')
+                #set $cast = "(const char**)"
+            #else
+                #set $cast = ""
+            #end if
+${indent}$a.name = ${cast}s_$a.name;
 
 ${indent}for (index0 = ${a.name}Elements - 1; index0 > 0; index0--) {
     ${indent}${a.name}[index0] = ${a.name}[index0 - 1];
@@ -177,7 +182,7 @@ $CommonCheetah.define_static_structure_variants($args, $indent_count)#slurp
     #for $a in $args
         #set $t = $GenTL.get_base_c_type($a)
         #set $ptrs = $a.get_indirection_level() * "*"
-        #if $t == "char*"
+        #if $a.arg_type in ('s', 'g', 'o')
 ${indent}static int32_t s_helloNumber$a.name = 0;
         #end if
         #if $a.arg_type == 'v'
@@ -251,6 +256,7 @@ ${indent}ajcgStatus = AJ_UnmarshalVariant(ajcgMsg, &sig);
 $CommonCheetah.handle_error($runnable, "AJ_UnmarshalVariant", $indent_count)
         #end if
         #if $arginfo.is_basic_types()
+
 ${indent}ajcgStatus = AJ_UnmarshalArgs(ajcgMsg, "$arginfo.signature"#slurp
             #for $a in $arginfo.args
 , &$a.name#slurp
@@ -260,6 +266,7 @@ ${indent}ajcgStatus = AJ_UnmarshalArgs(ajcgMsg, "$arginfo.signature"#slurp
 $CommonCheetah.handle_error($runnable, "AJ_UnmarshalArgs", $indent_count)#slurp
         #else
             #for $a in $arginfo.args
+
 $CommonCheetah.unmarshal_one_argument($a, $runnable, $indent_count)#slurp
             #end for
         #end if
@@ -300,6 +307,9 @@ ${indent}ajcgStatus = AJ_UnmarshalArg(ajcgMsg, &array$depth);
 $CommonCheetah.handle_error($runnable, "AJ_UnmarshalArg", $indent_count, $free_list)
 $indent$arg.name = array${depth}.val.$GenTL.val_dictionary[$basesig];
 $indent${arg.name}Elements = array${depth}.len / sizeof(*$arg.name);
+            #if not $runnable
+${indent}AJCG_NO_UNUSED_WARNING(${arg.name}Elements);
+            #end if
         #end if
         ## unmarshal the array closers
         #for $index in $reversed($range($openclosecount))
@@ -399,7 +409,6 @@ ${indent}${name} = AJ_Realloc((void*)${name}, --${name}Elements * sizeof(${name}
 #def unmarshal_container_array($runnable, $name, $containerdef, $free_list, $msg_ptr, $depth, $indent_count)
     #set $indent = $indent_count * " "
 ${indent}index$depth = 0;
-
 ${indent}while (TRUE) {
 ${indent}    ${name} = AJ_Realloc((void*)${name}, ++${name}Elements * sizeof(${name}[0]));
 $free_list.append($name)#slurp
@@ -449,7 +458,7 @@ $CommonCheetah.handle_error($runnable, "AJ_UnmarshalArgs", $indent_count, $free_
         #else
             #set $fakemember = $memberdef.MemberDef($name+"."+$f.name, $f.arg_type)
             #set $fakemember.interface = $f.interface
-$CommonCheetah.unmarshal_one_argument($fakemember, $runnable, $indent_count)
+$CommonCheetah.unmarshal_one_argument($fakemember, $runnable, $indent_count)#slurp
             #set $index += 1
         #end if
     #end while
@@ -823,42 +832,43 @@ $CommonCheetah.increment_object($indent, $arg.name, $element0, $sig, $complete_n
 ## If both is true then define a number that will handle either.
 #####################
 #@staticmethod
-#def define_arrays_and_structures($c, $input = True, $output = True)
+#def define_arrays_and_structures($print_arrays, $c, $input = True, $output = True)
     #set $in_arrays = 0
     #set $out_arrays = 0
+    #set $in_arrays_indices = 0
+    #set $out_arrays_indices = 0
     #set $in_structs = 0
     #set $out_structs = 0
     #set $in_dictionaries = 0
     #set $out_dictionaries = 0
     #if $input
         #set $in_arrays = $c.input_arg_info.max_number_of_array_dimensions()
+        #set $in_arrays_indices = $c.input_arg_info.max_number_of_array_indices_needed($print_arrays)
         #set $in_structs = $c.input_arg_info.get_max_structure_depth()
         #set $in_dictionaries = $c.input_arg_info.get_max_dictionary_depth()
     #end if
     #if $output
         #set $out_arrays = $c.output_arg_info.max_number_of_array_dimensions()
+        #set $out_arrays_indices = $c.output_arg_info.max_number_of_array_indices_needed($print_arrays)
         #set $out_structs = $c.output_arg_info.get_max_structure_depth()
         #set $out_dictionaries = $c.output_arg_info.get_max_dictionary_depth()
     #end if
     #set $number_of_arrays = max($in_arrays, $out_arrays)
-    #set $array_num = 0
-    #while $array_num < $number_of_arrays
+    #for $array_num in $range($number_of_arrays)
     AJ_Arg array$array_num;
-    int index$array_num = 0;
-        #set $array_num += 1
-    #end while
-    #set $struct_num = 0
+    #end for
+    #set $number_of_array_indices = max($in_arrays_indices, $out_arrays_indices)
+    #for $array_index_num in $range($number_of_array_indices)
+    int index$array_index_num = 0;
+    #end for
     #set $number_of_structs = max($in_structs, $out_structs)
-    #while $struct_num < $number_of_structs
+    #for $struct_num in $range($number_of_structs)
     AJ_Arg struct$struct_num;
-        #set $struct_num += 1
-    #end while
-    #set $dictionary_num = 0
+    #end for
     #set $number_of_dictionary = max($in_dictionaries, $out_dictionaries)
-    #while $dictionary_num < $number_of_dictionary
+    #for $dictionary_num in $range($number_of_dictionary)
     AJ_Arg dictionary$dictionary_num;
-        #set $dictionary_num += 1
-    #end while
+    #end for
 #end def
 #####################
 ## Call AJ_Free() on any arrays in this arg info that need to be freed and set the

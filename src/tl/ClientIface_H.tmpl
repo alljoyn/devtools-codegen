@@ -84,3 +84,8 @@ $property_declaration($c)#slurp
         #end if
 $reply_handler_declaration($c)#slurp
 #end def
+#if not $command_line.runnable
+\#ifndef AJCG_NO_UNUSED_WARNING
+\#define AJCG_NO_UNUSED_WARNING(v) v = v
+\#endif
+#end if

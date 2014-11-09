@@ -54,7 +54,7 @@ AJ_Status ${c.name}(AJ_BusAttachment* bus, AJ_SessionId sessionId)
     AJ_Message ajcgMsg;
     AJ_Status ajcgStatus = AJ_OK;
     #set $has_outputs = len($c.output_arg_info.args) > 0
-$cc.CommonCheetah.define_arrays_and_structures($c, False)
+$cc.CommonCheetah.define_arrays_and_structures(False, $c, False)
     ajcgStatus = AJ_MarshalSignal(bus, &ajcgMsg, $c.define, NULL, sessionId, AJ_NO_FLAGS, 0);
 
 $cc.CommonCheetah.handle_error($command_line.runnable, "AJ_MarshalSignal", 4)
@@ -74,10 +74,10 @@ $cc.CommonCheetah.handle_error($command_line.runnable, "AJ_DeliverMsg", 4)
 AJ_Status ${c.name}(AJ_Message* ajcgMsg, uint32_t getOrSet, void* context)
 {
     AJ_Status ajcgStatus = AJ_OK;
-$cc.CommonCheetah.define_arrays_and_structures($c)
-    #if $c.input_arg_info is not None
+$cc.CommonCheetah.define_arrays_and_structures($command_line.runnable, $c)
+    #if $c.input_arg_info.args
     if (getOrSet == AJ_PROP_SET) {
-$cc.CommonCheetah.define_arguments($c.input_arg_info.args, 8, None)
+$cc.CommonCheetah.define_arguments($c.input_arg_info.args, 8, None)#slurp
 $cc.CommonCheetah.unmarshal_arguments($c.comp_type, $command_line.runnable, $c.input_arg_info, 8, False)
         #if $command_line.runnable
         $GenTL.comment_start_runnable
@@ -89,7 +89,7 @@ $cc.CommonCheetah.print_args($c.input_arg_info.args, 8)#slurp
     }
 
     #end if
-    #if $c.output_arg_info is not None
+    #if $c.output_arg_info.args
     if (getOrSet == AJ_PROP_GET) {
         #set $free_list = []
         #if $command_line.runnable
@@ -144,7 +144,7 @@ $cc.CommonCheetah.define_arguments($c.output_arg_info.args, 4, $free_list)#slurp
     /* End of output arguments. */
 
     #end if
-$cc.CommonCheetah.define_arrays_and_structures($c)#slurp
+$cc.CommonCheetah.define_arrays_and_structures($command_line.runnable, $c)#slurp
     AJ_Status ajcgStatus = AJ_OK;
 
     #if $has_inputs
@@ -154,7 +154,7 @@ $cc.CommonCheetah.unmarshal_arguments($c.comp_type, $command_line.runnable, $c.i
     $GenTL.comment_start_runnable
 
         #set $complete_name = $GenTL.get_complete_name($o, $interface, $c)
-    AJ_InfoPrintf(("'$complete_name' has been successfully called.\n"));
+    AJ_AlwaysPrintf(("'$complete_name' has been successfully called.\n"));
 
         #if $has_inputs
 $cc.CommonCheetah.print_args($c.input_arg_info.args, 4)

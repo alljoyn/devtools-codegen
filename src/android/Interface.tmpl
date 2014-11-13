@@ -13,10 +13,11 @@
 ## ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
 ## OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 ###############################################################################
-/* Source: "$command_line.xml_input_file" */
 #import GenAndroid
 #import CommonCheetah as cc
 #from .. import common
+#import os
+/* Source: "$command_line.absolute_path_xml_input_file" */
 
 package $interface.get_path();
 
@@ -36,7 +37,7 @@ import org.alljoyn.bus.annotation.Position;
 #end if
 
 /*
- * The BusInterface annotation is used to tell the code that this interface is an AllJoyn
+ * The BusInterface annotation is used to tell the code this interface is an AllJoyn
  * interface.
  *
  * The 'name' value is used to specify by which name this interface will be known.  If the name is
@@ -49,7 +50,7 @@ $cc.CommonCheetah.define_containers($interface, $command_line.runnable, 4)#slurp
     #if $interface.methods
 
     /*
-     * The BusMethod annotation signifies that this function should be used as part of the AllJoyn
+     * The BusMethod annotation signifies this function should be used as part of the AllJoyn
      * interface. The runtime is smart enough to figure out what the input and output of the
      * method is based on the input/output arguments of the method.
      *
@@ -66,7 +67,7 @@ $cc.CommonCheetah.define_containers($interface, $command_line.runnable, 4)#slurp
     #if $interface.properties
 
     /*
-     * The BusProperty annotation signifies that this property should be used as part of the
+     * The BusProperty annotation signifies this property should be used as part of the
      * AllJoyn interface. The runtime is smart enough to figure out what the input and output of
      * the property is based on the input/output arguments of the property.
      *
@@ -75,9 +76,9 @@ $cc.CommonCheetah.define_containers($interface, $command_line.runnable, 4)#slurp
      */
         #for $p in $interface.properties
             #set $arg_info = $p.input_arg_info
+            #set $annotation = $Interface.make_bus_annotation("BusProperty", $p)
             #if $p.is_writeable()
 
-                #set $annotation = $Interface.make_bus_annotation("BusProperty", $p)
     $annotation
     void set${p.name}($arg_info.arg_declaration) throws BusException;
             #end if
@@ -90,7 +91,7 @@ $cc.CommonCheetah.define_containers($interface, $command_line.runnable, 4)#slurp
     #if $interface.signals
 
     /*
-     * The BusSignal annotation signifies that this signal should be used as part of the
+     * The BusSignal annotation signifies this signal should be used as part of the
      * AllJoyn interface.
      *
      * All signals that use the BusSignal annotation can throw a BusException and should
@@ -114,10 +115,13 @@ $cc.CommonCheetah.define_containers($interface, $command_line.runnable, 4)#slurp
         #set $signature = ""
     #end if
     #set $reply_signature = ""
-## Properties do not have a reply signature annotation.
-    #if $annotation_name != "BusProperty"
-        #set $reply_sig = $common.get_arg_signature($comp, "out")
-        #if len($reply_sig) > 0
+    #set $reply_sig = $common.get_arg_signature($comp, "out")
+    #if len($reply_sig) > 0
+        #if $annotation_name == "BusProperty"
+            #if $signature == ""
+                #set $signature = ', signature = "{0}"'.format($reply_sig)
+            #end if
+        #else
             #set $reply_signature = ', replySignature = "{0}"'.format($reply_sig)
         #end if
     #end if

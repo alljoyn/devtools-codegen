@@ -41,7 +41,6 @@ def main():
         configuration = config.Config()
         register_targets(configuration)
         configuration.parse()
-        common.target_language = configuration.command_line.target_language
         report_config(configuration)
         parser = parseajxml.ParseAjXml(configuration.command_line.xml_input_file)
         service = parser.parse(configuration.command_line)

@@ -47,6 +47,8 @@ from .. import argdef
 from .. import interface as iface
 from .. import structdef
 from .. import dictdef
+from .. import memberdef
+from .. import common
 
 def hooks():
     """Return the hooks for the AllJoyn Android language binding."""
@@ -97,11 +99,13 @@ class ArgInfo:
             arg_list.append(a)
 
         if direction == "out" and name and len(arg_list) > 1:
+            # Because a Java method can't return multiple values they were
+            # combined them into a single structure. That structure has a name
+            # with the suffix iface.return_suffix.
             name += iface.return_suffix
             assert(name in interface.structures)
+
             struct = interface.structures[name]
-            for key in sorted(interface.structures):
-                s = interface.structures[key]
             output_arg = argdef.ArgDef(None, name, struct.signature, "out")
             output_arg.interface = interface
             self.args = [output_arg]
@@ -214,21 +218,7 @@ def get_java_return_type(member):
     if arg is None:
         return "void"
 
-    signature = arg.arg_type
-    interface = arg.interface
-
-    return_struct_key = member.name + iface.return_suffix
-    t = None
-
-    if signature in type_dictionary:
-        t = type_dictionary[signature]
-    elif return_struct_key in interface.structures:
-        s = interface.structures[return_struct_key]
-        t = __make_structure_type_name(interface, s)
-    elif signature in interface.dictionaries:
-        assert(0) # TODO: Dictionaries need to be implemented. Probably similar to below.
-        # d = interface.dictionaries[signature]
-        # t = d.name
+    t = get_java_type(arg.interface, arg.arg_type, member)
 
     return t
 
@@ -284,14 +274,28 @@ def get_java_type(interface, signature, member = None):
     """Get the Java type corresponding to this AllJoyn signature. Or if not found from the signature
     see if it is a return structure which has a signature based upon the member name."""
     t = None
+    return_struct_key = None
 
-    if signature in type_dictionary:
-        t = type_dictionary[signature]
-    elif signature[0] == '[':
-        named_type = interface.get_named_type(signature[1:-1])
-        if isinstance(named_type, structdef.StructDef) or \
-           isinstance(named_type, dictdef.DictDef):
-            t = __make_structure_type_name(interface, named_type)
+    if member:
+        return_struct_key = member.name + iface.return_suffix
+
+    base_signature = memberdef.get_base_signature(signature)
+
+    if base_signature in type_dictionary:
+        tbase = type_dictionary[base_signature]
+    elif return_struct_key in interface.structures:
+        s = interface.structures[return_struct_key]
+        tbase = __make_structure_type_name(interface, s)
+    else:
+        assert(base_signature[0] == '[')
+        named_type = interface.get_named_type(base_signature[1:-1])
+        if isinstance(named_type, structdef.StructDef) or isinstance(named_type, dictdef.DictDef):
+            tbase = __make_structure_type_name(interface, named_type)
+
+    if memberdef.is_array(signature):
+        t = "{0}[]".format(tbase)
+    else:
+        t = tbase
 
     assert(t)
 
@@ -303,15 +307,15 @@ def get_initialization(arg, member = None):
 
     if arg.is_array():
         if t == "String":
-            init = ' = {"String 1", "String 2", "String 0"}'
+            init = ' = {"String 0", "String 1", "String 2"}'
+        elif arg.is_structure() or arg.is_dictionary():
+            init = " = {{ new {0}(), new {0}(), new {0}() }}".format(t)
         else:
             b = arg.get_base_signature()
-            if b[0] == '(' or b[0] == '{':
-                assert(0) # TODO: Implement this.
-            elif b[0] == 'b':
-                init = " = {false, false, false, false, false, false, false, false, false, false}"
+            if b[0] == 'b':
+                init = " = { false, false, false, false, false, false, false, false, false, false }"
             else:
-                init = " = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0}"
+                init = " = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 }"
     else:
         if arg.arg_type == "b":
             init = " = false"
@@ -376,12 +380,14 @@ def get_well_known_name_path(configuration):
     return __get_well_known_name_path(configuration.command_line)
 
 def make_members_from_structure(interface, struct):
-    """Return the member types and names from the structure."""
+    """Return the member types, names, and initialization from the structure."""
     return_value = []
 
     for f in struct.fields:
         java_type = get_java_type(interface, f.arg_type)
-        m = [java_type, f.name]
+        init = get_initialization(f)
+        m = [java_type, f.name, init]
+
         return_value.append(m)
 
     return return_value

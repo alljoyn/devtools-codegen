@@ -18,55 +18,6 @@
 #from .. import signaldef
 #from .. import interface as iface
 #####################
-## Define persistent version of the argument(s) for client runnable code. This is used by ClientMain.
-#####################
-#@staticmethod
-#def define_persistent_client_args($service, $indent_count)
-    #if $GenAndroid.has_persistent_args($service, True)
-        #set $indent = $indent_count * " "
-$indent$GenAndroid.comment_start_runnable
-        #for $key in sorted($service.interfaces):
-            #set $interface = $service.interfaces[$key]
-$CommonCheetah.define_interface_persistent_classes($interface, True, $indent_count)#slurp
-        #end for
-        #for $o in $service.get_objects()
-            #for $i in $o.interfaces
-                #for $m in $i.methods
-$CommonCheetah.declare_instance_of_persistent_class($o, $i, $m, True, $indent_count)
-                #end for
-                #for $p in $i.properties
-$CommonCheetah.declare_instance_of_persistent_class($o, $i, $p, True, $indent_count)
-                #end for
-## There is no persistent data needed for signals on the client side.
-            #end for
-        #end for
-$indent$GenAndroid.comment_end_runnable
-    #end if
-#end def
-#####################
-## Define persistent version of the argument(s) for the signals. This is only
-## called from ServiceMain when generating runnable code.
-#####################
-#@staticmethod
-#def define_persistent_servicemain_signal_args($service, $indent_count)
-    #set $indent = $indent_count * " "
-    #for $key in sorted($service.interfaces):
-        #set $interface = $service.interfaces[$key]
-        #for $s in $interface.signals
-            #if $s.args
-$CommonCheetah.define_persistent_class($interface, $s, False, $indent_count)
-            #end if
-        #end for
-    #end for
-    #for $o in $service.get_objects()
-        #for $i in $o.interfaces
-            #for $s in $i.signals
-$CommonCheetah.declare_instance_of_persistent_class($o, $i, $s, False, $indent_count)#slurp
-            #end for
-        #end for
-    #end for
-#end def
-#####################
 ## Declare a specific instance of a class for one interface.
 ## This is a container for the argument(s) for runnable code.
 ## $object is the AllJoynObject which may need the persistent data.
@@ -216,18 +167,16 @@ $CommonCheetah.increment_arg($object, $interface, $comp, $a, $indent_count)#slur
 #####################
 #@staticmethod
 #def increment_arg($object, $interface, $comp, $arg, $indent_count)
-## TODO: Handle arrays and structures similar to how it is done in TC version.
     #if $arg.is_array()
         #set $element0 = "[0]"
     #else
         #set $element0 = ""
     #end if
-    #set $sig = $arg.get_base_signature()
     #if $arg.is_structure() or $arg.is_dictionary()
         #set $indent = $indent_count * ' '
         #set $instance_name = $CommonCheetah.make_persistent_instance_name($object, $interface, $comp)
         #set $arg_name = "{0}.{1}".format($instance_name, $arg.name)
-${indent}${instance_name}.${arg.name}.Increment();
+${indent}${instance_name}.${arg.name}${element0}.Increment();
     #else
 $CommonCheetah.increment_object($element0, $object, $interface, $comp, $arg, $indent_count)#slurp
     #end if
@@ -313,16 +262,24 @@ ${comma_space}$arg_name#slurp
     #set $indent = $indent_count * " "
     #if $args
 
-${indent}String msg;
+${indent}String ajcgMessageString;
         #for $a in $args
 
-            #if $a.is_structure or $a.is_dictionary
-${indent}msg = String.format("$a.name = '%s'", ${a.name}.toString());
+            #if $a.is_array
+                #set base_sig = $a.get_flattened_base_signature()
+                #if base_sig in $GenAndroid.printf_dictionary.viewkeys()
+                    #set $f = $GenAndroid.printf_dictionary[base_sig]
+${indent}ajcgMessageString = String.format("${a.name}[0] = '$f'", ${a.name}[0]);
+                #else
+${indent}ajcgMessageString = String.format("${a.name}[0] = '%s'", ${a.name}[0].toString());
+                #end if
+            #elif $a.is_structure or $a.is_dictionary
+${indent}ajcgMessageString = String.format("$a.name = '%s'", ${a.name}.toString());
             #else
                 #set $f = $GenAndroid.printf_dictionary[$a.arg_type]
-${indent}msg = String.format("$a.name = '$f'", $a.name);
+${indent}ajcgMessageString = String.format("$a.name = '$f'", $a.name);
             #end if
-${indent}sendUiMessage(msg);
+${indent}sendUiMessage(ajcgMessageString);
         #end for
     #end if
 #end def
@@ -338,12 +295,8 @@ ${indent}public class $s.name {
         #set $members = $GenAndroid.make_members_from_structure($interface, $s)
         #set $position = 0
         #for $m in $members
-            #if $m[0] == "String"
-                #set $init = ' = ""'
-            #else
-                #set $init = ''
-            #end if
-${indent}    @Position($position) public $m[0] $m[1]$init;
+## Each member is composed of three strings which are [type, name, initialization]
+${indent}    @Position($position) public $m[0] $m[1]$m[2];
             #set $position += 1
         #end for
         #if $is_runnable

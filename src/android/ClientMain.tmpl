@@ -16,7 +16,7 @@
 #import GenAndroid
 #import CommonCheetah as cc
 #from .. import common
-/* Source: "$command_line.xml_input_file" */
+/* Source: "$command_line.absolute_path_xml_input_file" */
 
 package $command_line.well_known_name;
 
@@ -488,7 +488,7 @@ UiHandlerMessageIds.MESSAGE_${obj_name}_${i.interface_name}.ordinal());
         }
 
 #if $command_line.runnable
-$cc.CommonCheetah.define_persistent_client_args($service, 8)#slurp
+$ClientMain.define_persistent_client_args($service, 8)#slurp
 #end if
         /*
          * Execute methods, set and query properties on the service.
@@ -630,20 +630,13 @@ ${indent}}
     #set $method_instance = "{0}.{1}".format($iname, $cc_name)
     #set $obj_name = $object.get_full_coded_name(True)
     #set $return_type = $GenAndroid.get_java_return_type($method)
-    #set $instance_name = $cc.CommonCheetah.make_persistent_instance_name($object, $interface, $method)
     #set $return_arg = $GenAndroid.get_return_arg($method)
 ${indent}int what = UiHandlerMessageIds.MESSAGE_${obj_name}_${interface.interface_name}.ordinal();
     #if $return_arg
+
 ${indent}$return_type returnValue = ${method_instance}($cc.CommonCheetah.add_args($object, $interface, $method));
-        #if $return_arg.is_structure or $return_arg.is_dictionary
-
-${indent}sendUiMessage(what, returnValue.toString());
-        #else
-            #set $f = $GenAndroid.printf_dictionary[$return_arg.arg_type]
-${indent}String message = String.format("${method_instance}() returned '$f'.", returnValue);
-
-${indent}sendUiMessage(what, message);
-        #end if
+    #set $instance_name = $cc.CommonCheetah.make_persistent_instance_name($object, $interface, $method)
+$ClientMain.print_return_value($instance_name, $return_arg, $indent_count)#slurp
     #else
 ${indent}${method_instance}($cc.CommonCheetah.add_args($object, $interface, $method));
 ${indent}sendUiMessage(what, "Successfully called ${method_instance}()");
@@ -673,7 +666,6 @@ ${indent}    int what = UiHandlerMessageIds.MESSAGE_${obj_name}_${interface.inte
 ${indent}    String message = "Calling ${iname}.set${p.name}().";
 
 ${indent}    sendUiMessage(what, message);
-                #set $instance_name = $cc.CommonCheetah.make_persistent_instance_name($object, $interface, $p)
 ${indent}    ${iname}.set${p.name}($cc.CommonCheetah.add_args($object, $interface, $p));
 ${indent}} catch (BusException be) {
 ${indent}    status = doExceptionReport("${iname}.set${p.name}", be);
@@ -686,20 +678,14 @@ ${indent}}
                 #set $add_newline = True
 ## This is the get property code.
 ${indent}try {
-                #set $instance_name = $cc.CommonCheetah.make_persistent_instance_name($object, $interface, $p)
                 #set $return_type = $GenAndroid.get_java_return_type($p)
                 #set $a = $p.output_arg_info.args[0]
 ${indent}    int what = UiHandlerMessageIds.MESSAGE_${obj_name}_${interface.interface_name}.ordinal();
-${indent}    $return_type $a.name = ${iname}.get${p.name}();
-                #if $a.is_structure or $a.is_dictionary
+${indent}    $return_type returnValue = ${iname}.get${p.name}();
 
-${indent}    sendUiMessage(what, returnValue.toString());
-                #else
-                    #set $f = $GenAndroid.printf_dictionary[$a.arg_type]
-${indent}    String message = String.format("${instance_name}() returned '$f'.", out_value);
-
-${indent}    sendUiMessage(what, message);
-                #end if
+                #set $return_arg = $GenAndroid.get_return_arg($p)
+                #set $instance_name = $cc.CommonCheetah.make_persistent_instance_name($object, $interface, $p)
+$ClientMain.print_return_value($instance_name, $return_arg, $indent_count + 4)#slurp
 ${indent}} catch (BusException be) {
 ${indent}    status = doExceptionReport("${iname}.get${p.name}", be);
 ${indent}}
@@ -713,4 +699,57 @@ ${indent}}
 #@staticmethod
 #def make_instance_interface_name($object, $interface)
     #return "m{0}_{1}".format($object.get_full_coded_name(True), $interface.interface_name)
+#end def
+#####################
+## Print a 'return value' from a method or property (a read value) to the user interface.
+#####################
+#@staticmethod
+#def print_return_value($name, $return_arg, $indent_count)
+    #set $indent = $indent_count * " "
+    #if $return_arg.is_array
+        #set $element0 = "[0]"
+    #else
+        #set $element0 = ""
+    #end if
+    #if $return_arg.is_structure or $return_arg.is_dictionary
+        #set $to_string = ".toString()"
+        #set $f = "%s"
+    #else
+        #set base_sig = $return_arg.get_flattened_base_signature()
+        #if base_sig in $GenAndroid.printf_dictionary.viewkeys()
+            #set $f = $GenAndroid.printf_dictionary[base_sig]
+            #set $to_string = ""
+        #else
+${indent}String message = String.format("TODO: handle returned data type '%s'.", $return_arg.arg_type);
+        #end if
+    #end if
+${indent}String message = String.format("${name}()$element0 returned '$f'.", returnValue${element0}$to_string);
+
+${indent}sendUiMessage(what, message);
+#end def
+#####################
+## Define persistent version of the argument(s) for client runnable code. This is used by ClientMain.
+#####################
+#@staticmethod
+#def define_persistent_client_args($service, $indent_count)
+    #if $GenAndroid.has_persistent_args($service, True)
+        #set $indent = $indent_count * " "
+$indent$GenAndroid.comment_start_runnable
+        #for $key in sorted($service.interfaces):
+            #set $interface = $service.interfaces[$key]
+$cc.CommonCheetah.define_interface_persistent_classes($interface, True, $indent_count)#slurp
+        #end for
+        #for $o in $service.get_objects()
+            #for $i in $o.interfaces
+                #for $m in $i.methods
+$cc.CommonCheetah.declare_instance_of_persistent_class($o, $i, $m, True, $indent_count)
+                #end for
+                #for $p in $i.properties
+$cc.CommonCheetah.declare_instance_of_persistent_class($o, $i, $p, True, $indent_count)
+                #end for
+## There is no persistent data needed for signals on the client side.
+            #end for
+        #end for
+$indent$GenAndroid.comment_end_runnable
+    #end if
 #end def

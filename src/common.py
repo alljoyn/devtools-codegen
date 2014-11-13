@@ -69,7 +69,7 @@ def get_arg_signature(component, direction):
 
     for a in component.args:
         if a.direction == direction:
-            return_value = "".join([return_value, a.arg_type])
+            return_value = "".join([return_value, a.get_flattened_signature()])
 
     return return_value
 

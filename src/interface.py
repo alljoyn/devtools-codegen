@@ -362,7 +362,8 @@ Example: "/com/example/Demo" is returned as "comExampleDemo" if make_camel_cased
                     self.__name_and_extract_struct(a)
                 elif a.is_dictionary():
                     self.__name_and_extract_dictionary(a)
-                elif target_is_android and multiple_return_name and a.direction == "out":
+
+                if target_is_android and multiple_return_name and a.direction == "out":
                     out_args.append(a)
 
         if len(out_args) > 1:

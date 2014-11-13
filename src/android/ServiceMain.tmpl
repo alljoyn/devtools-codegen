@@ -16,8 +16,7 @@
 #import GenAndroid
 #import CommonCheetah as cc
 #from .. import common
-
-/* Source: "$command_line.xml_input_file" */
+/* Source: "$command_line.absolute_path_xml_input_file" */
 
 package $command_line.well_known_name;
 
@@ -337,8 +336,8 @@ MessageIds.MESSAGE_${obj_name}_${i.interface_name}.ordinal());
             $GenAndroid.comment_end_runnable
 #end if
         }
-
 #if $command_line.runnable and $service.has_signals()
+
         $GenAndroid.comment_start_runnable
         /*
          * This schedules the task that sends the AllJoyn signal(s) every few
@@ -625,7 +624,7 @@ MessageIds.MESSAGE_${obj_name}_${i.interface_name}.ordinal());
         Log.e(TAG, log, ex);
     }
 
-$cc.CommonCheetah.define_persistent_servicemain_signal_args($service, 4)#slurp
+$ServiceMain.define_persistent_servicemain_signal_args($service, 4)#slurp
     /*
      * This is just example code to demonstrating sending signals.
      */
@@ -685,4 +684,25 @@ ${indent}        logException("Exception while sending signal ${interface_name}.
 ${indent}    }
 ${indent}}
 #end def
-
+#####################
+## Define persistent version of the argument(s) for the signals.
+#####################
+#@staticmethod
+#def define_persistent_servicemain_signal_args($service, $indent_count)
+    #set $indent = $indent_count * " "
+    #for $key in sorted($service.interfaces):
+        #set $interface = $service.interfaces[$key]
+        #for $s in $interface.signals
+            #if $s.args
+$cc.CommonCheetah.define_persistent_class($interface, $s, False, $indent_count)
+            #end if
+        #end for
+    #end for
+    #for $o in $service.get_objects()
+        #for $i in $o.interfaces
+            #for $s in $i.signals
+$cc.CommonCheetah.declare_instance_of_persistent_class($o, $i, $s, False, $indent_count)#slurp
+            #end for
+        #end for
+    #end for
+#end def

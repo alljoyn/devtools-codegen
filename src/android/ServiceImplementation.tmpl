@@ -13,10 +13,10 @@
 ## ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
 ## OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 ###############################################################################
-/* Source: "$command_line.xml_input_file" */
 #import GenAndroid
 #import CommonCheetah as cc
 #from .. import common
+/* Source: "$command_line.absolute_path_xml_input_file" */
 
 package $interface.get_path();
 
@@ -112,13 +112,7 @@ $cc.CommonCheetah.increment_args(None, $interface, $p, $p.output_arg_info.args, 
         $GenAndroid.comment_end_runnable
             #else
         /* TODO: Implement the property and return the value. */
-                #if $arg.arg_type == 's'
-        $return_type returnValue = "Return value";
-                #elif $arg.arg_type == 'b'
-        $return_type returnValue = false;
-                #else
-        $return_type returnValue = 0;
-                #end if
+        $return_type returnValue$GenAndroid.get_initialization($arg, $p);
 
         return returnValue;
             #end if

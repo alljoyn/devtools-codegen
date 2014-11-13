@@ -15,6 +15,7 @@
 import argparse
 import os
 import validate
+import common
 
 class ConfigException(Exception):
     """Configuration exceptions"""
@@ -27,9 +28,10 @@ class Config:
 
     This class defines, parses, and validates the command line arguments.
     The configuration values are accessable via the member 'command_line'.
-    command_line has the following members and values:
+    command_line has the following members and types:
 
         xml_input_file (string)
+        absolute_path_xml_input_file (string)
         object_path (None or string)
         client_only (None or True)
         lax_naming (None or True)
@@ -111,7 +113,20 @@ class Config:
         parser.add_argument("-x", "--xml", help=help_text, action="store_true")
 
         self.command_line = parser.parse_args()
+
         self.__validate()
+        self.__get_addtions()
+
+    def __get_addtions(self):
+        """The target language is sometimes needed in modules that don't have easy
+        access to the command line. So this is added to the common module.
+        The absolute path of the input xml file is added to the command line as
+        "absolute_path_xml_input_file". The path separators are forced to be '/'
+        so that Eclipse doesn't claim (even in a COMMENT!) the string has invalid
+        unicode escape sequences."""
+        common.target_language = self.command_line.target_language
+        temp = os.path.abspath(self.command_line.xml_input_file)
+        self.command_line.absolute_path_xml_input_file = temp.replace("\\", "/")
 
     def target_hook(self, name):
         """Return the hooks of the selected target."""

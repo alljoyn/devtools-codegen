@@ -229,9 +229,24 @@ public class ClientMain extends Activity {
     #end for
 #end for
 
+        /* This is the sessionId assigned by the service connected with. */
         private int mSessionId;
+
+        /* This is set to true if the well-known name has been found and the session successfully joined. */
         private boolean mIsConnected;
+
+        /* This is set to true when disconnecting so that last second joining of sessions will not occur. */
         private boolean mIsStoppingDiscovery;
+
+        /* This is set to true if the well-known name has been found so that subsequent finds can be ignored.
+         * This is only an issue when multiple transports are found. The decision as to which transport
+         * should be used is application specific. It possible that multiple transports are desired. In which
+         * case multiple sessions should be joined. These decisions are up to the application developer. In
+         * the generated code we accept the first one that arrives. This means that different transports
+         * may be used in subsequent invocations as there is no guarantee which "foundAdvertisedName()"
+         * message arrives first. See also the comments in the foundAdvertisedName() method further below.
+         */
+        private boolean mFoundWellKnownName;
 
         public BusHandler(Looper looper) {
             super(looper);
@@ -284,17 +299,30 @@ public class ClientMain extends Activity {
                      * This client will only join the first service that it sees advertising
                      * the indicated well-known name. If the program is already a member of
                      * a session (i.e. connected to a service) we will not attempt to join
-                     * another session.
+                     * another session. If the use of a particular transport is important
+                     * then check "transport" bit mask for the transport of interest.
+                     * The details of the transport mask are documented in the SessionOpts class here:
+                     * https://allseenalliance.org/docs/api/java/org/alljoyn/bus/SessionOpts.html.
+                     * See also the comments associated with the declaration of the member
+                     * variable mFoundWellKnownName above.
                      */
                     mBus.cancelFindAdvertisedName(WELL_KNOWN_NAME);
 
                     String formatString = "MyBusListener.foundAdvertisedName(%s, 0x%04x, %s)";
                     String logMess = String.format(formatString, name, transport, namePrefix);
-                    int id = UiHandlerMessageIds.STOP_FIND_WELL_KNOWN_NAME_PROGRESS_DIALOG.ordinal();
 
                     logMessage(logMess);
-                    mHandler.sendEmptyMessage(id);
 
+                    if (mFoundWellKnownName) {
+                        logMessage("Extra find of advertised name ignored.");
+                        return;
+                    }
+
+                    mFoundWellKnownName = true;
+
+                    int id = UiHandlerMessageIds.STOP_FIND_WELL_KNOWN_NAME_PROGRESS_DIALOG.ordinal();
+
+                    mHandler.sendEmptyMessage(id);
                     id = BusHandlerMessageIds.JOIN_SESSION.ordinal();
 
                     Message msg = obtainMessage(id);
@@ -340,6 +368,7 @@ UiHandlerMessageIds.MESSAGE_${obj_name}_${i.interface_name}.ordinal());
              *
              * In this case, we are looking for WELL_KNOWN_NAME.
              */
+            mFoundWellKnownName = false;
             status = mBus.findAdvertisedName(WELL_KNOWN_NAME);
 
             String formatString = "BusAttachment.findAdvertisedName(%s)";
@@ -386,6 +415,7 @@ UiHandlerMessageIds.MESSAGE_${obj_name}_${i.interface_name}.ordinal());
 
                     int id = UiHandlerMessageIds.START_FIND_WELL_KNOWN_NAME_PROGRESS_DIALOG.ordinal();
 
+                    mFoundWellKnownName = false;
                     mHandler.sendEmptyMessage(id);
                     mIsConnected = false;
                 }
@@ -474,6 +504,7 @@ UiHandlerMessageIds.MESSAGE_${obj_name}_${i.interface_name}.ordinal());
 
 #end if
             mIsStoppingDiscovery = true;
+            mFoundWellKnownName = false;
 
             if (mIsConnected) {
                 status = mBus.leaveSession(mSessionId);

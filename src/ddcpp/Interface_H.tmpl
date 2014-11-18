@@ -34,7 +34,7 @@
 \#include <datadriven/ObjectPath.h>
 
 \#include <alljoyn/InterfaceDescription.h>
-\#include <datadriven/datadriven.h>
+\#include <datadriven/TypeDescription.h>
 
 namespace gen { namespace ${interface.get_full_coded_path} {
 
@@ -47,7 +47,6 @@ public:
      * \internal Enumeration for all methods and signals in the interface.
      */
     enum Member {
-        SIGNAL_PROPERTIESUPDATE,  /**< \internal infrastructure signal */
 #for $method in $interface.methods
         METHOD_${method.name.upper()},
 #end for
@@ -80,25 +79,8 @@ public:
         return instance;
     }
 
-    /**
-     * Getter for the interface name.
-     */
-    virtual const qcc::String GetName() const;
-
-    /**
-     * \internal Construct an AllJoyn interface.
-     */
-    virtual QStatus BuildInterface(ajn::InterfaceDescription& iface) const;
-
-    /**
-     * \internal Resolve method and signal members.
-     */
-    virtual QStatus ResolveMembers(const ajn::InterfaceDescription& iface,
-                                   const ajn::InterfaceDescription::Member*** member) const;
-
 private:
-    const qcc::String IFACE_NAME;
-    ${interface.intf_class}() : IFACE_NAME("${interface.interface_full_name}") {};
+    ${interface.intf_class}();
     ${interface.intf_class}(const ${interface.intf_class}&); // prevent copy by construction
     void operator=(const ${interface.intf_class}&); // prevent copy by assignment
 };

@@ -41,7 +41,6 @@ class Interface:
         self.parents = []
         self.structures = {}
         self.dictionaries = {}
-        self.has_arrays = False
         self.has_arg_info = False
         self.declared_names = []
         self.declared_structs = {}
@@ -117,7 +116,7 @@ class Interface:
         """Set the name of the interface.
 
         This is a bit more than a simple string assignment. interface_full_name
-        is the full D-Bus interfacename with at least two elements (such as
+        is the full D-Bus interface name with at least two elements (such as
         org.alljoyn, one.two, or test.foo). interfaceName is the last element
         of fullInterface name. In the examples above they would be "alljoyn",
         "two", or "foo".
@@ -131,7 +130,7 @@ class Interface:
         return
 
     def get_full_coded_name(self, make_camel_cased = False):
-        """Return the full interface name for use as an indentifier in c/c++ code.
+        """Return the full interface name for use as an identifier in c/c++ code.
 
 Example: "/com/example/Demo" is returned as "_com_example_Demo" if make_camel_cased is False.
 Example: "/com/example/Demo" is returned as "comExampleDemo" if make_camel_cased is True."""

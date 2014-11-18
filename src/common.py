@@ -38,6 +38,11 @@ def get_annotations(xml, aj_object):
                 __report_missing_value(xml, name)
             validate.data_signature(value)
             aj_object.variant_type = value
+        elif name == "org.freedesktop.DBus.Property.EmitsChangedSignal":
+            value = a.get("value")
+            if value is None:
+                __report_missing_value(xml, name)
+            aj_object.set_emits_changed_signal(value)
         else:
             f = "\nWarning! Ignoring interface annotation '{0}'."
             mess = f.format(name)

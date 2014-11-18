@@ -15,7 +15,6 @@
 ###############################################################################
 
 #import GenCPP
-#from .. import propertydef as pd
 
 ## ----------------------------------------------------------------------------
 ## Generate C++ code for marshaling the given items.
@@ -62,41 +61,88 @@
 #end def
 
 ## ----------------------------------------------------------------------------
-## Generate C++ code for a method on consumer side.
+## Generate C++ header code for a method on consumer side.
 ##
 ## Arguments:
 ##   clazz   -- name of the class
 ##   name    -- name of the method
 ##   argsin  -- list of method input arguments
 ##   argsout -- list of method output arguments
+## Keyword arguments:
+##   reply   -- method with reply or not (default True)
 ##
 #@staticmethod
-#def consumer_method_cc($clazz, $name, $argsin, $argsout)
-QStatus ${clazz}::${name}Reply::Unmarshal(ajn::Message& _message)
+#def consumer_method_h($clazz, $name, $argsin, $argsout, $reply = True)
+    #if $reply
+    /**
+     * Class containing all output arguments for the ${name} method.
+     */
+    class ${name}Reply : public datadriven::ConsumerMethodReply {
+    public:
+        #for $arg in $argsout
+        ${GenCPP.cpp_type($arg)} ${arg.name};
+        #end for
+
+        /**
+         * Unmarshaler for output arguments of ${name} method.
+         */
+        virtual QStatus Unmarshal(const ajn::MsgArg* _msgarg, size_t _numArgs);
+    };
+
+    /**
+     * Method for invoking the remote ${name} method.
+     */
+    std::shared_ptr<datadriven::MethodInvocation<${name}Reply> > ${name}(${GenCPP.args_string($argsin, append='uint32_t _timeout = datadriven::MethodInvocation<' + $name + 'Reply>::DefaultCallTimeout')}) const;
+    #else
+    /**
+     * Method for invoking the remote ${name} method (fire-and-forget).
+     */
+    QStatus ${name}(${GenCPP.args_string($argsin)}) const;
+    #end if
+#end def
+
+## ----------------------------------------------------------------------------
+## Generate C++ source code for a method on consumer side.
+##
+## Arguments:
+##   clazz   -- name of the class
+##   name    -- name of the method
+##   argsin  -- list of method input arguments
+##   argsout -- list of method output arguments
+## Keyword arguments:
+##   reply   -- method with reply or not (default True)
+##
+#@staticmethod
+#def consumer_method_cc($clazz, $name, $argsin, $argsout, $reply = True)
+    #if $reply
+        #set $replyClazz=$clazz + '::' + $name + 'Reply'
+        #set $timeout=', _timeout'
+QStatus ${replyClazz}::Unmarshal(const ajn::MsgArg* _msgarg, size_t _numArgs)
 {
     QStatus _status = ER_OK;
-    const ajn::MsgArg* _msgarg;
-    size_t _numArgs;
 
-    _message->GetArgs(_numArgs, _msgarg);
     if (${len(argsout)} != _numArgs) {
         _status = ER_BAD_ARG_COUNT;
     }
-    #if $argsout
+        #if $argsout
     else {
         do  {
 ${Util.argarray_unmarshal($argsout, '_msgarg', '_status')}#slurp
         } while (0);
     }
-    #end if
+        #end if
     SetStatus(_status);
     return _status;
 }
 
-std::shared_ptr<datadriven::MethodInvocation<${clazz}::${name}Reply> > ${clazz}::${name}(${GenCPP.args_string($argsin, append='uint32_t _timeout')}) const
+std::shared_ptr<datadriven::MethodInvocation<${replyClazz}> > ${clazz}::${name}(${GenCPP.args_string($argsin, append='uint32_t _timeout')}) const
+    #else
+        #set $replyClazz='datadriven::ConsumerMethodNoReply'
+        #set $timeout=''
+QStatus ${clazz}::${name}(${GenCPP.args_string($argsin)}) const
+    #end if
 {
-    datadriven::MethodInvocation<${clazz}::${name}Reply>* _inv = new datadriven::MethodInvocation<${clazz}::${name}Reply>();
-    std::shared_ptr<datadriven::MethodInvocation<${clazz}::${name}Reply> > sp = _inv->GetSharedThis();
+    std::shared_ptr<datadriven::MethodInvocation<${replyClazz}> > _inv = datadriven::MethodInvocation<${replyClazz}>::Create();
 
     #if $argsin
     QStatus _status = ER_OK;
@@ -105,21 +151,25 @@ std::shared_ptr<datadriven::MethodInvocation<${clazz}::${name}Reply> > ${clazz}:
         ajn::MsgArg _msgarg[${len($argsin)}];
 
 ${Util.argarray_marshal($argsin, '_msgarg', '_status')}#slurp
-        _inv->Exec(*this, GetTypeDescription().GetMember(Type::METHOD_${name.upper()}), _msgarg, ${len($argsin)}, _timeout);
+        _inv->Exec(*this, Type::METHOD_${name.upper()}, _msgarg, ${len($argsin)}${timeout});
     } while (0);
     if (ER_OK != _status) {
         _inv->SetReplyStatus(_status);
     }
     #else
 
-    _inv->Exec(*this, GetTypeDescription().GetMember(Type::METHOD_${name.upper()}));
+    _inv->Exec(*this, Type::METHOD_${name.upper()}, NULL, 0${timeout});
     #end if
-    return sp;
+    #if $reply
+    return _inv;
+    #else
+    return _inv->GetReply().GetStatus();
+    #end if
 }
 #end def
 
 ## ----------------------------------------------------------------------------
-## Generate C++ code for a signal on consumer side.
+## Generate C++ source code for a signal on consumer side.
 ##
 ## Arguments:
 ##   clazz     -- name of the class
@@ -136,9 +186,9 @@ ${clazz}::${name}::${name}(const std::shared_ptr<${clazz}>& emitter) :
 {
 }
 
-const ajn::InterfaceDescription::Member& ${clazz}::${name}::GetMember(const datadriven::RegisteredTypeDescription& desc)
+int ${clazz}::${name}::GetMemberNumber()
 {
-    return desc.GetMember(${clazz}::Type::SIGNAL_${name.upper()});
+    return ${clazz}::Type::SIGNAL_${name.upper()};
 }
 
 QStatus ${clazz}::${name}::Unmarshal(ajn::Message& _message)
@@ -161,3 +211,99 @@ ${Util.argarray_unmarshal($args, '_msgarg', '_status', container = $container)}#
     return _status;
 }
 #end def
+
+## ----------------------------------------------------------------------------
+## Generate C++ header code for a property on consumer side.
+##
+## Arguments:
+##   clazz     -- name of the class
+##   property  -- name of the signal
+##
+#@staticmethod
+#def consumer_property_h($clazz, $property)
+    #if $property.is_writeable()
+        #set $name = 'Set' + $property.name
+        #set $argsin = [$property]
+        #set $argsout = []
+
+${Util.consumer_method_h($clazz, $name, $argsin, $argsout)}#slurp
+    #end if
+    #if $property.is_readable() and $GenCPP.get_property_emits($property) != 'EmitChangesSignal::ALWAYS'
+        #set $name = 'Get' + $property.name
+        #set $argsin = []
+        #set $argsout = [$property]
+
+${Util.consumer_method_h($clazz, $name, $argsin, $argsout)}#slurp
+    #end if
+#end def
+
+## ----------------------------------------------------------------------------
+## Generate C++ source code for a property on consumer side.
+##
+## Arguments:
+##   clazz     -- name of the class
+##   property  -- name of the signal
+##
+#@staticmethod
+#def consumer_property_cc($clazz, $property)
+    #if $property.is_writeable()
+        #set $name = 'Set' + $property.name
+        #set $argsin  = [$property]
+        #set $argsout = []
+
+QStatus ${clazz}::${name}Reply::Unmarshal(const ajn::MsgArg* _msgarg, size_t _numArgs)
+{
+    QStatus _status = ER_OK;
+
+    if (0 != _numArgs) {
+        _status = ER_BAD_ARG_COUNT;
+    }
+    SetStatus(_status);
+    return _status;
+}
+
+std::shared_ptr<datadriven::MethodInvocation<${clazz}::${name}Reply> > ${clazz}::${name}(${GenCPP.args_string($argsin, append='uint32_t _timeout')}) const
+{
+    std::shared_ptr<datadriven::MethodInvocation<${clazz}::${name}Reply> > _inv = datadriven::MethodInvocation<${clazz}::${name}Reply>::Create();
+    QStatus _status = ER_OK;
+    ajn::MsgArg _value;
+
+    _status = datadriven::Marshal(_value, ${property.name});
+    if (_status == ER_OK) {
+        _inv->SetProperty(*this, "${property.name}", _value, _timeout);
+    } else {
+        _inv->SetReplyStatus(_status);
+    }
+    return _inv;
+}
+    #end if
+    #if $property.is_readable() and $GenCPP.get_property_emits($property) != 'EmitChangesSignal::ALWAYS'
+        #set $name = 'Get' + $property.name
+        #set $argsin  = []
+        #set $argsout = [$property]
+
+QStatus ${clazz}::${name}Reply::Unmarshal(const ajn::MsgArg* _msgarg, size_t _numArgs)
+{
+    QStatus _status = ER_OK;
+
+    if (1 != _numArgs) {
+        _status = ER_BAD_ARG_COUNT;
+    }
+    else {
+        do  {
+${Util.argarray_unmarshal($argsout, '_msgarg', '_status')}#slurp
+        } while (0);
+    }
+    SetStatus(_status);
+    return _status;
+}
+
+std::shared_ptr<datadriven::MethodInvocation<${clazz}::${name}Reply> > ${clazz}::${name}(${GenCPP.args_string($argsin, append='uint32_t _timeout')}) const
+{
+    std::shared_ptr<datadriven::MethodInvocation<${clazz}::${name}Reply> > _inv = datadriven::MethodInvocation<${clazz}::${name}Reply>::Create();
+    _inv->GetProperty(*this, "${property.name}", _timeout);
+    return _inv;
+}
+    #end if
+#end def
+

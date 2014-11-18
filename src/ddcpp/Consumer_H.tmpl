@@ -28,7 +28,10 @@
 \#include <memory>
 \#include <qcc/String.h>
 \#include <qcc/Mutex.h>
-\#include <datadriven/datadriven.h>
+\#include <datadriven/ConsumerMethodReply.h>
+\#include <datadriven/ProxyInterface.h>
+\#include <datadriven/MethodInvocation.h>
+\#include <datadriven/SignalBase.h>
 
 \#include "${interface.intf_class}.h"
 
@@ -53,48 +56,30 @@ public:
     // Properties
 
     /**
-     * Class containing all properties of the ${interface.interface_full_name}
-     * interface.
+     * Class containing all cached properties of the ${interface.interface_full_name} interface.
      */
     class Properties {
     public:
-#for $property in $interface.properties
+#for $property in GenCPP.emitted_properties($interface.properties)
         ${GenCPP.cpp_type($property)} ${property.name};
 #end for
     };
 
     /**
-     * Get the cached properties for this object.
+     * Returns a copy of the cacheable properties for this object.
      */
     Properties GetProperties() const;
 
-    /**
-     * \internal
-     */
-    void SetProperties(const Properties &props);
+#for $property in $interface.properties
+${u.Util.consumer_property_h($interface.cons_class, $property)}#slurp
+#end for
 
     // Methods
 #for $method in $interface.methods
+    #set $argsin = $method.get_args_for_direction('in')
+    #set $argsout = $method.get_args_for_direction('out')
 
-    /**
-     * Class containing all output arguments for the ${method.name} method.
-     */
-    class ${method.name}Reply : public datadriven::ConsumerMethodReply {
-    public:
-    #for $arg in $method.get_args_for_direction('out')
-        ${GenCPP.cpp_type($arg)} ${arg.name};
-    #end for
-
-        /**
-         * Unmarshaler for output arguments of ${method.name} method.
-         */
-        virtual QStatus Unmarshal(ajn::Message& message);
-    };
-
-    /**
-     * Method for invoking the remote ${method.name} method.
-     */
-    std::shared_ptr<datadriven::MethodInvocation<${method.name}Reply> > ${method.name}(${GenCPP.args_string($method.args, 'in', append='uint32_t _timeout = datadriven::MethodInvocation<' + $method.name + 'Reply>::DefaultCallTimeout')}) const;
+${u.Util.consumer_method_h($interface.cons_class, $method.name, $argsin, $argsout, not $method.no_reply)}#slurp
 #end for
 
     // Signals
@@ -119,7 +104,7 @@ public:
          * \internal Use by the framework to get a description of this specific
          * signal.
          */
-        static const ajn::InterfaceDescription::Member& GetMember(const datadriven::RegisteredTypeDescription& desc);
+        static int GetMemberNumber();
 
         /**
          * \internal Unmarshaler for all arguments of ${signal.name} signal.
@@ -128,35 +113,13 @@ public:
     };
 #end for
 
-    // Infrastructure signal
-
+protected:
     /**
-     * \internal Class used by the framework's <em>properties updated</em> signal.
+     * \internal
+     * Unmarshal a single property.
      */
-    class PropertiesUpdate : public datadriven::SignalBase<${interface.cons_class}> {
-    public:
-        /**
-         * \internal All the properties.
-         */
-        Properties properties;
-
-        /**
-         * \internal Constructor called by the framework to create an incoming
-         * signal.
-         */
-        PropertiesUpdate(const std::shared_ptr<${interface.cons_class}>& emitter);
-
-        /**
-         * \internal Use by the framework to get a description of this specific
-         * signal.
-         */
-        static const ajn::InterfaceDescription::Member& GetMember(const datadriven::RegisteredTypeDescription& desc);
-
-        /**
-         * \internal Unmarshaler for all arguments of <em>properties updated</em> signal.
-         */
-        virtual QStatus Unmarshal(ajn::Message& message);
-    };
+    virtual QStatus UnmarshalProperty(const char* name,
+                                      const ajn::MsgArg& value);
 
 private:
     Properties props;

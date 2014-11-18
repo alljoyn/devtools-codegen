@@ -26,64 +26,34 @@
 
 namespace gen { namespace ${interface.get_full_coded_path} {
 
-const qcc::String ${interface.intf_class}::GetName() const
+${interface.intf_class}::${interface.intf_class}() :
+    TypeDescription("${interface.interface_full_name}")
 {
-    return IFACE_NAME;
-}
-
-QStatus ${interface.intf_class}::BuildInterface(ajn::InterfaceDescription& desc) const
-{
-    QStatus status;
-
-    do {
-        // add properties
+    // add properties
 #for $property in $interface.properties
-    #set $arg=$GenCPP.get_arg(property)
-        if (ER_OK != (status = desc.AddProperty("${property.name}", "${arg.get_flattened_signature()}", ajn::PROP_ACCESS_READ))) break;
+    #set $arg=$GenCPP.get_arg($property)
+    #set $access=$GenCPP.get_property_access($property)
+    #set $emits=$GenCPP.get_property_emits($property)
+    AddProperty("${property.name}", "${arg.get_flattened_signature()}", ${access}, ${emits});
 #end for
-        // add signal for property updates
-        if (ER_OK != (status = desc.AddSignal("_update", ${GenCPP.sig_string($interface.properties)}, "${GenCPP.names_csv($interface.properties)}"))) break;
-        // add defined methods
+    // add methods
 #for $method in $interface.methods
     #set $sigin=$GenCPP.sig_string($method.args, 'in')
     #set $sigout=$GenCPP.sig_string($method.args, 'out')
     #set $names=$GenCPP.names_csv($method.args, 'in')
     #set $names=$GenCPP.names_csv($method.args, 'out', initial=$names)
-        if (ER_OK != (status = desc.AddMethod("${method.name}", ${sigin}, ${sigout}, "${names}"))) break;
+    #set $annotation="0"
+    #if $method.no_reply
+        #set $annotation="ajn::MEMBER_ANNOTATE_NO_REPLY"
+    #end if
+    AddMethod("${method.name}", ${sigin}, ${sigout}, "${names}", ${annotation});
 #end for
-        // add defined signals
+    // add signals
 #for $signal in $interface.signals
     #set $sig=$GenCPP.sig_string($signal.args)
     #set $names=$GenCPP.names_csv($signal.args)
-        if (ER_OK != (status = desc.AddSignal("${signal.name}", ${sig}, "${names}"))) break;
+    AddSignal("${signal.name}", ${sig}, "${names}");
 #end for
-    } while (0);
-    return status;
-}
-
-QStatus ${interface.intf_class}::ResolveMembers(const ajn::InterfaceDescription& desc, const ajn::InterfaceDescription::Member*** member) const
-{
-    QStatus status = ER_OK;
-
-    // keep references to actual members for later usage
-    *member = NULL;
-    *member = new const ajn::InterfaceDescription::Member*[${1 + $len($interface.methods) + $len($interface.signals)}];
-    if (NULL != *member) {
-        (*member)[0] = desc.GetSignal("_update");
-#set $i=0
-#for $method in $interface.methods
-    #set $i=$i + 1
-        (*member)[${i}] = desc.GetMethod("${method.name}");
-#end for
-#for $signal in $interface.signals
-    #set $i=$i + 1
-        (*member)[${i}] = desc.GetSignal("${signal.name}");
-#end for
-    }
-    else {
-        status = ER_OUT_OF_MEMORY;
-    }
-    return status;
 }
 
 }}
@@ -112,10 +82,11 @@ ${u.Util.argarray_marshal($fields, '_members', '_status', container = 'data.')}#
 QStatus Unmarshal(::gen::${interface.get_full_coded_path}::${interface.intf_class}::${container.name}& data, const ajn::MsgArg& _msgarg)
 {
     QStatus _status = ER_FAIL;
+    const ajn::MsgArg& _m = MsgArgDereference(_msgarg);
 
-    if ((ajn::ALLJOYN_STRUCT == _msgarg.typeId) &&
-        (${len($fields)} == _msgarg.v_struct.numMembers)) {
-        const ajn::MsgArg* _members = _msgarg.v_struct.members;
+    if ((ajn::ALLJOYN_STRUCT == _m.typeId) &&
+        (${len($fields)} == _m.v_struct.numMembers)) {
+        const ajn::MsgArg* _members = _m.v_struct.members;
 
         do  {
 ${u.Util.argarray_unmarshal($fields, '_members', '_status', container = 'data.')}#slurp

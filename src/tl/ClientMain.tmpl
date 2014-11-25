@@ -126,7 +126,7 @@ int AJ_Main(void)
         AJ_Message msg = { 0 };
 
         if (!connected) {
-            status = AJ_StartClient(&bus, NULL, TIMEOUT_CONNECT, FALSE, g_ServiceName, SERVICE_PORT, &sessionId, NULL);
+            status = AJ_StartClientByName(&bus, NULL, TIMEOUT_CONNECT, FALSE, "$command_line.well_known_name", SERVICE_PORT, &sessionId, NULL, g_ServiceName);
 
             if (AJ_OK == status) {
                 connected = TRUE;

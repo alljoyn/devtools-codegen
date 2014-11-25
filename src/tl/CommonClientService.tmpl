@@ -1,5 +1,5 @@
 ###############################################################################
-## Copyright (c) 2013 AllSeen Alliance. All rights reserved.
+## Copyright (c) 2013, 2014 AllSeen Alliance. All rights reserved.
 ##
 ## Permission to use, copy, modify, and/or distribute this software for any
 ## purpose with or without fee is hereby granted, provided that the above
@@ -18,8 +18,12 @@
 
 \#include <alljoyn.h>
 
-/* This is defined on the command line to the code generator. */
-const char g_ServiceName[] = "$command_line.well_known_name";
+/*********
+ * This string is defined on the command line to the code generator. But the buffer
+ * must be large enough to hold the full service name because AJ_StartClientByName()
+ * uses this for output.
+ *********/
+const char g_ServiceName[AJ_MAX_SERVICE_NAME_SIZE] = "$command_line.well_known_name";
 
 ## Create all of the interface description tables.
 #for $key in $sorted($service.interfaces)

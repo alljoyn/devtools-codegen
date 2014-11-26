@@ -49,7 +49,7 @@ def __validate_cmdline(command_line):
     # object path is optional but XML parser needs it
     # insert dummy if not present
     if command_line.object_path is None:
-        command_line.object_path = "/ignored/not/relevant"
+        command_line.object_path = "/dummy"
 
 def __generate_code(command_line, service):
     """Generate the AllJoyn Data-driven API C++ code.
@@ -103,7 +103,7 @@ def __make_target_file(template, filename, command_line, interface):
 
     return
 
-def names_csv(items, direction = None, initial = None):
+def names_csv(items, direction = None, initial = None, extra = None):
     """Create a comma-separated list of the names of all items.
 
     If direction is provided then only items for the given direction are added.
@@ -115,7 +115,8 @@ def names_csv(items, direction = None, initial = None):
                    arguments
     Keyword arguments:
       direction -- item direction filter; 'in', 'out' or None (default None)
-      initial   -- initial CSV string (default None)
+      initial   -- initial CSV string to be prepended (default None)
+      extra     -- extra CSV string to be appended (default None)
     Returns:
       the CSV string"""
 
@@ -132,6 +133,11 @@ def names_csv(items, direction = None, initial = None):
             else:
                 first=False
             csv += item.name
+    if extra:
+        if csv:
+            csv += ',' + extra
+        else:
+            csv = extra
     return csv
 
 def get_arg(item):
@@ -143,15 +149,10 @@ def get_arg(item):
     Arguments:
       item -- item for which to return the ArgDef
     Returns:
-      the ArgDef
-    Raises:
-      UnsupportedException -- if item is a PropertyDef without read semantics"""
+      the ArgDef"""
 
     if isinstance(item, pd.PropertyDef):
-        for arg in item.args:
-            if 'out' == arg.direction:
-                return arg
-        raise UnsupportedException("Only read semantics are supported for property '%s'" % item.name)
+        return item.args[0]
     else:
         return item
 
@@ -280,6 +281,29 @@ def args_string(items, direction = None, append = None):
         args += append
     return args
 
+def emitted_properties(properties):
+    return filter(lambda p: pd.EmitsChangedSignal.ALWAYS == p.emits_changed_signal, properties)
+
+def get_property_access(prop):
+    access=''
+    if prop.is_readable():
+        access += 'ajn::PROP_ACCESS_READ'
+    if prop.is_writeable():
+        if access:
+            access += '|'
+        access += 'ajn::PROP_ACCESS_WRITE'
+    return access
+
+def get_property_emits(prop):
+    emits=''
+    if pd.EmitsChangedSignal.NEVER == prop.emits_changed_signal:
+        emits = 'EmitChangesSignal::NEVER'
+    elif pd.EmitsChangedSignal.ALWAYS == prop.emits_changed_signal:
+        emits = 'EmitChangesSignal::ALWAYS'
+    elif pd.EmitsChangedSignal.INVALIDATES == prop.emits_changed_signal:
+        emits = 'EmitChangesSignal::INVALIDATES'
+    return emits
+
 # This converts an AllJoyn data type into a plain 'C++' data type.
 cpp_type_dictionary = {'b': "bool",
                        'd': "double",
@@ -291,6 +315,7 @@ cpp_type_dictionary = {'b': "bool",
                        's': "qcc::String",
                        't': "uint64_t",
                        'u': "uint32_t",
+                       'v': "ajn::MsgArg",
                        'x': "int64_t",
                        'y': "uint8_t",
                        }
@@ -307,7 +332,7 @@ val_dictionary = {'b': "v_bool",
                   's': "v_string",
                   't': "v_uint64",
                   'u': "v_uint32",
-                  'v': "v_data",
+                  'v': "v_variant",
                   'x': "v_int64",
                   'y': "v_byte",
                  }

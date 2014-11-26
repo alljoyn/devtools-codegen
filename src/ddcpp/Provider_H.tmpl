@@ -25,10 +25,13 @@
 \#define ${interface.get_full_coded_path.upper()}_${interface.prov_class.upper()}_H_
 
 #if $interface.properties
+\#include <memory>
 \#include <vector>
 #end if
 \#include <qcc/String.h>
-\#include <datadriven/datadriven.h>
+\#include <datadriven/ProvidedInterface.h>
+\#include <datadriven/ProvidedObject.h>
+\#include <datadriven/ProviderMethodReply.h>
 
 \#include "${interface.intf_class}.h"
 
@@ -54,10 +57,17 @@ public:
      */
     virtual ~${interface.prov_class}();
 
+    // Properties
+    /**
+     * \internal Marshaler for all emitted properties of the interface.
+     */
+    QStatus MarshalProperties();
+
     // Methods
 #for $method in $interface.methods
     #set $argsin = $method.get_args_for_direction('in')
     #set $argsout = $method.get_args_for_direction('out')
+    #if not $method.no_reply
 
     /**
      * Class for handling incoming invocations of the ${method.name} method.
@@ -73,8 +83,9 @@ public:
          * \internal Constructor called by the framework to create an incoming
          * method's reply.
          */
-        ${method.name}Reply(datadriven::ProvidedObject& po, ajn::Message& message);
+        ${method.name}Reply(std::shared_ptr<datadriven::ProvidedObjectImpl> object, ajn::Message& message);
     };
+    #end if
 #end for
 
     // Signals
@@ -83,35 +94,69 @@ public:
     /**
      * Method to be called for sending the ${signal.name} signal.
      */
-    void ${signal.name}(${GenCPP.args_string($signal.args)});
+    QStatus ${signal.name}(${GenCPP.args_string($signal.args)});
 #end for
 
 protected:
 
     // Properties
 
-#for $property in $interface.properties
+#for $property in GenCPP.emitted_properties($interface.properties)
     ${GenCPP.cpp_type($property)} ${property.name};
 #end for
 
     /**
-     * \internal Marshaler for all properties of the interface.
+     * Sets one of the properties (identified by propName) of this object
+     * to a new value (propValue)
      */
-    std::vector< ajn::MsgArg> MarshalProperties();
+    QStatus DispatchSetProperty(const char* _name, ajn::MsgArg& _value);
+
+    /**
+     * Gets one of the properties (identified by propName) of this object
+     */
+    QStatus DispatchGetProperty(const char* _name, ajn::MsgArg& _value) const;
+#for $property in $interface.properties
+    #if $property.is_writeable()
+
+    /*
+     * Virtual method that needs to be overloaded for the handling of setting
+     * property ${property.name}
+     */
+    virtual QStatus Set${property.name}(${GenCPP.cpp_type($property)} _${property.name}) = 0;
+    #end if
+    #if $property.is_readable() and $GenCPP.get_property_emits($property) != 'EmitChangesSignal::ALWAYS'
+
+    /*
+     * Virtual method that needs to be overloaded for the handling of getting
+     * property ${property.name}
+     */
+    virtual QStatus Get${property.name}(${GenCPP.cpp_type($property)}& _${property.name}) const = 0;
+    #end if
+    #if $property.is_readable() and $GenCPP.get_property_emits($property) == 'EmitChangesSignal::INVALIDATES'
+
+    /*
+     * Invalidate the property ${property.name}. This will cause the listeners
+     * to be notified through an OnUpdate call that the property has been
+     * changed.
+     */
+    QStatus Invalidate${property.name}();
+    #end if
+#end for
 
     // Methods
 #for $method in $interface.methods
     #set $argsin = $method.get_args_for_direction('in')
+    #if $method.no_reply
+        #set $reply = None
+    #else
+        #set $reply = $method.name + 'Reply& _reply'
+    #end if
 
     /**
      * Virtual method that needs to be overloaded for the handling of an
      * invocation of the ${method.name} method.
      */
-    virtual void ${method.name}(#slurp
-    #if $argsin
-${GenCPP.args_string($method.get_args_for_direction('in'))}, #slurp
-    #end if
-${method.name}Reply& _reply) = 0;
+    virtual void ${method.name}(${GenCPP.args_string($argsin, append=$reply)}) = 0;
 #end for
 
 private:

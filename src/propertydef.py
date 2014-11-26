@@ -17,6 +17,11 @@ import common
 import validate
 import argdef
 
+class EmitsChangedSignal:
+    NEVER = 0
+    ALWAYS = 1
+    INVALIDATES = 2
+
 class PropertyDef:
     """Contains the description of an AllJoyn property."""
     def __init__(self):
@@ -25,6 +30,7 @@ class PropertyDef:
         self.access = ""
         self.is_secure = False
         self.no_reply = False
+        self.emits_changed_signal = EmitsChangedSignal.NEVER
         self.variant_type = None
         self.args = []
         return
@@ -61,6 +67,15 @@ class PropertyDef:
 
     def is_writeable(self):
         return self.access == "write" or self.access == "readwrite"
+
+    def set_emits_changed_signal(self, value):
+        """ """
+        if "false" == value:
+            self.emits_changed_signal = EmitsChangedSignal.NEVER
+        elif "true" == value:
+            self.emits_changed_signal = EmitsChangedSignal.ALWAYS
+        elif "invalidates" == value:
+            self.emits_changed_signal = EmitsChangedSignal.INVALIDATES
 
     def __eq__(self, other):
         """Compares this property to another and returns true if equal."""

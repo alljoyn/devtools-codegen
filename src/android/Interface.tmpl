@@ -21,6 +21,10 @@
 
 package $interface.get_path();
 
+#if $interface.dictionaries
+import java.util.HashMap;
+
+#end if
 import org.alljoyn.bus.BusException;
 import org.alljoyn.bus.annotation.BusInterface;
 #if $interface.methods
@@ -32,7 +36,7 @@ import org.alljoyn.bus.annotation.BusProperty;
 #if $interface.signals
 import org.alljoyn.bus.annotation.BusSignal;
 #end if
-#if $interface.structures or $interface.dictionaries
+#if $interface.structures
 import org.alljoyn.bus.annotation.Position;
 #end if
 

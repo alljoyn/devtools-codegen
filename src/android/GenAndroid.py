@@ -16,6 +16,7 @@ import sys
 import shutil
 import os
 import glob
+import random
 
 from .. import CheetahCompileExcept as cce
 
@@ -250,7 +251,7 @@ printf_dictionary = {'b': "%b",
                      'y': "%d",
                     }
 
-# This converts an AllJoyn data type into the Android Java data type.
+# This converts an AllJoyn data type into the Android Java primative data type.
 type_dictionary = {'b': "boolean",
                    'd': "double",
                    'g': "String",
@@ -265,6 +266,16 @@ type_dictionary = {'b': "boolean",
                    'x': "long",
                    'y': "byte",
                   }
+
+# This converts an Java primative data type into the Java object data type.
+type_primative_to_object_dictionary = {'boolean': "Boolean",
+                                       'double': "Double",
+                                       'String': "String",
+                                       'int': "Integer",
+                                       'short': "Short",
+                                       'long': "Long",
+                                       'byte': "Byte",
+                                      }
 
 def get_base_java_type(interface, signature, member = None):
     """Get the non-array type of this signature"""
@@ -283,14 +294,17 @@ def get_java_type(interface, signature, member = None):
 
     if base_signature in type_dictionary:
         tbase = type_dictionary[base_signature]
+    elif base_signature[0] == '[':
+        named_type = interface.get_named_type(base_signature[1:-1])
+        if isinstance(named_type, structdef.StructDef):
+            tbase = __make_structure_type_name(interface, named_type)
+        elif isinstance(named_type, dictdef.DictDef):
+            tbase = __make_dictionary_type_name(interface, named_type)
     elif return_struct_key in interface.structures:
         s = interface.structures[return_struct_key]
         tbase = __make_structure_type_name(interface, s)
     else:
-        assert(base_signature[0] == '[')
-        named_type = interface.get_named_type(base_signature[1:-1])
-        if isinstance(named_type, structdef.StructDef) or isinstance(named_type, dictdef.DictDef):
-            tbase = __make_structure_type_name(interface, named_type)
+        assert(0)
 
     if memberdef.is_array(signature):
         t = "{0}[]".format(tbase)
@@ -305,11 +319,13 @@ def get_initialization(arg, member = None):
     """Get the initialization string to use for this argument."""
     t = get_base_java_type(arg.interface, arg.arg_type, member)
 
-    if arg.is_array():
+    if arg.is_array(): # Dictionaries are also considered arrays, take note below.
         if t == "String":
             init = ' = {"String 0", "String 1", "String 2"}'
-        elif arg.is_structure() or arg.is_dictionary():
+        elif arg.is_structure() or arg.is_dictionary_array():
             init = " = {{ new {0}(), new {0}(), new {0}() }}".format(t)
+        elif arg.is_dictionary():
+            init = " = new {0}()".format(t)
         else:
             b = arg.get_base_signature()
             if b[0] == 'b':
@@ -323,7 +339,7 @@ def get_initialization(arg, member = None):
             init = " = 0.0"
         elif t == "String":
             init = ' = ""'
-        elif arg.is_structure() or arg.is_dictionary():
+        elif arg.is_structure():
             init = " = new {0}()".format(t)
         else:
             init = " = 0"
@@ -392,8 +408,93 @@ def make_members_from_structure(interface, struct):
 
     return return_value
 
+def make_dictionary_types(interface, dict):
+    """Make the text which is the type of the key and value types of a dictionary.
+    Return them as [k, v]."""
+    java_key_type = get_java_type(interface, dict.key.arg_type)
+
+    if java_key_type in type_primative_to_object_dictionary.keys():
+        java_key_type = type_primative_to_object_dictionary[java_key_type]
+
+    java_value_type = get_java_type(interface, dict.value.arg_type)
+
+    if java_value_type in type_primative_to_object_dictionary.keys():
+        java_value_type = type_primative_to_object_dictionary[java_value_type]
+
+    return [java_key_type, java_value_type]
+
+def make_random_dictionary_init(arg):
+    assert(arg.is_dictionary())
+    key_type, val_type = make_dictionary_types(arg.interface, arg.get_named_type())
+
+    if key_type in __type_to_random_func_dictionary and val_type in __type_to_random_func_dictionary:
+        return "{0}, {1}".format(make_random(key_type), make_random(val_type))
+
+    if key_type in __type_to_random_func_dictionary:
+        return "{0}, new {1}()".format(make_random(key_type), val_type)
+
+    assert(0) # TODO: Make a structure with random member values and comparator methods.
+
+def make_random(basic_type):
+    assert(basic_type in __type_to_random_func_dictionary)
+    rand_func = __type_to_random_func_dictionary[basic_type]
+
+    return rand_func()
+
+def __random_bool():
+    if random.randint(0, 1) == 0:
+        return "false"
+
+    return "true"
+
+__random_strings_list = ["The quick",
+                         "brown fox",
+                         "jumped over",
+                         "the lazy",
+                         "dog to",
+                         "fetch a",
+                         "pail of",
+                         "clean water",
+                         "for the",
+                         "thirsty pups",
+                         "Jack fell",
+                         "down and",
+                         "broke his",
+                         "crown",
+                         ]
+def __random_string():
+    index = random.randint(0, len(__random_strings_list) - 1)
+
+    return '"{0}"'.format(__random_strings_list[index])
+
+def __random_int():
+    return random.randint(-1000, 1000)
+
+def __random_short():
+    return "(short){0}".format(__random_int())
+
+def __random_long():
+    return "(long){0}".format(__random_int())
+
+def __random_byte():
+    return "(byte){0}".format(random.randint(0, 255))
+
+__type_to_random_func_dictionary = {"Boolean": __random_bool,
+                                    "Double": random.random,
+                                    "String": __random_string,
+                                    "Integer": __random_int,
+                                    "Short": __random_short,
+                                    "Long": __random_long,
+                                    "Byte": __random_byte,
+                                    }
+
 def __make_structure_type_name(interface, structure):
     return "{0}.{1}".format(interface.interface_name, structure.name)
+
+def __make_dictionary_type_name(interface, dict):
+    dict_types = make_dictionary_types(interface, dict)
+
+    return "HashMap<{0}, {1}>".format(dict_types[0], dict_types[1])
 
 def __get_well_known_name_path(command_line):
     """Get the subdirectory the Android user inteface should reside in."""

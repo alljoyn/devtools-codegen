@@ -58,6 +58,12 @@ import android.widget.EditText;
 import android.widget.ListView;
 import android.widget.TextView;
 import android.widget.Toast;
+#if $service.has_dictionaries
+import java.util.HashMap;
+#end if
+#if $service.has_dictionaries and $command_line.runnable
+import java.util.Set;
+#end if
 
 public class ClientMain extends Activity {
     /* Load the native alljoyn_java library. */
@@ -635,9 +641,9 @@ $ClientMain.get_set_properties($o, $i, 16)#slurp
             #end if
             #set $return_type = $GenAndroid.get_java_return_type($m)
             #set $return_arg = $GenAndroid.get_return_arg($m)
-            ## This #if is only for whitespace control. increment_args() could always be called without functional issues.
             #if $m.input_arg_info.args
-$cc.CommonCheetah.increment_args($object, $interface, $m, $m.input_arg_info.args, $indent_count)
+                #set $instance_name = $cc.CommonCheetah.make_persistent_instance_name($object, $interface, $m)
+${indent}${instance_name}.incrementArgs();
             #end if
 ${indent}try {
 $ClientMain.call_method($object, $interface, $m, $indent_count + 4)#slurp
@@ -664,9 +670,10 @@ ${indent}}
     #set $return_arg = $GenAndroid.get_return_arg($method)
 ${indent}int what = UiHandlerMessageIds.MESSAGE_${obj_name}_${interface.interface_name}.ordinal();
     #if $return_arg
+${indent}String ajcgMessageString;
 
 ${indent}$return_type returnValue = ${method_instance}($cc.CommonCheetah.add_args($object, $interface, $method));
-    #set $instance_name = $cc.CommonCheetah.make_persistent_instance_name($object, $interface, $method)
+        #set $instance_name = $cc.CommonCheetah.make_persistent_instance_name($object, $interface, $method)
 $ClientMain.print_return_value($instance_name, $return_arg, $indent_count)#slurp
     #else
 ${indent}${method_instance}($cc.CommonCheetah.add_args($object, $interface, $method));
@@ -690,18 +697,20 @@ ${indent}sendUiMessage(what, "Successfully called ${method_instance}()");
 
                 #end if
                 #set $add_newline = True
-$cc.CommonCheetah.increment_args($object, $interface, $p, $p.input_arg_info.args, $indent_count)
+                #set $instance_name = $cc.CommonCheetah.make_persistent_instance_name($object, $interface, $p)
+${indent}${instance_name}.incrementArgs();
 ## This is the set property code.
 ${indent}try {
 ${indent}    int what = UiHandlerMessageIds.MESSAGE_${obj_name}_${interface.interface_name}.ordinal();
-${indent}    String message = "Calling ${iname}.set${p.name}().";
+${indent}    String ajcgMessageString = "Calling ${iname}.set${p.name}().";
 
-${indent}    sendUiMessage(what, message);
+${indent}    sendUiMessage(what, ajcgMessageString);
 ${indent}    ${iname}.set${p.name}($cc.CommonCheetah.add_args($object, $interface, $p));
 ${indent}} catch (BusException be) {
 ${indent}    status = doExceptionReport("${iname}.set${p.name}", be);
 ${indent}}
             #end if
+## This is the get property code.
             #if $p.is_readable()
                 #if $add_newline
 
@@ -712,6 +721,8 @@ ${indent}try {
                 #set $return_type = $GenAndroid.get_java_return_type($p)
                 #set $a = $p.output_arg_info.args[0]
 ${indent}    int what = UiHandlerMessageIds.MESSAGE_${obj_name}_${interface.interface_name}.ordinal();
+${indent}    String ajcgMessageString;
+
 ${indent}    $return_type returnValue = ${iname}.get${p.name}();
 
                 #set $return_arg = $GenAndroid.get_return_arg($p)
@@ -737,29 +748,11 @@ ${indent}}
 #@staticmethod
 #def print_return_value($name, $return_arg, $indent_count)
     #set $indent = $indent_count * " "
-    #if $return_arg.is_array
-        #set $element0 = "[0]"
-    #else
-        #set $element0 = ""
-    #end if
-    #if $return_arg.is_structure or $return_arg.is_dictionary
-        #set $to_string = ".toString()"
-        #set $f = "%s"
-    #else
-        #set base_sig = $return_arg.get_flattened_base_signature()
-        #if base_sig in $GenAndroid.printf_dictionary.viewkeys()
-            #set $f = $GenAndroid.printf_dictionary[base_sig]
-            #set $to_string = ""
-        #else
-${indent}String message = String.format("TODO: handle returned data type '%s'.", $return_arg.arg_type);
-        #end if
-    #end if
-${indent}String message = String.format("${name}()$element0 returned '$f'.", returnValue${element0}$to_string);
-
-${indent}sendUiMessage(what, message);
+$cc.CommonCheetah.format_arg($return_arg, "returnValue", "", $indent_count)
+${indent}sendUiMessage(what, ajcgMessageString);
 #end def
 #####################
-## Define persistent version of the argument(s) for client runnable code. This is used by ClientMain.
+## Define persistent version of the argument(s) for client runnable code.
 #####################
 #@staticmethod
 #def define_persistent_client_args($service, $indent_count)

@@ -35,8 +35,10 @@ class Service:
         # other AllJoynObjects and/or reference one of the Interfaces.
         self.alljoyn_object = ajobject.AllJoynObject(service_name)
         self.delete_object_cache()
-        self.__has_properties = None
+        self.__has_read_properties = None
+        self.__has_write_properties = None
         self.__number_of_signals = None
+        self.__has_dictionaries = None
         return
 
     def parse(self, xml, lax_naming):
@@ -57,9 +59,15 @@ class Service:
         if i is None:
             self.interfaces[interface.interface_full_name] = interface
             i = interface
+
+            # Because one or more of the following properties may have been set
+            # to False and the addition of this interface may change that we now
+            # set them to None so the previously cached value can be reevaluated
+            # as needed in has_read_properties(), etc.
             self.__has_read_properties = None
             self.__has_write_properties = None
             self.__number_of_signals = None
+            self.__has_dictionaries = None
         elif i != interface:
             error1_format = "Interface '{0}' has multiple definitions"
             error1 = error1_format.format(interface.interface_full_name)
@@ -100,7 +108,7 @@ class Service:
         """Return true if any of the interfaces contain a readable property."""
         return_value = False
 
-        if self.__has_properties is None:
+        if self.__has_read_properties is None:
             for key in sorted(self.interfaces):
                 i = self.interfaces[key]
                 if i.has_read_properties():
@@ -117,7 +125,7 @@ class Service:
         """Return true if any of the interfaces contain a writeable property."""
         return_value = False
 
-        if self.__has_properties is None:
+        if self.__has_write_properties is None:
             for key in sorted(self.interfaces):
                 i = self.interfaces[key]
                 if i.has_write_properties():
@@ -152,6 +160,23 @@ class Service:
             self.__number_of_signals = return_value
         else:
             return_value = self.__number_of_signals
+
+        return return_value
+
+    def has_dictionaries(self):
+        """Return true if any of the interfaces contains a dictionary."""
+        return_value = False
+
+        if self.__has_dictionaries is None:
+            for key in sorted(self.interfaces):
+                i = self.interfaces[key]
+                if i.dictionaries:
+                    return_value = True
+                    break
+
+            self.__has_dictionaries = return_value
+        else:
+            return_value = self.__has_dictionaries
 
         return return_value
 

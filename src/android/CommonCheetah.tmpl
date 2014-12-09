@@ -16,6 +16,7 @@
 #import GenAndroid
 #from .. import argdef
 #from .. import signaldef
+#from .. import structdef
 #from .. import interface as iface
 #####################
 ## Declare a specific instance of a class for one interface.
@@ -116,7 +117,7 @@ $CommonCheetah.define_persistent_class($interface, $s, $is_client, $indent_count
         #set $class_name = $CommonCheetah.make_persistent_class_name($interface, $comp)
 ${indent}$visibility class $class_name {
         #for $a in $args
-            #if $a.is_array()
+            #if $a.is_array() and not $a.is_dictionary()
                 #set $array_brackets = "[]"
             #else
                 #set $array_brackets = ""
@@ -124,16 +125,35 @@ ${indent}$visibility class $class_name {
             #set $t = $GenAndroid.get_base_java_type($a.interface, $a.arg_type, $comp)
             #set $init = $GenAndroid.get_initialization($a, $comp)
 ## A persistent string needs a private int, HelloNumber_$a.name, to initialize it.
-            #if $t == "String"
+            #if $t == "String" and not $a.is_array()
 ${indent}    $visibility int HelloNumber_$a.name = 0;
             #end if
 ${indent}    $visibility $t$array_brackets $a.name$init;
         #end for
+
+${indent}    $visibility ${class_name}() {
+        #set $add_newline = False
+        #for $a in $args
+            #if $a.is_dictionary()
+                #if $add_newline
+
+                #end if
+                #for $entry in range(5)
+                ${a.name}.put($GenAndroid.make_random_dictionary_init($a));
+                #end for
+                #set $add_newline = True
+            #end if
+        #end for
+${indent}    }
+
+${indent}    $visibility void incrementArgs() {
+$CommonCheetah.increment_args(None, None, $comp, $args, $indent_count + 8)#slurp
+${indent}    }
 ${indent}}
     #end if
 #end def
 #####################
-## Make a collision free class name from these component.
+## Make a collision free class name for this interface component.
 ## 'comp' can be a method, signal, or property.
 #####################
 #@staticmethod
@@ -158,63 +178,92 @@ ${indent}}
 #####################
 #@staticmethod
 #def increment_args($object, $interface, $comp, $args, $indent_count)
+    #set $arg_num = 0
     #for $a in $args
-$CommonCheetah.increment_arg($object, $interface, $comp, $a, $indent_count)#slurp
+$CommonCheetah.increment_arg($object, $interface, $comp, $a, $arg_num, $indent_count)#slurp
+        #set $arg_num = $arg_num + 1
+        #if $arg_num < len($args)
+
+        #end if
     #end for
 #end def
 #####################
 ## "Increment" this argument for the "runnable" version of the program.
 #####################
 #@staticmethod
-#def increment_arg($object, $interface, $comp, $arg, $indent_count)
-    #if $arg.is_array()
+#def increment_arg($object, $interface, $comp, $arg, $arg_num, $indent_count)
+## Dictionaries are also considered arrays so be careful here.
+    #set $indent = $indent_count * ' '
+    #if ($arg.is_array() and not $arg.is_dictionary()) or $arg.is_dictionary_array()
         #set $element0 = "[0]"
     #else
         #set $element0 = ""
     #end if
-    #if $arg.is_structure() or $arg.is_dictionary()
-        #set $indent = $indent_count * ' '
-        #set $instance_name = $CommonCheetah.make_persistent_instance_name($object, $interface, $comp)
-        #set $arg_name = "{0}.{1}".format($instance_name, $arg.name)
-${indent}${instance_name}.${arg.name}${element0}.Increment();
+    #if $interface
+        #set $instance_name = $CommonCheetah.make_persistent_instance_name($object, $interface, $comp) + '.'
     #else
-$CommonCheetah.increment_object($element0, $object, $interface, $comp, $arg, $indent_count)#slurp
+        #set $instance_name = ""
     #end if
-#end def
-#####################
-## "Increment" this one "incrementable" argument object.
-#####################
-#@staticmethod
-#def increment_object($element0, $object, $interface, $comp, $arg, $indent_count)
-    #set $sig = $arg.get_base_signature()
-    #set $indent = $indent_count * " "
-    #set $instance_name = $CommonCheetah.make_persistent_instance_name($object, $interface, $comp)
-    #set $arg_name = "{0}.{1}".format($instance_name, $arg.name)
-    #if $sig == 'd'
+    #set $arg_name = "{0}{1}".format($instance_name, $arg.name)
+    #if $arg.is_structure()
+${indent}${instance_name}${arg.name}${element0}.Increment();
+    #else
+        #set $sig = $arg.get_base_signature()
+        #if $sig == 'd'
 ${indent}$arg_name$element0 += 0.1;
-    #elif $sig == 'v'
+        #elif $sig == 'v'
 ${indent}${arg_name}_int$element0++;
-    #elif $sig == 'b'
+        #elif $sig == 'b'
 ${indent}$arg_name$element0 = !${arg_name}$element0;
 ## Arrays of strings are handled differently.
-    #elif $sig in ('s', 'o', 'g') and not $arg.is_array
-        #set $comment_name = $CommonCheetah.make_component_comment_name($object, $interface, $comp)
-        #if $sig == 'o'
-${indent}$arg_name = String.format("%s %d", '$comment_name', ++${instance_name}.HelloNumber_$arg.name);
-        #elif $sig == 'g'
-${indent}$arg_name = String.format("(sig%c)", 's' + (++${instance_name}.HelloNumber_$arg.name % 3));
-        #else
-${indent}$arg_name =
-${indent}        String.format("Hello # %d from '$comment_name'.",
-${indent}                ++${instance_name}.HelloNumber_$arg.name);
-        #end if
-    #else
-        #if $arg.is_array
-            #if $sig not in ('s', 'o', 'g')
-${indent}${arg_name}$element0++;
+        #elif $sig in ('s', 'o', 'g')
+            #if $arg.is_array
+${indent}for (int i = 0; i < ${arg_name}.length - 1; i++) {
+${indent}   String temp = ${arg_name}[i];
+
+${indent}   ${arg_name}[i] = ${arg_name}[i + 1];
+${indent}   ${arg_name}[i + 1] = temp;
+${indent}}
+            #else
+                #set $comment_name = $CommonCheetah.make_component_comment_name($object, $interface, $comp)
+                #if $sig == 'o'
+${indent}$arg_name = String.format("/object/path/test%d", ++${instance_name}HelloNumber_$arg.name);
+                #elif $sig == 'g'
+${indent}$arg_name = String.format("(sig%c)", 's' + (++${instance_name}HelloNumber_$arg.name % 3));
+                #else
+${indent}$arg_name = String.format("Hello # %d from '$comment_name' arg '$arg.name'.", ++${instance_name}HelloNumber_$arg.name);
+                #end if
             #end if
         #else
+            #if $arg.is_dictionary
+                #set $kv_types = $GenAndroid.make_dictionary_types($arg.interface, $arg.get_named_type())
+                #set $l = "Set<{0}> s{1} = {2}.keySet();".format($kv_types[0], $arg_num, $arg_name)
+${indent}$l
+                #set $l = "{0} k{1} = s{1}.iterator().next();".format($kv_types[0], $arg_num)
+${indent}$l
+                #set $l = "{0} v{1} = {2}.get(k{1});".format($kv_types[1], $arg_num, $arg_name)
+${indent}$l
+
+                #if $kv_types[1] in $GenAndroid.type_primative_to_object_dictionary.values()
+                    #if $kv_types[1] == "String"
+${indent}if (Character.isLowerCase(v${arg_num}.charAt(0))) {
+${indent}    v${arg_num}.toUpperCase();
+${indent}} else {
+${indent}    v${arg_num}.toLowerCase();
+${indent}}
+                    #elif $kv_types[1] == "Boolean"
+${indent}v$arg_num = !v$arg_num;
+                    #else
+${indent}v$arg_num++;
+                    #end if
+                #else
+${indent}/* TODO: Make a change in 'v$arg_num' before putting it back in the dictionary. */
+                #end if
+                #set $l = "{0}.put(k{1}, v{1});".format($arg_name, $arg_num)
+${indent}$l
+            #elif $sig not in ('s', 'o', 'g')
 ${indent}${arg_name}$element0++;
+            #end if
         #end if
     #end if
 #end def
@@ -250,8 +299,10 @@ ${comma_space}$arg_name#slurp
 #def make_component_comment_name($object, $interface, $component)
     #if $object
         #return "{0}/{1}::{2}()".format($object.get_full_name(), $interface.interface_full_name, $component.name)
-    #else
+    #elif $interface
         #return "{0}::{1}()".format($interface.interface_full_name, $component.name)
+    #else
+        #return "{0}()".format($component.name)
     #end if
 #end def
 #####################
@@ -263,24 +314,47 @@ ${comma_space}$arg_name#slurp
     #if $args
 
 ${indent}String ajcgMessageString;
+        #set $dict_arg_num = 0
         #for $a in $args
 
-            #if $a.is_array
-                #set base_sig = $a.get_flattened_base_signature()
-                #if base_sig in $GenAndroid.printf_dictionary.viewkeys()
-                    #set $f = $GenAndroid.printf_dictionary[base_sig]
-${indent}ajcgMessageString = String.format("${a.name}[0] = '$f'", ${a.name}[0]);
-                #else
-${indent}ajcgMessageString = String.format("${a.name}[0] = '%s'", ${a.name}[0].toString());
-                #end if
-            #elif $a.is_structure or $a.is_dictionary
-${indent}ajcgMessageString = String.format("$a.name = '%s'", ${a.name}.toString());
-            #else
-                #set $f = $GenAndroid.printf_dictionary[$a.arg_type]
-${indent}ajcgMessageString = String.format("$a.name = '$f'", $a.name);
+$CommonCheetah.format_arg($a, $a.name, $dict_arg_num, $indent_count)
+            #if $a.is_dictionary()
+                #set $dict_arg_num = $dict_arg_num + 1
             #end if
 ${indent}sendUiMessage(ajcgMessageString);
         #end for
+    #end if
+#end def
+#####################
+## Format this one argument. The name of the argument could be returnValue or it could be $arg.name
+## so the following code should only use $name.
+## The arg_num may be an empty string and is only used to distinguish between dictionary arguments.
+## It is presumed that the variable 'String ajcgMessageString'
+## is the destination of the output. The caller must do the actual output of this string to the UI.
+#####################
+#@staticmethod
+#def format_arg($arg, $name, $arg_num, $indent_count)
+    #set $indent = $indent_count * " "
+    #if $arg.is_array and not $arg.is_dictionary
+        #set base_sig = $arg.get_flattened_base_signature()
+        #if base_sig in $GenAndroid.printf_dictionary.viewkeys()
+            #set $f = $GenAndroid.printf_dictionary[base_sig]
+${indent}ajcgMessageString = String.format("${name}[0] = '$f'", ${name}[0]);
+        #else
+${indent}ajcgMessageString = String.format("${name}[0] = '%s'", ${name}[0].toString());
+        #end if
+    #elif $arg.is_structure
+${indent}ajcgMessageString = String.format("$name = '%s'", ${name}.toString());
+    #elif $arg.is_dictionary
+        #set $kv_types = $GenAndroid.make_dictionary_types($arg.interface, $arg.get_named_type())
+        #set $l = "Set<{0}> s{1} = {2}.keySet();".format($kv_types[0], $arg_num, $name)
+${indent}$l
+        #set $l = "{0} k{1} = s{1}.iterator().next();".format($kv_types[0], $arg_num)
+${indent}$l
+${indent}ajcgMessageString = String.format("${name}.get(%s) = '%s'", k${arg_num}.toString(), ${name}.get(k$arg_num).toString());
+    #else
+        #set $f = $GenAndroid.printf_dictionary[$arg.arg_type]
+${indent}ajcgMessageString = String.format("$name = '$f'", $name);
     #end if
 #end def
 #####################
@@ -291,6 +365,9 @@ ${indent}sendUiMessage(ajcgMessageString);
     #set $indent = $indent_count * ' '
     #set $structures = $interface.get_containers_in_declaration_order()
     #for $s in $structures
+        #if not isinstance($s, $structdef.StructDef)
+            #continue
+        #end if
 ${indent}public class $s.name {
         #set $members = $GenAndroid.make_members_from_structure($interface, $s)
         #set $position = 0

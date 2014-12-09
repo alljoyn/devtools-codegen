@@ -63,7 +63,7 @@ class MemberDef:
         return (not self.references_named_type()) and is_basic_type(self.arg_type)
 
     def is_array(self):
-        """Return True if this argument is an array."""
+        """Return True if this argument is an array. A dictionary is considered an array."""
         return is_array(self.get_flattened_signature())
 
     def is_structure(self):
@@ -73,6 +73,10 @@ class MemberDef:
     def is_dictionary(self):
         """Return True if the base argument type is a dictionary."""
         return is_dictionary(self.get_flattened_signature())
+
+    def is_dictionary_array(self):
+        """Return True if the base argument type is an array of dictionaries."""
+        return is_dictionary_array(self.get_flattened_signature())
 
     def get_indirection_level(self):
         """Get the number of dimensions in the array or 0 if not an array."""
@@ -119,7 +123,6 @@ Examples:
             return False
         return True
 
-
 def get_indirection_level(signature):
     """Get the number of dimensions in the array or 0 if not an array."""
     return len(signature) - len(signature.lstrip('a'))
@@ -129,7 +132,7 @@ def get_base_signature(signature, index = 0):
     return signature[index:len(signature)].lstrip('a')
 
 def is_array(signature):
-    """Return True if this argument is an array."""
+    """Return True if this argument is an array. A dictionary is considered an array."""
     return signature[0] == "a"
 
 def is_structure(signature):
@@ -141,6 +144,10 @@ def is_dictionary(signature):
     """Return True if the base argument type is a dictionary."""
     sig = get_base_signature(signature)
     return signature[0] == 'a' and sig[0] == '{'
+
+def is_dictionary_array(signature):
+    """Return True if the base argument type is an array of dictionaries."""
+    return is_dictionary(signature) and get_indirection_level(signature) > 1
 
 def __find_end_of_type(signature, index = 0):
     """Returns the index of the start of the next type starting at 'index'.

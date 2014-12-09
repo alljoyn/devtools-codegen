@@ -122,11 +122,6 @@ class Android(unittest.TestCase):
         files = self.__directory_xml_files("unnamed")
 
         for f in files:
-            # TODO: Fix the code generator so this test passes.
-            if str.find(f, "unnamed_sample_1.xml") != -1:
-                print("Skipping test file '{0}'.".format(f))
-                continue
-
             self.__generate_code(f, False, "/root")
             self.__generate_code(f, True, "/root")
 
@@ -137,11 +132,6 @@ class Android(unittest.TestCase):
         files = self.__directory_xml_files("structs")
 
         for f in files:
-            # TODO: Fix the code generator so this test passes.
-            if str.find(f, "Complex.xml") != -1:
-                print("Skipping test file '{0}'.".format(f))
-                continue
-
             self.__generate_code(f, False)
             self.__generate_code(f, True)
 
@@ -164,7 +154,7 @@ class Android(unittest.TestCase):
 
         for f in files:
             # TODO: Fix the code generator so this test passes.
-            if str.find(f, "dictionar") != -1:
+            if str.find(f, "dictionary_of_arrays.xml") != -1:
                 print("Skipping test file '{0}'.".format(f))
                 continue
 
@@ -178,11 +168,6 @@ class Android(unittest.TestCase):
         files = self.__directory_xml_files("properties")
 
         for f in files:
-            # TODO: Fix the code generator so this test passes.
-            if str.find(f, "dictionar") != -1:
-                print("Skipping test file '{0}'.".format(f))
-                continue
-
             self.__generate_code(f, False)
             self.__generate_code(f, True)
 
@@ -193,21 +178,6 @@ class Android(unittest.TestCase):
         files = self.__directory_xml_files("samples")
 
         for f in files:
-            # TODO: Fix the code generator so this test passes.
-            if str.find(f, "sample_1.xml") != -1:
-                print("Skipping test file '{0}'.".format(f))
-                continue
-
-            # TODO: Fix the code generator so this test passes.
-            if str.find(f, "sample_dictEntry_args.xml") != -1:
-                print("Skipping test file '{0}'.".format(f))
-                continue
-
-            # TODO: Fix the code generator so this test passes.
-            if str.find(f, "sample_with_prop.xml") != -1:
-                print("Skipping test file '{0}'.".format(f))
-                continue
-
             self.__generate_code(f, False)
             self.__generate_code(f, True)
 
@@ -218,11 +188,6 @@ class Android(unittest.TestCase):
         files = self.__directory_xml_files("signals")
 
         for f in files:
-            # TODO: Fix the code generator so this test passes.
-            if str.find(f, "signal_dictionary.xml") != -1:
-                print("Skipping test file '{0}'.".format(f))
-                continue
-
             self.__generate_code(f, False)
             self.__generate_code(f, True)
 

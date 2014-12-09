@@ -28,6 +28,12 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.Comparator;
 import java.util.Iterator;
+#if $service.has_dictionaries
+import java.util.HashMap;
+#end if
+#if $service.has_dictionaries and $command_line.runnable
+import java.util.Set;
+#end if
 
 #end if
 /* Android imports. */

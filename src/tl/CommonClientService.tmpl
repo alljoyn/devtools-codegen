@@ -23,7 +23,7 @@
  * must be large enough to hold the full service name because AJ_StartClientByName()
  * uses this for output.
  *********/
-const char g_ServiceName[AJ_MAX_SERVICE_NAME_SIZE] = "$command_line.well_known_name";
+char g_ServiceName[AJ_MAX_SERVICE_NAME_SIZE] = "$command_line.well_known_name";
 
 ## Create all of the interface description tables.
 #for $key in $sorted($service.interfaces)

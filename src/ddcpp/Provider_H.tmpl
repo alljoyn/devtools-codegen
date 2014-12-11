@@ -149,7 +149,7 @@ protected:
     #if $method.no_reply
         #set $reply = None
     #else
-        #set $reply = $method.name + 'Reply& _reply'
+        #set $reply = 'std::shared_ptr<' + $method.name + 'Reply> _reply'
     #end if
 
     /**
@@ -160,6 +160,8 @@ protected:
 #end for
 
 private:
+    datadriven::ProvidedObject* _obj;
+
 #for $method in $interface.methods
     void ${method.name}(const ajn::InterfaceDescription::Member *, ajn::Message &);
 #end for

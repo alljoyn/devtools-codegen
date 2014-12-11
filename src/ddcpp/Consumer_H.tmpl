@@ -27,7 +27,7 @@
 
 \#include <memory>
 \#include <qcc/String.h>
-\#include <qcc/Mutex.h>
+\#include <datadriven/Mutex.h>
 \#include <datadriven/ConsumerMethodReply.h>
 \#include <datadriven/ProxyInterface.h>
 \#include <datadriven/MethodInvocation.h>
@@ -123,7 +123,7 @@ protected:
 
 private:
     Properties props;
-    mutable qcc::Mutex mutex;
+    mutable datadriven::Mutex mutex;
     ${interface.cons_class}(const ${interface.cons_class}&); // prevent copy by construction
     void operator=(const ${interface.cons_class}&); // prevent copy by assignment
 };

@@ -33,7 +33,7 @@ package_data_files.extend(ddapi_cpp_package)
 setup(name='AllJoynCodeGenSetup',
       version=config.get_version(),
       description='AllJoyn Code Generator',
-      url='http://www.alljoyn.org/',
+      url='https://allseenalliance.org/',
       package_dir={'AllJoynCodeGen': 'src'},
       package_data={'AllJoynCodeGen': package_data_files},
       packages=['AllJoynCodeGen'],

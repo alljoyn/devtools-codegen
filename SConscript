@@ -77,7 +77,7 @@ elif platform.system() == "Windows":
     build_option = "bdist_msi"
     build_target = "AllJoynCodeGenSetup-{0}.win32.msi".format(version)
 
-setup_action = "python setup.py {0}".format(build_option)
+setup_action = "python2 setup.py {0}".format(build_option)
 
 _generate(env)
 

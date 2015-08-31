@@ -70,12 +70,6 @@ class ParseAjXml:
         same. Return the valid bus-object/object-path or throw an
         exception."""
 
-        # Some code generation targets (e.g. ddcpp) ignore the bus object path.
-        # They'll insert the magic value "/ignored/not/relevant" in the command
-        # line arguments to indicate this.
-        if cmd_bus_object_path == "/ignored/not/relevant":
-            return cmd_bus_object_path
-
         if (xml_bus_object_path is not None and
            cmd_bus_object_path is not None and
            xml_bus_object_path != cmd_bus_object_path):

@@ -88,10 +88,6 @@ class TestConfig(unittest.TestCase):
         c = util.get_config()
         self.assertTrue(c.command_line.target_language == "android")
 
-        args[1] = "-tddcpp"
-        c = util.get_config()
-        self.assertTrue(c.command_line.target_language == "ddcpp")
-
         args[1] = "-tFoo"
 
         try:
@@ -108,10 +104,6 @@ class TestConfig(unittest.TestCase):
         sys.argv = args
         # non-optional for 'tl'
         self.assertRaises(config.ConfigException, util.get_config)
-        # optional for 'ddcpp'
-        args[1] = "-tddcpp"
-        c = util.get_config()
-        self.assertTrue(c.command_line.well_known_name == None)
         return
 
     def test_well_known_name(self):

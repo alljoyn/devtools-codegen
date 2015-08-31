@@ -26,10 +26,6 @@ android_package = ['android/GenAndroid.py', 'android/__init__.py', 'android/*.tm
                    'android/.settings/*', 'android/res/*/*']
 package_data_files.extend(android_package)
 
-# All files needed for DataDriven C++ API support.
-ddapi_cpp_package = ['ddcpp/GenCPP.py', 'ddcpp/__init__.py', 'ddcpp/*.tmpl']
-package_data_files.extend(ddapi_cpp_package)
-
 setup(name='AllJoynCodeGenSetup',
       version=config.get_version(),
       description='AllJoyn Code Generator',

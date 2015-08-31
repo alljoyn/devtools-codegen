@@ -25,7 +25,7 @@ the installers. To do this follow the instructions below:
    To build the Python files from the Cheetah .TMPL files run the following
    command from the src directory:
 
-        cheetah.py compile tl/*.tmpl Android/*.tmpl ddcpp/*.tmpl
+        cheetah.py compile tl/*.tmpl Android/*.tmpl 
 
 2) To build the Windows installer:
 

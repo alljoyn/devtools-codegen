@@ -55,11 +55,9 @@ def alljoyn_data(service, target):
         __thin_library_service(service)
     elif target == 'android':
         __android_service(service)
-    elif target == "ddcpp":
-        pass
     else:
         # TODO: Validation for other target types.
-        assert(target == "tl" or target == "android" or target == "ddcpp")
+        assert(target == "tl" or target == "android")
 
     return
 

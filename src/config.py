@@ -95,8 +95,7 @@ class Config:
                             action="store_true")
 
         help_text = """The target language. 'android' is for Java code on
-            the Android platform. 'tl' is C code for AllJoyn Thin Library.
-            'ddcpp' is C++ code for the Data-driven API."""
+            the Android platform. 'tl' is C code for AllJoyn Thin Library."""
         parser.add_argument("-t", "--target-language", required=True,
                             choices=self.targets.keys(),
                             help=help_text)

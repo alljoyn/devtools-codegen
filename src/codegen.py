@@ -24,7 +24,6 @@ try:
     # All modules that contain Cheetah templates must be placed within this try.
     import tl.GenTL
     import android.GenAndroid
-    import ddcpp.GenCPP
 except cce.CheetahCompilationException:
     print("Unable to import compiled template modules.")
     print("Run ajcodegen-compile.py and try again.")
@@ -101,7 +100,6 @@ def register_targets(c):
     """Register the target languages supported with the configuration 'c'."""
     c.register_target('tl', tl.GenTL.hooks())
     c.register_target('android', android.GenAndroid.hooks())
-    c.register_target('ddcpp', ddcpp.GenCPP.hooks())
 
 if __name__=="__main__":
     main()

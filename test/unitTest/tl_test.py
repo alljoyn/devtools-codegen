@@ -321,7 +321,7 @@ class ThinLibrary(unittest.TestCase):
                             "CommonClientService.c",
                             "CommonClientService.h",
                             "ReadMe.txt",
-                            "SConscript",
+                            "SConstruct",
                             "Service.h",
                             "ServiceDoWork.c",
                             "ServiceMain.c",

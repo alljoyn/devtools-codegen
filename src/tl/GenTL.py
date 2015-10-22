@@ -18,7 +18,7 @@ import os
 from .. import CheetahCompileExcept as cce
 
 try:
-    from SConscript import SConscript
+    from SConstruct import SConstruct
     from CommonClientService import CommonClientService
     from CommonClientService_H import CommonClientService_H
 
@@ -157,7 +157,7 @@ def __generate_code(command_line, service):
         client_sources.append(source)
 
     client_exe = Executable("ClientMain", client_sources)
-    temp = SConscript()
+    temp = SConstruct()
 
     if command_line.client_only:
         temp.executables = [client_exe]
@@ -165,7 +165,7 @@ def __generate_code(command_line, service):
         service_exe = Executable("ServiceMain", service_sources)
         temp.executables = [service_exe, client_exe]
 
-    make_target_file(temp, "SConscript", command_line)
+    make_target_file(temp, "SConstruct", command_line)
 
     return
 

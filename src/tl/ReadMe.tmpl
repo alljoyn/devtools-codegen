@@ -20,18 +20,12 @@ The files "CommonClientService.h" and "CommonClientService.c" are used by both
 the client and service side. These contain information such as the service port,
 the interface descriptions, and the instances of those interfaces.
 
-The "SConscript" file can be used to build the executables. To do this put
-this collection of files in a subdirectory of your Thin Library source and
-modify the SConstruct file in the root of the Thin Library source. Add a line
-after the last existing env.SConscript() entry. This line should look like:
-
-    env.SConscript('<your codegen path>/SConscript')
-
-Where <your codegen path> will be the path to this set of files.
-
-Then, from the root of your Thin Library installation, run "Scons WS=off".
-
-This will build the executables.
+The "SConstruct" file can be used to build the executables on the
+development platforms supported by the AllJoyn Thin Core Library. To
+do so, first run 'scons' to build the Thin Core Library. This creates
+a 'dist' subdirectory with the AllJoyn headers and libraries. Place
+the files created by the code generator in the 'dist' subdirectory of
+your Thin Library source, then run 'scons' in that directory.
 
 All other files are specific to either the client or service side. Such files
 have either "Client" or "Service" as the first part of their name.

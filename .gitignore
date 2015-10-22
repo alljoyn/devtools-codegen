@@ -2,6 +2,7 @@
 .classpath
 .pydevproject
 .externalToolBuilders/
+.sconsign.dblite
 ajngen
 ajgen
 bin

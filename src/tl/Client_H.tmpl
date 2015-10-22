@@ -18,7 +18,7 @@
 
 /* Source: "$command_line.xml_input_file" */
 
-\#include <alljoyn.h>
+\#include <ajtcl/alljoyn.h>
 #for $key in sorted($service.interfaces)
     #set $i = $service.interfaces[$key]
 \#include "Client${i.interface_full_name}.h"

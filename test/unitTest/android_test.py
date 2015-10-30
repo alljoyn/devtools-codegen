@@ -206,7 +206,7 @@ class Android(unittest.TestCase):
 
     def __generate_code(self, filename, runnable, object_path = None):
         print("Runnable: {0}, File: {1}".format(runnable, filename))
-        pathname = tempfile.mkdtemp(".CodGen")
+        pathname = tempfile.mkdtemp(".CodeGen")
 
         try:
             output_path_arg = "-p{0}".format(pathname)

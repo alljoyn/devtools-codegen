@@ -23,9 +23,18 @@ the interface descriptions, and the instances of those interfaces.
 The "SConstruct" file can be used to build the executables on the
 development platforms supported by the AllJoyn Thin Core Library. To
 do so, first run 'scons' to build the Thin Core Library. This creates
-a 'dist' subdirectory with the AllJoyn headers and libraries. Place
-the files created by the code generator in the 'dist' subdirectory of
-your Thin Library source, then run 'scons' in that directory.
+a 'dist' subdirectory with the AllJoyn headers and libraries. Within
+that 'dist' subdirectory, create a new directory and place the files
+created by the code generator there. You should see these directories
+all listed within 'dist':
+
+ * inc/
+ * lib/
+ * Your codegen subdirectory
+ * ajtcl application subdirectories (for example, bin/ and test/)
+
+Run 'scons' in the directory containing your code generator output to
+build your generated application.
 
 All other files are specific to either the client or service side. Such files
 have either "Client" or "Service" as the first part of their name.

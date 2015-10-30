@@ -267,7 +267,7 @@ class ThinLibrary(unittest.TestCase):
                 print("No compilation attempted.")
                 thin_client_home_environment_variable_warning = True
 
-            pathname = tempfile.mkdtemp(".CodGen")
+            pathname = tempfile.mkdtemp(".CodeGen")
         else:
             tl_home = os.environ[thin_client_home_environment_variable]
             pathname = os.path.join(tl_home, "codegen")
@@ -394,7 +394,7 @@ class ThinLibrary(unittest.TestCase):
 
         try:
             thin_client_home = os.environ[thin_client_home_environment_variable]
-            os.chdir(thin_client_home)
+            os.chdir(os.path.join(thin_client_home, "codegen"))
             subprocess.check_output([scons_command, "WS=detail"])
         finally:
             os.chdir(cwd)

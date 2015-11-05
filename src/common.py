@@ -44,7 +44,7 @@ def get_annotations(xml, aj_object):
                 __report_missing_value(xml, name)
             aj_object.set_emits_changed_signal(value)
         else:
-            f = "\nWarning! Ignoring interface annotation '{0}'."
+            f = "\nIgnoring interface annotation '{0}'."
             mess = f.format(name)
             mess = validate.get_xml_error(xml, mess)
             print(mess)

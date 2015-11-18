@@ -21,7 +21,7 @@ class ConfigException(Exception):
     """Configuration exceptions"""
 
 def get_version():
-    return "0.0.1"
+    return "15.09"
 
 class Config:
     """Contains the configuration obtained from the command line.

@@ -356,7 +356,8 @@ ${indent}        break;
 ${indent}    }
 
 ${indent}default: /* Unexpected variant type. */
-${indent}    assert(0);
+${indent}    AJ_AlwaysPrintf(("%s:%d - Unexpected variant type '%c'\n", __FILE__, __LINE__, ${arg.name}.sigPtr[0]));
+${indent}    exit(-1);
 ${indent}}
 
 ${indent}ajcgStatus = AJ_UnmarshalArgs(ajcgMsg, ${arg.name}.sigPtr, ${arg.name}.val.v_data);
